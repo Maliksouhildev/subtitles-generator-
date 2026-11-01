@@ -315,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
     downloadVideoBtn.href = data.video_url;
     downloadAssBtn.href = data.ass_url;
     downloadSrtBtn.href = data.srt_url;
-    downloadJsonBtn.href = data.json_url;
+    downloadJsonBtn.href = data.json_url || `/api/download/${currentTaskId}/transcript.json`;
 
     videoContainer.classList.remove("hidden");
     resultVideo.load();

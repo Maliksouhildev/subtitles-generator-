@@ -17,13 +17,14 @@ import requests
 logger = logging.getLogger("darija_transcriber")
 logging.basicConfig(level=logging.INFO)
 
-# Gemini models with free-tier access ordered by speed & transcription accuracy
+# Gemini models with free-tier access ordered by speed, transcription accuracy & JSON mode support
 GEMINI_MODELS = [
-    "gemini-3.5-transcribe",
     "gemini-3.5-flash-lite",
-    "gemini-3.1-flash-lite",
     "gemini-flash-latest",
-    "gemini-2.0-flash"
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-3.5-transcribe"
 ]
 
 DARIJA_SYSTEM_PROMPT = """
@@ -122,13 +123,22 @@ def clean_gemini_json(raw_text: str) -> Dict[str, Any]:
         text = text[:-3]
     text = text.strip()
 
-    # Sometimes Gemini might wrap or have leading comments
-    start_idx = text.find("{")
-    end_idx = text.rfind("}")
-    if start_idx != -1 and end_idx != -1:
-        text = text[start_idx:end_idx + 1]
+    # Find boundaries of JSON object or array
+    obj_start = text.find("{")
+    arr_start = text.find("[")
+
+    if arr_start != -1 and (obj_start == -1 or arr_start < obj_start):
+        arr_end = text.rfind("]")
+        if arr_end != -1:
+            text = text[arr_start:arr_end + 1]
+    elif obj_start != -1:
+        obj_end = text.rfind("}")
+        if obj_end != -1:
+            text = text[obj_start:obj_end + 1]
 
     data = json.loads(text)
+    if isinstance(data, list):
+        data = {"segments": data}
     return data
 
 
@@ -137,6 +147,7 @@ def interpolate_word_timestamps(segment: Dict[str, Any]) -> List[Dict[str, Any]]
     Ensures that a segment has word-level timestamps.
     If the AI model provided segment-level times but omitted or gave incomplete word timestamps,
     this calculates precise proportional timestamps based on word lengths and duration.
+    If the user edited word text in the subtitle editor, updates the word text while preserving timing.
     """
     words_data = segment.get("words", [])
     text = segment.get("text", "").strip()
@@ -151,15 +162,20 @@ def interpolate_word_timestamps(segment: Dict[str, Any]) -> List[Dict[str, Any]]
     seg_end = float(segment.get("end", seg_start + 2.0))
     duration = max(0.2, seg_end - seg_start)
 
-    # If valid word timestamps already exist for all words, validate and return
+    # If word timestamps already exist with matching word count, sync text and validate
     if words_data and len(words_data) == len(words):
         valid = True
         for w in words_data:
-            if "start" not in w or "end" not in w or not w.get("word"):
+            if "start" not in w or "end" not in w:
                 valid = False
                 break
         if valid:
-            return words_data
+            updated_words = []
+            for idx, w in enumerate(words_data):
+                w_copy = dict(w)
+                w_copy["word"] = words[idx]
+                updated_words.append(w_copy)
+            return updated_words
 
     # Otherwise interpolate based on character weight
     total_chars = sum(len(w) for w in words)

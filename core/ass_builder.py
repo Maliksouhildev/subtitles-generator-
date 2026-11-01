@@ -10,7 +10,15 @@ Features:
 """
 
 import math
+import re
 from typing import List, Dict, Any, Optional
+
+ARABIC_REGEX = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]')
+
+
+def is_arabic_text(text: str) -> bool:
+    """Checks if text contains Arabic characters."""
+    return bool(ARABIC_REGEX.search(text))
 
 
 def hex_to_ass_color(hex_str: str, alpha: int = 0) -> str:
@@ -105,19 +113,28 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return header
 
     def chunk_words(self, words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
-        """Splits a flat list of words into chunks of `words_per_line`."""
+        """Splits words into chunks of `words_per_line`, breaking on significant pauses."""
         if not words:
             return []
         chunks = []
-        for i in range(0, len(words), self.words_per_line):
-            chunk = words[i:i + self.words_per_line]
-            chunks.append(chunk)
+        current_chunk = []
+        for w in words:
+            if current_chunk:
+                prev_w = current_chunk[-1]
+                # Break chunk if pause between words > 1.2s or chunk reaches words_per_line
+                pause_gap = w.get("start", 0.0) - prev_w.get("end", 0.0)
+                if pause_gap > 1.2 or len(current_chunk) >= self.words_per_line:
+                    chunks.append(current_chunk)
+                    current_chunk = []
+            current_chunk.append(w)
+        if current_chunk:
+            chunks.append(current_chunk)
         return chunks
 
     def build_karaoke_pop_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
         """
         Builds word-by-word pop and highlight events.
-        For each word in the chunk, during its active timestamp, it is highlighted and scaled up.
+        For Arabic / RTL text, words are arranged visually in RTL order (first spoken word on the right).
         """
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
@@ -129,14 +146,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_start = chunk[0]["start"]
-            chunk_end = chunk[-1]["end"]
-            # Add a small padding at the end of the chunk if there's a pause
-            chunk_end = max(chunk_end, chunk_start + 0.3)
+            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
 
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
-                # Active word ends when next word begins, or at chunk_end
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
@@ -148,12 +161,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                # Assemble line with active word styled
+                # For Arabic (RTL), reverse word order in ASS line so Word 0 is rendered on the RIGHT
+                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+
                 formatted_words = []
-                for j, w in enumerate(chunk):
+                for j in display_indices:
+                    w = chunk[j]
                     word_text = w.get("word", "")
                     if j == i:
-                        # Active highlighted & scaled word
                         formatted_words.append(f"{{{hl_tag}{pop_scale}}}{word_text}{{{pri_tag}{norm_scale}}}")
                     else:
                         formatted_words.append(f"{{{pri_tag}{norm_scale}}}{word_text}")
@@ -172,6 +187,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         for chunk in chunks:
             if not chunk:
                 continue
+
+            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
@@ -185,8 +203,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 end_str = format_ass_time(w_end)
 
                 # Words revealed so far (0..i)
+                revealed_indices = list(reversed(range(i + 1))) if chunk_is_rtl else list(range(i + 1))
+
                 revealed = []
-                for j in range(i + 1):
+                for j in revealed_indices:
                     w_text = chunk[j].get("word", "")
                     if j == i:
                         revealed.append(f"{{{hl_tag}\\fscx112\\fscy112}}{w_text}{{{pri_tag}\\fscx100\\fscy100}}")
@@ -201,10 +221,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     def build_classic_line_events(self, segments: List[Dict[str, Any]]) -> List[str]:
         """Builds classic subtitle lines with smooth fade in/out transitions."""
         events = []
-        fade_tag = "{\\fad(120,120)}"
         for seg in segments:
-            start_str = format_ass_time(seg["start"])
-            end_str = format_ass_time(seg["end"])
+            start = seg.get("start", 0.0)
+            end = seg.get("end", start + 2.0)
+            dur_ms = max(50, int((end - start) * 1000))
+            fade_ms = min(120, max(20, int(dur_ms * 0.15)))
+            fade_tag = f"{{\\fad({fade_ms},{fade_ms})}}"
+            start_str = format_ass_time(start)
+            end_str = format_ass_time(end)
             text = seg.get("text", "").strip()
             events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{fade_tag}{text}")
         return events
@@ -220,6 +244,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         for chunk in chunks:
             if not chunk:
                 continue
+
+            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
@@ -229,8 +256,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
+                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+
                 formatted_words = []
-                for j, w in enumerate(chunk):
+                for j in display_indices:
+                    w = chunk[j]
                     word_text = w.get("word", "")
                     if j == i:
                         formatted_words.append(f"{{{hl_tag}{box_tag}}}{word_text}{{{pri_tag}{reset_box}}}")
@@ -245,15 +275,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     def generate_ass(self, transcription_data: Dict[str, Any]) -> str:
         """
         Generates full ASS file content from transcription data.
+        Chunks words per segment to preserve natural pauses and prevent subtitle drift.
         """
         segments = transcription_data.get("segments", [])
 
-        # Extract all words sequentially
-        all_words = []
+        # Extract words per segment to respect pauses between sentences
+        chunks = []
         for seg in segments:
-            all_words.extend(seg.get("words", []))
-
-        chunks = self.chunk_words(all_words)
+            seg_words = seg.get("words", [])
+            if not seg_words and seg.get("text"):
+                ws = seg["text"].split()
+                dur = (seg.get("end", 0.0) - seg.get("start", 0.0)) / max(1, len(ws))
+                cur = seg.get("start", 0.0)
+                seg_words = [{"word": w, "start": cur + idx * dur, "end": cur + (idx + 1) * dur} for idx, w in enumerate(ws)]
+            if seg_words:
+                chunks.extend(self.chunk_words(seg_words))
 
         header = self.generate_header()
         events = []
@@ -274,3 +310,4 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             events = self.build_classic_line_events(segments)
 
         return header + "\n".join(events) + "\n"
+

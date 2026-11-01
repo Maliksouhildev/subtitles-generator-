@@ -79,3 +79,78 @@ def test_ass_builder_all_styles():
         out = builder.generate_ass(data)
         assert "[Events]" in out
         assert "صحا" in out
+
+
+def test_ass_builder_rtl_ordering():
+    builder = ASSSubtitleBuilder(words_per_line=3, animation_style="karaoke_pop")
+    data = {
+        "segments": [
+            {
+                "start": 0.0,
+                "end": 1.5,
+                "text": "سلام عليكم خاوتنا",
+                "words": [
+                    {"word": "سلام", "start": 0.0, "end": 0.5},
+                    {"word": "عليكم", "start": 0.5, "end": 1.0},
+                    {"word": "خاوتنا", "start": 1.0, "end": 1.5}
+                ]
+            }
+        ]
+    }
+    ass_text = builder.generate_ass(data)
+    # The first event (when 'سلام' is spoken at 0.0) should render 'خاوتنا' first and 'سلام' last
+    # so that libass LTR layout places 'خاوتنا' on the left and 'سلام' on the right
+    event_lines = [l for l in ass_text.splitlines() if l.startswith("Dialogue: 0,0:00:00.00")]
+    assert len(event_lines) == 1
+    ev = event_lines[0]
+    # Word 'خاوتنا' appears before 'سلام' in the ASS line text for correct visual RTL
+    assert ev.index("خاوتنا") < ev.index("سلام")
+
+
+def test_ass_builder_ltr_ordering_preserved():
+    builder = ASSSubtitleBuilder(words_per_line=2, animation_style="karaoke_pop")
+    data = {
+        "segments": [
+            {
+                "start": 0.0,
+                "end": 1.0,
+                "text": "Hello world",
+                "words": [
+                    {"word": "Hello", "start": 0.0, "end": 0.5},
+                    {"word": "world", "start": 0.5, "end": 1.0}
+                ]
+            }
+        ]
+    }
+    ass_text = builder.generate_ass(data)
+    event_lines = [l for l in ass_text.splitlines() if l.startswith("Dialogue: 0,0:00:00.00")]
+    assert len(event_lines) == 1
+    ev = event_lines[0]
+    # In English, 'Hello' comes before 'world'
+    assert ev.index("Hello") < ev.index("world")
+
+
+def test_ass_builder_silence_isolation():
+    builder = ASSSubtitleBuilder(words_per_line=3, animation_style="karaoke_pop")
+    data = {
+        "segments": [
+            {
+                "start": 0.0,
+                "end": 1.0,
+                "text": "سلام",
+                "words": [{"word": "سلام", "start": 0.0, "end": 1.0}]
+            },
+            {
+                "start": 30.0,
+                "end": 31.0,
+                "text": "واش",
+                "words": [{"word": "واش", "start": 30.0, "end": 31.0}]
+            }
+        ]
+    }
+    ass_text = builder.generate_ass(data)
+    events = [l for l in ass_text.splitlines() if l.startswith("Dialogue:")]
+    # Verify segment 1 ends at 1.0s and does not stretch until 30.0s
+    assert any("0:00:00.00,0:00:01.00" in e for e in events)
+    assert not any("0:00:00.00,0:00:30.00" in e for e in events)
+

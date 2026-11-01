@@ -7,15 +7,24 @@ Usage:
 """
 
 import os
+import sys
 import argparse
 import json
 import logging
 from pathlib import Path
 
+# Ensure UTF-8 console output on Windows
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from core.transcriber import transcribe
 from core.ass_builder import ASSSubtitleBuilder
 from core.srt_builder import generate_srt, generate_vtt
-from core.video_engine import render_video, is_video_file
+from core.video_engine import render_video, is_video_file, get_video_dimensions
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("cli")
@@ -65,8 +74,19 @@ def main():
     num_segs = len(transcription.get("segments", []))
     logger.info(f"✅ Transcription complete! Extracted {num_segs} segments.")
 
+    # Determine background mode and resolution
+    bg_mode = args.bg
+    is_video = is_video_file(input_path)
+    if is_video and bg_mode == "green_screen":
+        logger.info("Detected video input! Defaulting background mode to 'original_video'.")
+        bg_mode = "original_video"
+
+    if is_video and bg_mode in ("original_video", "video"):
+        w, h = get_video_dimensions(input_path)
+    else:
+        w, h = (1080, 1920) if args.aspect_ratio == "9:16" else ((1920, 1080) if args.aspect_ratio == "16:9" else (1080, 1080))
+
     # Step 2: Build Subtitles
-    w, h = (1080, 1920) if args.aspect_ratio == "9:16" else ((1920, 1080) if args.aspect_ratio == "16:9" else (1080, 1080))
     builder = ASSSubtitleBuilder(
         font_name=args.font,
         font_size=args.font_size,
@@ -98,12 +118,7 @@ def main():
         logger.info(f"📄 Exported subtitle files: {ass_path}, {base_name}.srt, {base_name}.vtt, {base_name}_transcript.json")
 
     # Step 3: Render Video
-    bg_mode = args.bg
-    if is_video_file(input_path) and bg_mode == "green_screen":
-        logger.info("Detected video input! Defaulting background mode to 'original_video'.")
-        bg_mode = "original_video"
-
-    logger.info(f"🎬 Rendering video with FFmpeg (mode: {bg_mode}, ratio: {args.aspect_ratio})...")
+    logger.info(f"🎬 Rendering video with FFmpeg (mode: {bg_mode}, ratio: {args.aspect_ratio}, res: {w}x{h})...")
     fonts_dir = str(Path(__file__).resolve().parent / "fonts")
 
     rendered_file = render_video(

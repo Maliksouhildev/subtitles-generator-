@@ -41,3 +41,28 @@ def test_generate_vtt():
     assert "WEBVTT" in vtt
     assert "00:00:01.000 --> 00:00:03.000" in vtt
     assert "راني مليح الحمد لله" in vtt
+
+
+def test_srt_silence_isolation():
+    data = {
+        "segments": [
+            {
+                "start": 0.0,
+                "end": 2.0,
+                "text": "سلام",
+                "words": [{"word": "سلام", "start": 0.0, "end": 2.0}]
+            },
+            {
+                "start": 40.0,
+                "end": 42.0,
+                "text": "واش",
+                "words": [{"word": "واش", "start": 40.0, "end": 42.0}]
+            }
+        ]
+    }
+    srt = generate_srt(data, words_per_chunk=3)
+    # Ensure no cue spans across the 40s silence
+    assert "00:00:00,000 --> 00:00:02,000" in srt
+    assert "00:00:40,000 --> 00:00:42,000" in srt
+    assert "00:00:00,000 --> 00:00:42,000" not in srt
+

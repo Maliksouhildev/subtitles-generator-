@@ -46,3 +46,29 @@ def test_normalize_transcription_data():
     assert len(normalized["segments"]) == 1
     assert len(normalized["segments"][0]["words"]) == 2
     assert normalized["text"] == "الحمد لله"
+
+
+def test_clean_gemini_json_array():
+    raw_array = '[{"id": 0, "start": 0.0, "end": 1.0, "text": "سلام"}]'
+    parsed = clean_gemini_json(raw_array)
+    assert "segments" in parsed
+    assert len(parsed["segments"]) == 1
+
+
+def test_interpolate_word_timestamps_user_edit():
+    # User edited a word in the text while keeping original count
+    seg = {
+        "text": "واش راكم",  # edited from 'واش راك'
+        "start": 0.0,
+        "end": 2.0,
+        "words": [
+            {"word": "واش", "start": 0.0, "end": 0.9},
+            {"word": "راك", "start": 0.9, "end": 2.0}
+        ]
+    }
+    words = interpolate_word_timestamps(seg)
+    assert len(words) == 2
+    assert words[1]["word"] == "راكم"
+    assert words[1]["start"] == 0.9
+    assert words[1]["end"] == 2.0
+

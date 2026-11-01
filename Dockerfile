@@ -4,6 +4,7 @@ FROM python:3.11-slim
 # Install system dependencies including FFmpeg with libass and Arabic font libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    fontconfig \
     fonts-noto-core \
     fonts-noto-cjk \
     fonts-liberation \
@@ -22,6 +23,9 @@ COPY core/ ./core/
 COPY fonts/ ./fonts/
 COPY web/ ./web/
 COPY server.py cli.py ./
+
+# Register bundled Arabic fonts with fontconfig
+RUN fc-cache -fv /app/fonts
 
 # Expose web interface port
 EXPOSE 8000

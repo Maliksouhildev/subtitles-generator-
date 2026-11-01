@@ -17,10 +17,10 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from core.transcriber import transcribe, get_audio_duration
+from core.transcriber import transcribe, get_audio_duration, normalize_transcription_data
 from core.ass_builder import ASSSubtitleBuilder
 from core.srt_builder import generate_srt, generate_vtt
-from core.video_engine import render_video, is_video_file
+from core.video_engine import render_video, is_video_file, get_video_dimensions
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("server")
@@ -188,13 +188,20 @@ async def render_subtitles(req: RenderRequest):
         else:
             raise HTTPException(status_code=400, detail="No transcription data available.")
 
-    # Update transcript file if new transcription was passed
+    # Re-normalize to ensure any user-edited segment text is synchronized into word timestamps
+    transcription = normalize_transcription_data(transcription)
+
+    # Save synchronized transcript to task folder
     with open(task_folder / "transcript.json", "w", encoding="utf-8") as f:
         json.dump(transcription, f, ensure_ascii=False, indent=2)
 
     try:
-        # Determine canvas resolution based on aspect ratio
-        w, h = (1080, 1920) if req.aspect_ratio == "9:16" else ((1920, 1080) if req.aspect_ratio == "16:9" else (1080, 1080))
+        # Determine canvas resolution based on media type and background mode
+        is_video = is_video_file(media_path)
+        if is_video and req.background_mode in ("original_video", "video"):
+            w, h = get_video_dimensions(media_path)
+        else:
+            w, h = (1080, 1920) if req.aspect_ratio == "9:16" else ((1920, 1080) if req.aspect_ratio == "16:9" else (1080, 1080))
 
         # 1. Generate ASS Subtitles
         builder = ASSSubtitleBuilder(
