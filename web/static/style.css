@@ -1163,7 +1163,7 @@ html, body {
 .phone-sidebar {
   position: absolute;
   right: 5px;
-  bottom: 52px;
+  bottom: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1224,16 +1224,21 @@ html, body {
   100% { transform: rotate(360deg); }
 }
 
-/* Bottom Safe Zone Overlay */
+/* Bottom Safe Zone Overlay (Positioned at bottom of phone screen) */
 .phone-bottom-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 6px;
+  right: 44px;
   padding: 5px 6px;
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.4) 75%, transparent 100%);
   color: #fff;
-  z-index: 5;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 2.5px;
   text-align: left;
+  pointer-events: none;
 }
 
 .creator-row {
