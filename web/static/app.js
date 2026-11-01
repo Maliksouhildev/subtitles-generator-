@@ -1,6 +1,6 @@
 // DZ Subtitles AI - Multilingual & Interactive Comic Studio Controller
 document.addEventListener("DOMContentLoaded", () => {
-  // DOM Elements
+  // DOM Elements - Left Panel
   const dropZone = document.getElementById("dropZone");
   const fileInput = document.getElementById("fileInput");
   const fileInfo = document.getElementById("fileInfo");
@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const apiKey = document.getElementById("apiKey");
   const presetButtons = document.querySelectorAll(".comic-preset-btn");
 
-  // Theme & Language
+  // Header Controls: Theme & Language
   const themeToggleBtn = document.getElementById("themeToggleBtn");
   const themeLabel = document.getElementById("themeLabel");
   const langButtons = document.querySelectorAll(".lang-btn");
@@ -58,6 +58,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Phone Simulation Elements
   const platformTabs = document.querySelectorAll(".platform-tab");
   const platformTopBar = document.getElementById("platformTopBar");
+  const phoneSidebar = document.getElementById("phoneSidebar");
+  const phoneBottomOverlay = document.getElementById("phoneBottomOverlay");
   const liveSubtitleContainer = document.getElementById("liveSubtitleContainer");
   const liveSubtitleBox = document.getElementById("liveSubtitleBox");
   const subWord1 = document.getElementById("subWord1");
@@ -70,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const guideModal = document.getElementById("guideModal");
   const closeGuideBtn = document.getElementById("closeGuideBtn");
 
-  // State
+  // Application State
   let currentFile = null;
   let currentTaskId = null;
   let currentTranscription = null;
@@ -78,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTheme = localStorage.getItem("dz_subtitles_theme") || "dark";
   let currentPlatform = "tiktok";
 
-  // MULTILINGUAL TRANSLATION DICTIONARY
+  // COMPLETE MULTILINGUAL TRANSLATION DICTIONARY (ZERO EMOJIS, CLEAN & PROFESSIONAL)
   const TRANSLATIONS = {
     en: {
       header_badge: "STUDIO",
@@ -90,6 +92,9 @@ document.addEventListener("DOMContentLoaded", () => {
       dropzone_formats: "Supports MP3, WAV, AAC, MP4, MOV, MKV, WebM",
       btn_browse: "Browse Media",
       progress_idle: "Ready for processing...",
+      badge_synced: "100% Synced",
+      badge_shorts: "Shorts & Reels",
+      badge_comic: "Neo-Comic Style",
       dl_video: "Video (MP4)",
       dl_ass: "ASS Animated",
       dl_srt: "SRT File",
@@ -100,15 +105,19 @@ document.addEventListener("DOMContentLoaded", () => {
       btn_rerender: "Re-render Edits",
       customization_title: "Subtitle & Video Customization",
       customization_badge: "CONTROLS",
-      sim_heading: "Phone Simulation (Safe-Zone Preview)",
-      sim_subscribe: "Follow",
-      sim_caption: "Keep captions safely above this section so UI never covers them! 🚀",
-      sim_safe_zone: "SAFE SUBTITLE ZONE",
-      pos_quick: "Position Snap:",
+      sim_heading: "Phone Simulation",
+      sim_safe_zone: "SAFE ZONE",
+      pos_quick: "Position:",
       pos_top: "Top",
       pos_middle: "Middle",
       pos_safe_bottom: "Safe Bottom",
       presets_title: "Viral Style Presets",
+      preset_gold: "TikTok Gold",
+      preset_cyan: "Cyber Cyan",
+      preset_coral: "Hot Coral",
+      preset_lime: "Lime Punch",
+      preset_comic: "Comic Pop",
+      preset_white: "Classic White",
       ctrl_lang: "Speech Language",
       ctrl_pos: "Subtitle Position",
       ctrl_margin: "Vertical Margin",
@@ -121,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctrl_aspect: "Aspect Ratio",
       ctrl_bg: "Background Canvas",
       ctrl_customcolor: "Custom Color",
-      ctrl_apikey: "Gemini API Key (Optional Override)",
+      ctrl_apikey: "Gemini API Key (Optional)",
       tag_optional: "Preconfigured on server",
       btn_generate: "GENERATE ANIMATED SUBTITLES",
       modal_guide_title: "Video Editing & Safe-Zone Guide",
@@ -130,15 +139,45 @@ document.addEventListener("DOMContentLoaded", () => {
       guide_davinci: "In the Edit or Color page, use the <strong>3D Keyer</strong> or in Fusion use the <strong>Delta Keyer</strong> node to key out the green screen background instantly.",
       guide_black: "If you select Black Screen, no chroma keying is needed! Simply change the video layer's <strong>Blending Mode</strong> to <strong>Screen</strong> in CapCut, Premiere, or Final Cut.",
       guide_safezone: "Always ensure subtitles are positioned at least 260px-320px from the bottom to prevent creator profile handles, follow buttons, captions, and the audio title from obscuring your text.",
-      step_1: "1/4: Uploading & AI speech analysis in progress...",
-      step_2: "2/4: Word timestamps extracted! Building animations...",
+      step_1: "1/4: Uploading and analyzing speech audio...",
+      step_2: "2/4: Word timestamps extracted! Generating animations...",
       step_3: "3/4: Rendering animated video with FFmpeg...",
-      step_4: "✅ Complete! Preview and download your video below.",
-      alert_no_file: "Please upload an audio or video file first!"
+      step_4: "Complete! Preview and download your video below.",
+      alert_no_file: "Please upload an audio or video file first!",
+      sim_tiktok_caption: "Keep captions safely above this section so UI never covers them!",
+      sim_reels_caption: "Keep captions safely above this section so UI never covers them!",
+      sim_shorts_caption: "Keep captions safely above this section so UI never covers them!",
+      sim_follow: "Follow",
+      sim_subscribe: "Subscribe",
+      // Dropdown Options
+      opt_lang_dz: "Algerian Darija (الدارجة الجزائرية)",
+      opt_lang_msa: "Modern Standard Arabic (العربية الفصحى)",
+      opt_lang_fr: "French (Français)",
+      opt_lang_en: "English",
+      opt_pos_bottom: "Bottom (Safe Zone above UI)",
+      opt_pos_center: "Center (Middle)",
+      opt_pos_top: "Top (Header)",
+      opt_anim_karaoke: "Karaoke Pop & Scale",
+      opt_anim_reveal: "Progressive Word Reveal",
+      opt_anim_box: "Box Badge Highlight",
+      opt_anim_classic: "Classic Subtitle Line",
+      opt_words_2: "2 Words (Fast Pacing)",
+      opt_words_3: "3 Words (Optimal Pacing)",
+      opt_words_4: "4 Words",
+      opt_words_5: "5 Words",
+      opt_aspect_916: "9:16 (Shorts / Reels / TikTok)",
+      opt_aspect_169: "16:9 (Landscape / YouTube)",
+      opt_aspect_11: "1:1 (Square)",
+      opt_bg_green: "Green Screen (Chroma Key)",
+      opt_bg_black: "Black Screen (Screen Blend)",
+      opt_bg_blue: "Blue Screen",
+      opt_bg_orig: "Original Video (Burn-In)",
+      opt_bg_trans: "Transparent Alpha (WebM)",
+      opt_bg_custom: "Custom Color"
     },
     fr: {
       header_badge: "STUDIO",
-      brand_tagline: "Générateur de sous-titres animés avec simulation smartphone et zones sécurisées",
+      brand_tagline: "Sous-titres animés automatiques et simulation smartphone sécurisée",
       btn_guide: "Guide",
       studio_title: "Studio & Aperçu du Résultat",
       studio_subtitle: "GÉNÉRATEUR",
@@ -146,6 +185,9 @@ document.addEventListener("DOMContentLoaded", () => {
       dropzone_formats: "Prend en charge MP3, WAV, AAC, MP4, MOV, MKV, WebM",
       btn_browse: "Parcourir",
       progress_idle: "Prêt pour le traitement...",
+      badge_synced: "100% Synchronisé",
+      badge_shorts: "Shorts & Reels",
+      badge_comic: "Style Néo-Comic",
       dl_video: "Vidéo (MP4)",
       dl_ass: "ASS Animé",
       dl_srt: "Fichier SRT",
@@ -156,15 +198,19 @@ document.addEventListener("DOMContentLoaded", () => {
       btn_rerender: "Re-rendre les modifs",
       customization_title: "Personnalisation des Sous-titres & Vidéo",
       customization_badge: "RÉGLAGES",
-      sim_heading: "Simulation Smartphone (Aperçu des zones)",
-      sim_subscribe: "Suivre",
-      sim_caption: "Gardez les sous-titres au-dessus de cette zone pour éviter tout masquage ! 🚀",
-      sim_safe_zone: "ZONE SÛRE POUR SOUS-TITRES",
-      pos_quick: "Alignement rapide :",
+      sim_heading: "Simulation Smartphone",
+      sim_safe_zone: "ZONE SÛRE",
+      pos_quick: "Position :",
       pos_top: "Haut",
       pos_middle: "Milieu",
       pos_safe_bottom: "Bas sécurisé",
       presets_title: "Préréglages de Style Viraux",
+      preset_gold: "Or TikTok",
+      preset_cyan: "Cyber Cyan",
+      preset_coral: "Corail Vif",
+      preset_lime: "Citron Punch",
+      preset_comic: "Comic Pop",
+      preset_white: "Blanc Classique",
       ctrl_lang: "Langue du contenu",
       ctrl_pos: "Position des sous-titres",
       ctrl_margin: "Marge verticale",
@@ -186,15 +232,45 @@ document.addEventListener("DOMContentLoaded", () => {
       guide_davinci: "Dans la page Montage ou Couleur, utilisez <strong>3D Keyer</strong> ou dans Fusion le nœud <strong>Delta Keyer</strong> pour supprimer le fond vert instantanément.",
       guide_black: "Si vous choisissez le Fond Noir, aucun chroma key n'est nécessaire ! Changez simplement le <strong>Mode de fusion</strong> de la piste sur <strong>Superposition / Screen</strong>.",
       guide_safezone: "Assurez-vous toujours que les sous-titres sont placés à au moins 260px-320px du bas pour éviter que le profil, le bouton suivre et la description ne les recouvrent.",
-      step_1: "1/4: Téléversement et analyse audio par l'IA en cours...",
+      step_1: "1/4: Téléversement et analyse audio par l'IA...",
       step_2: "2/4: Mots et horodatages extraits ! Création des animations...",
       step_3: "3/4: Rendu de la vidéo animée avec FFmpeg...",
-      step_4: "✅ Terminé avec succès ! Visionnez et téléchargez ci-dessous.",
-      alert_no_file: "Veuillez d'abord téléverser un fichier audio ou vidéo !"
+      step_4: "Terminé avec succès ! Visionnez et téléchargez ci-dessous.",
+      alert_no_file: "Veuillez d'abord téléverser un fichier audio ou vidéo !",
+      sim_tiktok_caption: "Gardez les sous-titres au-dessus de cette zone pour éviter tout masquage !",
+      sim_reels_caption: "Gardez les sous-titres au-dessus de cette zone pour éviter tout masquage !",
+      sim_shorts_caption: "Gardez les sous-titres au-dessus de cette zone pour éviter tout masquage !",
+      sim_follow: "Suivre",
+      sim_subscribe: "S'abonner",
+      // Dropdown Options
+      opt_lang_dz: "Darija algérienne (الدارجة الجزائرية)",
+      opt_lang_msa: "Arabe standard moderne (العربية الفصحى)",
+      opt_lang_fr: "Français",
+      opt_lang_en: "Anglais",
+      opt_pos_bottom: "Bas (Zone sûre au-dessus de l'UI)",
+      opt_pos_center: "Centre (Milieu)",
+      opt_pos_top: "Haut (En-tête)",
+      opt_anim_karaoke: "Karaoké Pop & Échelle",
+      opt_anim_reveal: "Révélation Progressive de Mots",
+      opt_anim_box: "Surlignage en Boîte Badge",
+      opt_anim_classic: "Ligne Classique de Sous-titres",
+      opt_words_2: "2 Mots (Rythme Rapide)",
+      opt_words_3: "3 Mots (Rythme Idéal)",
+      opt_words_4: "4 Mots",
+      opt_words_5: "5 Mots",
+      opt_aspect_916: "9:16 (Shorts / Reels / TikTok)",
+      opt_aspect_169: "16:9 (Paysage / YouTube)",
+      opt_aspect_11: "1:1 (Carré)",
+      opt_bg_green: "Fond Vert (Chroma Key)",
+      opt_bg_black: "Fond Noir (Mode Fusion Écran)",
+      opt_bg_blue: "Fond Bleu",
+      opt_bg_orig: "Vidéo d'origine (Incrustation)",
+      opt_bg_trans: "Alpha Transparent (WebM)",
+      opt_bg_custom: "Couleur Personnalisée"
     },
     ar: {
       header_badge: "استوديو",
-      brand_tagline: "مولّد الترجمة المتحركة التلقائية مع محاكاة شاشة الهاتف ومناطق الأمان",
+      brand_tagline: "توليد الترجمة التلقائية المتحركة ومحاكاة شاشات الهواتف ومناطق الأمان",
       btn_guide: "دليل الاستخدام",
       studio_title: "معاينة الاستوديو والنتيجة",
       studio_subtitle: "المولّد",
@@ -202,6 +278,9 @@ document.addEventListener("DOMContentLoaded", () => {
       dropzone_formats: "يدعم MP3، WAV، AAC، MP4، MOV، MKV، WebM",
       btn_browse: "استعراض الملفات",
       progress_idle: "جاهز لبدء المعالجة...",
+      badge_synced: "100% متزامن",
+      badge_shorts: "ريلز وشورتس",
+      badge_comic: "ستايل كوميك",
       dl_video: "تحميل الفيديو (MP4)",
       dl_ass: "ملف ASS المتحرك",
       dl_srt: "ملف SRT",
@@ -212,15 +291,19 @@ document.addEventListener("DOMContentLoaded", () => {
       btn_rerender: "إعادة الرندر بالتعديلات",
       customization_title: "تخصيص وإعدادات الترجمة والفيديو",
       customization_badge: "التحكم",
-      sim_heading: "محاكاة الهاتف (مناطق الأمان للريلز والتيك توك)",
-      sim_subscribe: "متابعة",
-      sim_caption: "احرص على أن تكون الترجمة فوق هذه المنطقة حتى لا تحجبها واجهة التطبيق! 🚀",
-      sim_safe_zone: "منطقة الأمان للترجمة",
-      pos_quick: "محاذاة سريعة:",
+      sim_heading: "محاكاة الهاتف",
+      sim_safe_zone: "منطقة الأمان",
+      pos_quick: "الموضع:",
       pos_top: "أعلى",
       pos_middle: "المنتصف",
       pos_safe_bottom: "أسفل آمن",
       presets_title: "أنماط جاهزة سريعة",
+      preset_gold: "تيك توك ذهبي",
+      preset_cyan: "سايبر سيان",
+      preset_coral: "مرجاني ناري",
+      preset_lime: "ليموني حيوي",
+      preset_comic: "كوميك بوب",
+      preset_white: "أبيض كلاسيكي",
       ctrl_lang: "لغة المحتوى الصوتي",
       ctrl_pos: "موضع الترجمة",
       ctrl_margin: "الهامش العمودي",
@@ -245,12 +328,42 @@ document.addEventListener("DOMContentLoaded", () => {
       step_1: "1/4: جاري رفع الملف وتحليله بالذكاء الاصطناعي...",
       step_2: "2/4: تم استخراج الكلمات والتوقيتات! جاري بناء الأنيميشن...",
       step_3: "3/4: جاري رندر الفيديو بواسطة FFmpeg مع الخطوط المحددة...",
-      step_4: "✅ اكتمل التوليد بنجاح! يمكنك الآن مشاهدة وتحميل النتيجة.",
-      alert_no_file: "الرجاء رفع ملف صوتي أو فيديو أولاً!"
+      step_4: "اكتمل التوليد بنجاح! يمكنك الآن مشاهدة وتحميل النتيجة.",
+      alert_no_file: "الرجاء رفع ملف صوتي أو فيديو أولاً!",
+      sim_tiktok_caption: "احرص على أن تكون الترجمة فوق هذه المنطقة حتى لا تحجبها واجهة التطبيق!",
+      sim_reels_caption: "احرص على أن تكون الترجمة فوق هذه المنطقة حتى لا تحجبها واجهة التطبيق!",
+      sim_shorts_caption: "احرص على أن تكون الترجمة فوق هذه المنطقة حتى لا تحجبها واجهة التطبيق!",
+      sim_follow: "متابعة",
+      sim_subscribe: "اشتراك",
+      // Dropdown Options
+      opt_lang_dz: "الدارجة الجزائرية",
+      opt_lang_msa: "العربية الفصحى",
+      opt_lang_fr: "الفرنسية (Français)",
+      opt_lang_en: "الإنجليزية (English)",
+      opt_pos_bottom: "أسفل (منطقة الأمان فوق واجهة التطبيق)",
+      opt_pos_center: "الوسط (المنتصف)",
+      opt_pos_top: "أعلى (الترويسة)",
+      opt_anim_karaoke: "كاراوكي بوب وتكبير",
+      opt_anim_reveal: "كشف تدريجي للكلمات",
+      opt_anim_box: "تسليط الضوء بمربع مميز",
+      opt_anim_classic: "سطر الترجمة الكلاسيكي",
+      opt_words_2: "كلمتان (إيقاع سريع)",
+      opt_words_3: "3 كلمات (إيقاع متوازن)",
+      opt_words_4: "4 كلمات",
+      opt_words_5: "5 كلمات",
+      opt_aspect_916: "9:16 (شورتس / ريلز / تيك توك)",
+      opt_aspect_169: "16:9 (أفقي / يوتيوب)",
+      opt_aspect_11: "1:1 (مربع)",
+      opt_bg_green: "شاشة خضراء (كروما كاي)",
+      opt_bg_black: "شاشة سوداء (دمج الشاشة)",
+      opt_bg_blue: "شاشة زرقاء",
+      opt_bg_orig: "الفيديو الأصلي (حرق مباشر)",
+      opt_bg_trans: "خلفية شفافة (WebM)",
+      opt_bg_custom: "لون مخصص"
     }
   };
 
-  // APPLY LANGUAGE FUNCTION
+  // APPLY MULTILINGUAL FUNCTION
   function applyLanguage(lang) {
     if (!TRANSLATIONS[lang]) lang = "en";
     currentLang = lang;
@@ -263,24 +376,28 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.toggle("active", btn.dataset.lang === lang);
     });
 
-    // Translate all elements with data-i18n
     const dict = TRANSLATIONS[lang];
+
+    // 1. Translate elements with data-i18n
     document.querySelectorAll("[data-i18n]").forEach(el => {
       const key = el.getAttribute("data-i18n");
       if (dict[key]) {
         el.innerHTML = dict[key];
       }
     });
+
+    // 2. Re-render Phone Simulator elements in the selected language
+    updatePhonePlatformUI();
   }
 
-  // Language buttons click listener
+  // Language button listeners
   langButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       applyLanguage(btn.dataset.lang);
     });
   });
 
-  // THEME MANAGEMENT (Default to Dark Mode!)
+  // THEME MANAGEMENT (Defaults to Dark Mode!)
   function applyTheme(theme) {
     currentTheme = theme;
     localStorage.setItem("dz_subtitles_theme", theme);
@@ -310,8 +427,8 @@ document.addEventListener("DOMContentLoaded", () => {
     cyan: { primary: "#FFFFFF", highlight: "#00F0FF", font: "Tajawal", anim: "karaoke_pop", align: "2", margin: 280 },
     coral: { primary: "#FFFFFF", highlight: "#FF3366", font: "Cairo", anim: "karaoke_pop", align: "2", margin: 280 },
     lime: { primary: "#FFFFFF", highlight: "#00FF66", font: "Almarai", anim: "word_reveal", align: "2", margin: 280 },
-    comic: { primary: "#F5EEDB", highlight: "#EAA838", font: "Plus Jakarta Sans", anim: "box_highlight", align: "2", margin: 280 },
-    white: { primary: "#F0F0F0", highlight: "#FACC15", font: "Cairo", anim: "classic_line", align: "2", margin: 280 }
+    comic: { primary: "#F4EBD9", highlight: "#EAA838", font: "Plus Jakarta Sans", anim: "box_highlight", align: "2", margin: 280 },
+    white: { primary: "#F5F5F5", highlight: "#FACC15", font: "Cairo", anim: "classic_line", align: "2", margin: 280 }
   };
 
   presetButtons.forEach(btn => {
@@ -334,40 +451,162 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // PHONE PLATFORM TABS
+  // PHONE PLATFORM TABS (TikTok / Reels / YouTube Shorts)
   platformTabs.forEach(tab => {
     tab.addEventListener("click", () => {
       platformTabs.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
       currentPlatform = tab.dataset.platform;
-      updatePlatformTopNav();
+      updatePhonePlatformUI();
     });
   });
 
-  function updatePlatformTopNav() {
-    if (!platformTopBar) return;
+  // DYNAMIC PHONE SIMULATION ENGINE (Accurately renders UI for TikTok, Reels, and YouTube Shorts)
+  function updatePhonePlatformUI() {
+    if (!platformTopBar || !phoneSidebar || !phoneBottomOverlay) return;
+    const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
     if (currentPlatform === "tiktok") {
+      // 1. TikTok Top Nav
       platformTopBar.innerHTML = `
-        <div class="nav-content tiktok-top-nav">
+        <div class="tiktok-top-nav">
           <span class="top-nav-link">Live</span>
           <span class="top-nav-link">Following</span>
           <span class="top-nav-link active">For You</span>
-          <svg class="top-nav-search" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <svg class="top-nav-search" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </div>`;
+
+      // 2. TikTok Sidebar
+      phoneSidebar.innerHTML = `
+        <div class="side-item avatar-wrap">
+          <div class="side-avatar"></div>
+          <div class="follow-badge">+</div>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#ff2e56"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span>142K</span>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+          <span>2.3K</span>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          <span>9.8K</span>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          <span>18K</span>
+        </div>
+        <div class="side-item disc-wrap">
+          <div class="rotating-disc"></div>
+        </div>`;
+
+      // 3. TikTok Bottom Overlay
+      phoneBottomOverlay.innerHTML = `
+        <div class="creator-row">
+          <span class="creator-tag">@creator_pro</span>
+          <button type="button" class="btn-sub-badge">${dict.sim_follow}</button>
+        </div>
+        <p class="creator-desc">${dict.sim_tiktok_caption}</p>
+        <div class="creator-sound">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          <span>Trending AI Voice • Original Audio</span>
+        </div>
+        <div class="phone-seekbar"></div>`;
+
     } else if (currentPlatform === "reels") {
+      // 1. Instagram Reels Top Nav
       platformTopBar.innerHTML = `
-        <div class="nav-content tiktok-top-nav" style="justify-content: space-between;">
+        <div class="reels-top-nav" style="justify-content: space-between;">
           <span style="font-weight: 900; font-size: 11px; color: #fff;">Reels</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          <div style="display: flex; gap: 6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          </div>
         </div>`;
+
+      // 2. Instagram Reels Sidebar
+      phoneSidebar.innerHTML = `
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <span>95.4K</span>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+          <span>1.8K</span>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          <span>12K</span>
+        </div>
+        <div class="side-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
+        </div>
+        <div class="side-item" style="margin-top: 4px;">
+          <div style="width: 16px; height: 16px; border: 1.5px solid #fff; border-radius: 4px; background: #222;"></div>
+        </div>`;
+
+      // 3. Instagram Reels Bottom Overlay
+      phoneBottomOverlay.innerHTML = `
+        <div class="creator-row">
+          <div style="width: 14px; height: 14px; border-radius: 50%; border: 1px solid #fff; background: var(--amber);"></div>
+          <span class="creator-tag">@creator_pro</span>
+          <button type="button" class="btn-sub-badge" style="background: transparent; border: 1px solid #fff;">${dict.sim_follow}</button>
+        </div>
+        <p class="creator-desc">${dict.sim_reels_caption}</p>
+        <div class="creator-sound">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18V5l12-2v13"></path></svg>
+          <span>original_audio • creator_pro</span>
+        </div>`;
+
     } else if (currentPlatform === "shorts") {
+      // 1. YouTube Shorts Top Nav
       platformTopBar.innerHTML = `
-        <div class="nav-content tiktok-top-nav" style="justify-content: space-between;">
+        <div class="shorts-top-nav" style="justify-content: space-between;">
           <span style="font-weight: 900; font-size: 11px; color: #fff; display: flex; align-items: center; gap: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="#ff0000"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#ff0000"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
             Shorts
           </span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
+          </div>
+        </div>`;
+
+      // 2. YouTube Shorts Sidebar
+      phoneSidebar.innerHTML = `
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          <span>84K</span>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
+          <span>Dislike</span>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>3.1K</span>
+        </div>
+        <div class="side-item">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          <span>Share</span>
+        </div>
+        <div class="side-item">
+          <div style="width: 16px; height: 16px; border: 1.5px solid #fff; border-radius: 4px; background: #222; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 900;">R</div>
+          <span>Remix</span>
+        </div>`;
+
+      // 3. YouTube Shorts Bottom Overlay
+      phoneBottomOverlay.innerHTML = `
+        <div class="creator-row">
+          <div style="width: 14px; height: 14px; border-radius: 50%; border: 1px solid #fff; background: var(--terracotta);"></div>
+          <span class="creator-tag">@creator_pro</span>
+          <button type="button" class="btn-sub-badge" style="background: #ffffff; color: #000; font-weight: 900; border-radius: 999px;">${dict.sim_subscribe}</button>
+        </div>
+        <p class="creator-desc">${dict.sim_shorts_caption}</p>
+        <div class="creator-sound">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          <span>Shorts Audio Library</span>
         </div>`;
     }
   }
@@ -376,9 +615,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateLiveSubtitlePreview() {
     if (!liveSubtitleContainer || !liveSubtitleBox) return;
 
-    // Font and styling
+    // Font styling
     liveSubtitleBox.style.fontFamily = fontName.value;
-    const scaledSize = Math.max(9, Math.round(parseInt(fontSize.value) * 0.19));
+    const scaledSize = Math.max(8, Math.round(parseInt(fontSize.value) * 0.17));
     liveSubtitleBox.style.fontSize = scaledSize + "px";
 
     subWord1.style.color = primaryColor.value;
@@ -397,30 +636,29 @@ document.addEventListener("DOMContentLoaded", () => {
       subWord2.style.padding = "0";
     }
 
-    // Position in Phone
+    // Position mapping inside simulated phone
     const alignVal = alignment.value;
     const marginPixels = parseInt(marginV.value);
 
     if (alignVal === "8") {
-      // Top
-      liveSubtitleContainer.style.top = "38px";
+      // Top Position
+      liveSubtitleContainer.style.top = "34px";
       liveSubtitleContainer.style.bottom = "auto";
       liveSubtitleContainer.style.transform = "none";
     } else if (alignVal === "5") {
-      // Center
+      // Center Position
       liveSubtitleContainer.style.top = "48%";
       liveSubtitleContainer.style.bottom = "auto";
       liveSubtitleContainer.style.transform = "translateY(-50%)";
     } else {
-      // Bottom (Safe Zone)
-      // Map 40-500px Ass margin to 45px - 145px inside 290px phone
-      const phoneBottomPx = Math.round(55 + (marginPixels / 500) * 80);
+      // Safe Bottom Position (Mapped to stay safely above platform overlay)
+      const phoneBottomPx = Math.round(52 + (marginPixels / 500) * 75);
       liveSubtitleContainer.style.top = "auto";
       liveSubtitleContainer.style.bottom = phoneBottomPx + "px";
       liveSubtitleContainer.style.transform = "none";
     }
 
-    // Update Quick Position Snap Button Highlight
+    // Update Quick Snap Button active state
     posSnapButtons.forEach(btn => {
       btn.classList.toggle("active", btn.dataset.pos === alignVal);
     });
@@ -442,7 +680,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // FORM INPUT LISTENERS FOR INSTANT PREVIEW
+  // FORM INPUT LISTENERS FOR INSTANT PREVIEW & SATISFYING FEEDBACK
   alignment.addEventListener("change", () => {
     if (alignment.value === "2" && parseInt(marginV.value) < 150) {
       marginV.value = 280;
@@ -474,7 +712,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateLiveSubtitlePreview();
   });
 
-  // QUICK SWATCH CLICKS
+  // QUICK COLOR SWATCH CLICKS
   document.querySelectorAll(".swatch-dot").forEach(dot => {
     dot.addEventListener("click", () => {
       const target = dot.dataset.target;
@@ -519,13 +757,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const isVideo = file.type.startsWith("video/") || /\.(mp4|mov|mkv|webm)$/i.test(file.name);
     fileIconSymbol.innerHTML = isVideo ? `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
         <line x1="7" y1="2" x2="7" y2="22"></line>
         <line x1="17" y1="2" x2="17" y2="22"></line>
         <line x1="2" y1="12" x2="22" y2="12"></line>
       </svg>` : `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <path d="M9 18V5l12-2v13"></path>
         <circle cx="6" cy="18" r="3"></circle>
         <circle cx="18" cy="16" r="3"></circle>
@@ -590,7 +828,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Also update phone simulation text with actual first segment words!
+    // Update phone preview with actual transcription sample words!
     const firstWords = transcription.segments[0].words;
     if (firstWords && firstWords.length >= 3) {
       subWord1.innerText = firstWords[0].word;
@@ -665,7 +903,7 @@ document.addEventListener("DOMContentLoaded", () => {
       updateProgress(65, "Step 2/4", dict.step_2);
       renderEditor(currentTranscription);
 
-      // Step 2: Render Subtitles and Video
+      // Step 2: Render Subtitles & Composite Video
       await triggerRender();
 
     } catch (err) {
@@ -746,6 +984,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // INITIAL SETUP CALLS
   applyLanguage(currentLang);
   applyTheme(currentTheme);
-  updatePlatformTopNav();
+  updatePhonePlatformUI();
   updateLiveSubtitlePreview();
 });

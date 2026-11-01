@@ -35,6 +35,49 @@ def test_static_html(client):
     assert "lang-switch-group" in response.text
     assert "themeToggleBtn" in response.text
     assert "safeZoneGuide" in response.text
+    assert "subcol-phone-sim" in response.text
+    assert "subcol-controls" in response.text
+    assert 'data-platform="tiktok"' in response.text
+    assert 'data-platform="reels"' in response.text
+    assert 'data-platform="shorts"' in response.text
+
+    # Verify zero emojis in HTML markup
+def test_translations_completeness():
+    import re
+    from pathlib import Path
+    base_dir = Path(__file__).resolve().parent.parent
+    html_file = base_dir / "web" / "static" / "index.html"
+    js_file = base_dir / "web" / "static" / "app.js"
+    css_file = base_dir / "web" / "static" / "style.css"
+
+    html_content = html_file.read_text(encoding="utf-8")
+    js_content = js_file.read_text(encoding="utf-8")
+    css_content = css_file.read_text(encoding="utf-8")
+
+    # Verify zero emojis across all static files
+    forbidden_emojis = ["⚡", "📱", "🎨", "🚀", "🌊", "🔲", "🎬", "🟩", "⬛", "🟦", "🎯", "🇩🇿", "🇸🇦", "🇫🇷", "🇬🇧", "✅"]
+    for file_name, text in [("index.html", html_content), ("app.js", js_content), ("style.css", css_content)]:
+        for emoji in forbidden_emojis:
+            assert emoji not in text, f"Emoji {emoji} found in {file_name}"
+
+    # Extract all data-i18n keys
+    keys = re.findall(r'data-i18n="([^"]+)"', html_content)
+    assert len(keys) > 15, "Expected data-i18n keys in index.html"
+
+    # Extract TRANSLATIONS sections
+    en_match = re.search(r'en:\s*\{([^}]+)\}', js_content)
+    fr_match = re.search(r'fr:\s*\{([^}]+)\}', js_content)
+    ar_match = re.search(r'ar:\s*\{([^}]+)\}', js_content)
+    assert en_match and fr_match and ar_match
+
+    en_keys = set(re.findall(r'([a-zA-Z0-9_]+)\s*:', en_match.group(1)))
+    fr_keys = set(re.findall(r'([a-zA-Z0-9_]+)\s*:', fr_match.group(1)))
+    ar_keys = set(re.findall(r'([a-zA-Z0-9_]+)\s*:', ar_match.group(1)))
+
+    for k in keys:
+        assert k in en_keys, f"Key {k} missing from EN translations"
+        assert k in fr_keys, f"Key {k} missing from FR translations"
+        assert k in ar_keys, f"Key {k} missing from AR translations"
 
 
 
