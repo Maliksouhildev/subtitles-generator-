@@ -64,28 +64,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Customization Form Controls
 
-  // Curated 20 Arabic & 20 Latin Viral Fonts Catalogs
+    // Curated 20 Arabic & 20 Latin Viral Fonts Catalogs with Authentic Arabic Previews
   const ARABIC_FONTS = [
-    { id: "Lalezar", name: "Lalezar (Ultra Bold & Viral Header)" },
-    { id: "Cairo", name: "Cairo (Punchy Modern Geometric)" },
-    { id: "Tajawal", name: "Tajawal (Clean Broadcast Sans)" },
-    { id: "Almarai", name: "Almarai (Crisp Premium UI)" },
-    { id: "Amiri", name: "Amiri (Classic Elegant Naskh)" },
-    { id: "Changa", name: "Changa (Heavy Tech Display)" },
-    { id: "El Messiri", name: "El Messiri (Graceful Modern Kufic)" },
-    { id: "Readex Pro", name: "Readex Pro (Ultra-Clean Geometric)" },
-    { id: "Rubik", name: "Rubik Arabic (Friendly Rounded Heavy)" },
-    { id: "IBM Plex Sans Arabic", name: "IBM Plex Sans (Corporate Sharp)" },
-    { id: "Reem Kufi", name: "Reem Kufi (Editorial Early Kufic)" },
-    { id: "Alexandria", name: "Alexandria (High-Impact Modern Sans)" },
-    { id: "Baloo Bhaijaan 2", name: "Baloo Bhaijaan 2 (Playful Bouncy)" },
-    { id: "Aref Ruqaa", name: "Aref Ruqaa (Artistic Calligraphic)" },
-    { id: "Marhey", name: "Marhey (Trendy Quirky Casual)" },
-    { id: "Noto Sans Arabic", name: "Noto Sans Arabic (Universal Legibility)" },
-    { id: "Noto Kufi Arabic", name: "Noto Kufi Arabic (Formal Modern Kufi)" },
-    { id: "Lemonada", name: "Lemonada (Dynamic Youthful Script)" },
-    { id: "Mada", name: "Mada (Compact Technical Sans)" },
-    { id: "Harmattan", name: "Harmattan (Clean West Saharan Naskh)" }
+    { id: "Lalezar", name: "Lalezar · لاليزار (عريض وفيروسي)", preview: "الخط العربي الفيروسي" },
+    { id: "Cairo", name: "Cairo · كايرو (هندسي حديث)", preview: "تصميم هندسي حديث" },
+    { id: "Tajawal", name: "Tajawal · تجوال (بث نظيف)", preview: "وضوح فائق للمشاهد" },
+    { id: "Almarai", name: "Almarai · المراعي (شاشات احترافي)", preview: "خط مريح وعصري" },
+    { id: "Amiri", name: "Amiri · أميري (نسخ كلاسيكي أنيق)", preview: "أصالة الخط العربي" },
+    { id: "Changa", name: "Changa · شانغا (عريض رقمي)", preview: "حضور بصري قوي" },
+    { id: "El Messiri", name: "El Messiri · المسيري (كوفي عصري)", preview: "جماليات الكوفي الحديث" },
+    { id: "Readex Pro", name: "Readex Pro · ريدكس برو (فائق النقاء)", preview: "هندسي فائق النقاء" },
+    { id: "Rubik", name: "Rubik · روبيك (دائري سميك)", preview: "حواف ناعمة وجذابة" },
+    { id: "IBM Plex Sans Arabic", name: "IBM Plex · آي بي إم بلكس (احترافي حاد)", preview: "دقيق وتقني حاسم" },
+    { id: "Reem Kufi", name: "Reem Kufi · ريم كوفي (كوفي أصيل)", preview: "عراقة الكوفية الأصيلة" },
+    { id: "Alexandria", name: "Alexandria · الإسكندرية (قوي وجريء)", preview: "جرأة وأناقة واضحة" },
+    { id: "Baloo Bhaijaan 2", name: "Baloo · بالو بايجان (مرن ومنتفخ)", preview: "حيوية وإبداع للمحتوى" },
+    { id: "Aref Ruqaa", name: "Aref Ruqaa · عارف رقعة (رقعة فني)", preview: "سحر خط الرقعة التراثي" },
+    { id: "Marhey", name: "Marhey · مرحي (عفوي شبابي)", preview: "أسلوب عفوي للمقاطع" },
+    { id: "Noto Sans Arabic", name: "Noto Sans · نوتو سانس (وضوح وسلاسة)", preview: "سهولة قراءة مطلقة" },
+    { id: "Noto Kufi Arabic", name: "Noto Kufi · نوتو كوفي (كوفي رسمي)", preview: "هيبة الطراز الكوفي" },
+    { id: "Lemonada", name: "Lemonada · ليمونادا (مائل وديناميكي)", preview: "طاقة وحركة متجددة" },
+    { id: "Mada", name: "Mada · مدى (مدمج تقني)", preview: "حجم عملي ومناسب" },
+    { id: "Harmattan", name: "Harmattan · هرمطان (نسخ صحراوي)", preview: "انسيابية وراحة للعين" }
   ];
 
   const LATIN_FONTS = [
@@ -112,6 +112,41 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "Black Han Sans", name: "Black Han Sans (Ultra-Dense Solid Block)" }
   ];
 
+
+  function createFontOptionContent(opt) {
+    const isArabic = ARABIC_FONTS.some(f => f.id === opt.value) || /[\u0600-\u06FF]/.test(opt.innerText);
+    const row = document.createElement("div");
+    row.className = "font-opt-row";
+
+    const info = document.createElement("div");
+    info.className = "font-opt-info";
+
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "font-opt-title";
+    titleSpan.innerText = opt.innerText;
+    titleSpan.style.fontFamily = opt.value + ", sans-serif";
+
+    info.appendChild(titleSpan);
+    row.appendChild(info);
+
+    const badge = document.createElement("span");
+    badge.className = "font-opt-preview-badge" + (isArabic ? " font-arabic-sample" : " font-latin-sample");
+    badge.style.fontFamily = opt.value + ", sans-serif";
+
+    if (isArabic) {
+      const found = ARABIC_FONTS.find(f => f.id === opt.value);
+      badge.innerText = (found && found.preview) ? found.preview : "أبجد هوز";
+      badge.setAttribute("dir", "rtl");
+      badge.style.direction = "rtl";
+    } else {
+      const found = LATIN_FONTS.find(f => f.id === opt.value);
+      badge.innerText = (found && found.preview) ? found.preview : "Abc 123";
+    }
+
+    row.appendChild(badge);
+    return row;
+  }
+
   function updateAdaptiveFontList(script, keepFont) {
     if (!fontName) return;
     const isArabic = (script === "arabic");
@@ -122,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fontName.innerHTML = "";
 
     const group1 = document.createElement("optgroup");
-    group1.label = isArabic ? "--- Recommended Arabic Fonts ---" : "--- Recommended Latin Fonts ---";
+    group1.label = isArabic ? "--- خطوط عربية مقترحة (Recommended Arabic Fonts) ---" : "--- Recommended Latin Fonts (خطوط لاتينية) ---";
     primaryFonts.forEach(f => {
       const opt = document.createElement("option");
       opt.value = f.id;
@@ -132,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fontName.appendChild(group1);
 
     const group2 = document.createElement("optgroup");
-    group2.label = isArabic ? "--- Other Available Fonts (Latin) ---" : "--- Other Available Fonts (Arabic) ---";
+    group2.label = isArabic ? "--- خطوط لاتينية أخرى (Other Latin Fonts) ---" : "--- خطوط عربية أخرى (Other Arabic Fonts) ---";
     secondaryFonts.forEach(f => {
       const opt = document.createElement("option");
       opt.value = f.id;
@@ -166,12 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const optRow = document.createElement("div");
           optRow.className = `comic-dropdown-option ${opt.value === fontName.value ? "active" : ""}`;
           optRow.dataset.value = opt.value;
-          const textSpan = document.createElement("span");
-          textSpan.innerText = opt.innerText;
-          textSpan.style.fontFamily = opt.value + ", sans-serif";
-          textSpan.style.fontSize = "12px";
-          textSpan.style.letterSpacing = "0.5px";
-          optRow.appendChild(textSpan);
+          optRow.appendChild(createFontOptionContent(opt));
 
           optRow.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -3109,25 +3139,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-        const textSpan = document.createElement("span");
-
-        textSpan.innerText = opt.innerText;
-
-
-
         if (type === "font") {
-
-          textSpan.style.fontFamily = opt.value + ", sans-serif";
-
-          textSpan.style.fontSize = "12px";
-
-          textSpan.style.letterSpacing = "0.5px";
-
+          optRow.appendChild(createFontOptionContent(opt));
+        } else {
+          const textSpan = document.createElement("span");
+          textSpan.innerText = opt.innerText;
+          optRow.appendChild(textSpan);
         }
-
-
-
-        optRow.appendChild(textSpan);
 
 
 

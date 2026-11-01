@@ -6335,3 +6335,64 @@ html, body, :root, *,
 
 }
 
+
+/* Custom Font Dropdown with Live Arabic Calligraphy Preview */
+.font-opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.font-opt-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.font-opt-title {
+  font-size: 11.5px;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.3px;
+}
+
+.font-opt-preview-badge {
+  font-size: 14.5px;
+  line-height: 1.25;
+  padding: 3px 9px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 230, 0, 0.28);
+  border-radius: 4px;
+  color: var(--amber);
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0;
+  transition: all 0.12s ease;
+}
+
+.font-opt-preview-badge.font-arabic-sample {
+  direction: rtl;
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.comic-dropdown-option:hover .font-opt-preview-badge {
+  border-color: var(--amber);
+  color: #FFFFFF;
+  background: rgba(255, 230, 0, 0.18);
+  transform: scale(1.04);
+}
+
+.comic-dropdown-option.active .font-opt-preview-badge {
+  background: var(--amber);
+  color: #111111;
+  font-weight: 800;
+  border-color: var(--amber);
+  box-shadow: 0 2px 8px rgba(255, 230, 0, 0.4);
+}

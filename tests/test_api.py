@@ -310,6 +310,15 @@ def test_language_adaptive_fonts_and_deduplicated_animations():
     for distinct in ["karaoke_pop", "cumulative_fill", "letter_pop", "letter_drop", "letter_rise", "minimal_slide", "cyber_glitch", "comic_bounce", "viral_punch", "fade_editorial", "badge_invert", "color_flash", "word_reveal"]:
         assert distinct in dropdown_anims
 
+    # 3. Verify Arabic font labels and live previews contain authentic Arabic script
+    for ar_word in ["لاليزار", "كايرو", "تجوال", "المراعي", "أميري", "شانغا", "المسيري"]:
+        assert ar_word in html
+        assert ar_word in js
+
+    assert "createFontOptionContent" in js
+    assert "font-opt-preview-badge" in js
+    assert ".font-opt-preview-badge.font-arabic-sample" in (base_dir / "web" / "static" / "style.css").read_text(encoding="utf-8")
+
 
 
 def test_arabic_cursive_letter_shaping():
