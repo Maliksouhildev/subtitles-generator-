@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import shutil
 import pytest
@@ -309,3 +310,65 @@ def test_language_adaptive_fonts_and_deduplicated_animations():
     for distinct in ["karaoke_pop", "cumulative_fill", "letter_pop", "letter_drop", "letter_rise", "minimal_slide", "cyber_glitch", "comic_bounce", "viral_punch", "fade_editorial", "badge_invert", "color_flash", "word_reveal"]:
         assert distinct in dropdown_anims
 
+
+
+def test_arabic_cursive_letter_shaping():
+    """Verify that Arabic letter-by-letter kinetic animations preserve authentic cursive shapes."""
+    js_file = Path("web/static/app.js")
+    css_file = Path("web/static/style.css")
+    remotion_file = Path("remotion/src/TemplateMapper.tsx")
+
+    js = js_file.read_text(encoding="utf-8")
+    css = css_file.read_text(encoding="utf-8")
+    remotion = remotion_file.read_text(encoding="utf-8")
+
+    # 1. Verify shapeArabicWordToLetters function is present in app.js and remotion
+    assert "function shapeArabicWordToLetters" in js
+    assert "export function shapeArabicWordToLetters" in remotion
+    assert "LetterPopTemplate" in remotion
+    assert "CumulativeFillTemplate" in remotion
+
+    # 2. Verify kinetic letter animations apply arabic-letter class in app.js
+    assert "isArabicWord ? shapeArabicWordToLetters(wordText) : Array.from(wordText)" in js
+    assert "arabic-letter" in js
+
+    # 3. Verify CSS rules for arabic-letter preserving cursive continuity
+    assert ".sub-letter.arabic-letter" in css
+    assert "letter-spacing: 0" in css
+    assert "direction: rtl" in css
+
+    # 4. Verify Node.js execution of shapeArabicWordToLetters on Darija Arabic words
+    import subprocess
+    node_cmd = [
+        "node", "-e",
+        '''
+        const fs = require("fs");
+        const code = fs.readFileSync("web/static/app.js", "utf8");
+        const start = code.indexOf("const ARABIC_GLYPHS =");
+        const end = code.indexOf("// LIVE SUBTITLE PREVIEW IN PHONE SIMULATION");
+        const block = code.substring(start, end) + "\\nmodule.exports = { shapeArabicWordToLetters };";
+        fs.writeFileSync("temp_test_eval.js", block, "utf8");
+        const { shapeArabicWordToLetters } = require("./temp_test_eval.js");
+
+        const ta3i = shapeArabicWordToLetters("تاعي");
+        if (ta3i[0] !== "\\uFE97" || ta3i[1] !== "\\uFE8E" || ta3i[2] !== "\\uFECB" || ta3i[3] !== "\\uFEF2") {
+            process.exit(1);
+        }
+
+        const sayara = shapeArabicWordToLetters("السيارة");
+        if (sayara[2] !== "\\uFEB4" || sayara[3] !== "\\uFEF4") {
+            process.exit(2);
+        }
+
+        const chakhsiya = shapeArabicWordToLetters("الشخصية");
+        if (chakhsiya[2] !== "\\uFEB8" || chakhsiya[6] !== "\\uFE94") {
+            process.exit(3);
+        }
+
+        fs.unlinkSync("temp_test_eval.js");
+        process.stdout.write("OK");
+        '''
+    ]
+    res = subprocess.run(node_cmd, capture_output=True, text=True)
+    assert res.returncode == 0, f"Node shaper test failed: {res.stderr}"
+    assert "OK" in res.stdout

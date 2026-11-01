@@ -2183,6 +2183,134 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // LIVE SUBTITLE PREVIEW IN PHONE SIMULATOR
 
+  // ==========================================
+  // ARABIC CONTEXTUAL GLYPH SHAPER (KINETIC LETTERS)
+  // Ensures Arabic letters in letter-by-letter kinetic animations
+  // retain authentic initial, medial, final, and isolated cursive shapes.
+  // ==========================================
+  const ARABIC_GLYPHS = {
+    '\u0621': { iso: '\uFE80' }, // Hamza
+    '\u0622': { iso: '\uFE81', fin: '\uFE82' }, // Alef with Madda
+    '\u0623': { iso: '\uFE83', fin: '\uFE84' }, // Alef with Hamza Above
+    '\u0624': { iso: '\uFE85', fin: '\uFE86' }, // Waw with Hamza
+    '\u0625': { iso: '\uFE87', fin: '\uFE88' }, // Alef with Hamza Below
+    '\u0626': { iso: '\uFE89', fin: '\uFE8A', ini: '\uFE8B', med: '\uFE8C' }, // Yeh with Hamza
+    '\u0627': { iso: '\uFE8D', fin: '\uFE8E' }, // Alef
+    '\u0628': { iso: '\uFE8F', fin: '\uFE90', ini: '\uFE91', med: '\uFE92' }, // Beh
+    '\u0629': { iso: '\uFE93', fin: '\uFE94' }, // Teh Marbuta
+    '\u062A': { iso: '\uFE95', fin: '\uFE96', ini: '\uFE97', med: '\uFE98' }, // Teh
+    '\u062B': { iso: '\uFE99', fin: '\uFE9A', ini: '\uFE9B', med: '\uFE9C' }, // Theh
+    '\u062C': { iso: '\uFE9D', fin: '\uFE9E', ini: '\uFE9F', med: '\uFEA0' }, // Jeem
+    '\u062D': { iso: '\uFEA1', fin: '\uFEA2', ini: '\uFEA3', med: '\uFEA4' }, // Hah
+    '\u062E': { iso: '\uFEA5', fin: '\uFEA6', ini: '\uFEA7', med: '\uFEA8' }, // Khah
+    '\u062F': { iso: '\uFEA9', fin: '\uFEAA' }, // Dal
+    '\u0630': { iso: '\uFEAB', fin: '\uFEAC' }, // Thal
+    '\u0631': { iso: '\uFEAD', fin: '\uFEAE' }, // Reh
+    '\u0632': { iso: '\uFEAF', fin: '\uFEB0' }, // Zain
+    '\u0633': { iso: '\uFEB1', fin: '\uFEB2', ini: '\uFEB3', med: '\uFEB4' }, // Seen
+    '\u0634': { iso: '\uFEB5', fin: '\uFEB6', ini: '\uFEB7', med: '\uFEB8' }, // Sheen
+    '\u0635': { iso: '\uFEB9', fin: '\uFEBA', ini: '\uFEBB', med: '\uFEBC' }, // Sad
+    '\u0636': { iso: '\uFEBD', fin: '\uFEBE', ini: '\uFEBF', med: '\uFEC0' }, // Dad
+    '\u0637': { iso: '\uFEC1', fin: '\uFEC2', ini: '\uFEC3', med: '\uFEC4' }, // Tah
+    '\u0638': { iso: '\uFEC5', fin: '\uFEC6', ini: '\uFEC7', med: '\uFEC8' }, // Zah
+    '\u0639': { iso: '\uFEC9', fin: '\uFECA', ini: '\uFECB', med: '\uFECC' }, // Ain
+    '\u063A': { iso: '\uFECD', fin: '\uFECE', ini: '\uFECF', med: '\uFED0' }, // Ghain
+    '\u0640': { iso: '\u0640', fin: '\u0640', ini: '\u0640', med: '\u0640' }, // Tatweel
+    '\u0641': { iso: '\uFED1', fin: '\uFED2', ini: '\uFED3', med: '\uFED4' }, // Feh
+    '\u0642': { iso: '\uFED5', fin: '\uFED6', ini: '\uFED7', med: '\uFED8' }, // Qaf
+    '\u0643': { iso: '\uFED9', fin: '\uFEDA', ini: '\uFEDB', med: '\uFEDC' }, // Kaf
+    '\u0644': { iso: '\uFEDD', fin: '\uFEDE', ini: '\uFEDF', med: '\uFEE0' }, // Lam
+    '\u0645': { iso: '\uFEE1', fin: '\uFEE2', ini: '\uFEE3', med: '\uFEE4' }, // Meem
+    '\u0646': { iso: '\uFEE5', fin: '\uFEE6', ini: '\uFEE7', med: '\uFEE8' }, // Noon
+    '\u0647': { iso: '\uFEE9', fin: '\uFEEA', ini: '\uFEEB', med: '\uFEEC' }, // Heh
+    '\u0648': { iso: '\uFEED', fin: '\uFEEE' }, // Waw
+    '\u0649': { iso: '\uFEEF', fin: '\uFEF0', ini: '\uFEF3', med: '\uFEF4' }, // Alef Maksura
+    '\u064A': { iso: '\uFEF1', fin: '\uFEF2', ini: '\uFEF3', med: '\uFEF4' }, // Yeh
+    '\u0671': { iso: '\uFB50', fin: '\uFB51' }, // Alef Wasla
+    // Darija / Maghrebi extensions
+    '\u06A4': { iso: '\uFB6A', fin: '\uFB6B', ini: '\uFB6C', med: '\uFB6D' }, // Veh (ڤ)
+    '\u06AD': { iso: '\uFBD3', fin: '\uFBD4', ini: '\uFBD5', med: '\uFBD6' }, // Ng (ڭ)
+    '\u067E': { iso: '\uFB56', fin: '\uFB57', ini: '\uFB58', med: '\uFB59' }, // Pe (پ)
+    '\u0686': { iso: '\uFB7A', fin: '\uFB7B', ini: '\uFB7C', med: '\uFB7D' }, // Tche (چ)
+    '\u06AF': { iso: '\uFB92', fin: '\uFB93', ini: '\uFB94', med: '\uFB95' }, // Gaf (گ)
+    '\u0698': { iso: '\uFB8A', fin: '\uFB8B' }, // Jeh (ژ)
+  };
+
+  const LA_LIGATURES = {
+    '\u0622': { iso: '\uFEF5', fin: '\uFEF6' }, // Madda
+    '\u0623': { iso: '\uFEF7', fin: '\uFEF8' }, // Hamza Above
+    '\u0625': { iso: '\uFEF9', fin: '\uFEFA' }, // Hamza Below
+    '\u0627': { iso: '\uFEFB', fin: '\uFEFC' }, // Plain Alef
+    '\u0671': { iso: '\uFEFB', fin: '\uFEFC' }, // Wasla
+  };
+
+  function shapeArabicWordToLetters(word) {
+    if (!word) return [];
+    const isDiacritic = c => /[\u064B-\u065F\u0670]/.test(c);
+    const rawChars = Array.from(word);
+    const baseChars = [];
+    const diacritics = [];
+
+    for (let idx = 0; idx < rawChars.length; idx++) {
+      const ch = rawChars[idx];
+      if (isDiacritic(ch)) {
+        if (diacritics.length > 0) {
+          diacritics[diacritics.length - 1] += ch;
+        }
+      } else {
+        baseChars.push(ch);
+        diacritics.push('');
+      }
+    }
+
+    const shaped = [];
+    let i = 0;
+    while (i < baseChars.length) {
+      const ch = baseChars[i];
+      const prevCh = i > 0 ? baseChars[i - 1] : null;
+      const nextCh = i + 1 < baseChars.length ? baseChars[i + 1] : null;
+
+      // Check Lam-Alef ligatures
+      if (ch === '\u0644' && nextCh && LA_LIGATURES[nextCh]) {
+        const prevEntry = prevCh ? ARABIC_GLYPHS[prevCh] : null;
+        const connectsPrev = prevEntry && (prevEntry.ini || prevEntry.med);
+        const lig = LA_LIGATURES[nextCh];
+        const ligGlyph = (connectsPrev ? lig.fin : lig.iso) + diacritics[i] + diacritics[i + 1];
+        shaped.push(ligGlyph);
+        i += 2;
+        continue;
+      }
+
+      const entry = ARABIC_GLYPHS[ch];
+      if (!entry) {
+        shaped.push(ch + diacritics[i]);
+        i++;
+        continue;
+      }
+
+      const prevEntry = prevCh ? ARABIC_GLYPHS[prevCh] : null;
+      const nextEntry = nextCh ? ARABIC_GLYPHS[nextCh] : null;
+
+      const connectsPrev = prevEntry && (prevEntry.ini || prevEntry.med) && (entry.fin || entry.med);
+      const connectsNext = nextEntry && (entry.ini || entry.med) && (nextEntry.fin || nextEntry.med);
+
+      let glyph = entry.iso || ch;
+      if (connectsPrev && connectsNext && entry.med) {
+        glyph = entry.med;
+      } else if (connectsPrev && entry.fin) {
+        glyph = entry.fin;
+      } else if (connectsNext && entry.ini) {
+        glyph = entry.ini;
+      }
+      shaped.push(glyph + diacritics[i]);
+      i++;
+    }
+    return shaped;
+  }
+  if (typeof window !== "undefined") {
+    window.shapeArabicWordToLetters = shapeArabicWordToLetters;
+  }
+
   // LIVE SUBTITLE PREVIEW IN PHONE SIMULATION
 
   let previewActiveIdx = 1;
@@ -2411,53 +2539,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-        // Letter-by-letter rendering
-
+        // Letter-by-letter rendering with contextual Arabic cursive preservation
         if (activeAnim.startsWith("letter_")) {
-
           w.innerHTML = "";
-
-          Array.from(wordText).forEach((ch, cIdx) => {
-
+          const isArabicWord = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(wordText);
+          const letterList = isArabicWord ? shapeArabicWordToLetters(wordText) : Array.from(wordText);
+          letterList.forEach((ch, cIdx) => {
             const letSpan = document.createElement("span");
-
-            letSpan.className = "sub-letter";
-
+            letSpan.className = "sub-letter" + (isArabicWord ? " arabic-letter" : "");
             letSpan.innerText = ch;
-
             letSpan.style.setProperty("--letter-idx", cIdx);
-
             w.appendChild(letSpan);
-
           });
-
           w.style.background = "none";
-
           w.style.color = hlVal;
-
           w.style.webkitTextStroke = "1.2px #000";
-
           w.style.textShadow = "0 2px 6px rgba(0, 0, 0, 0.85)";
-
           w.style.padding = "0";
-
           w.style.boxShadow = "none";
-
         } else if (activeAnim === "box_highlight" || activeAnim === "badge_invert") {
-
           w.innerText = wordText;
-
           w.style.background = hlVal;
-
           w.style.color = badgeContrast;
-
-          w.style.webkitTextStroke = "0 transparent";
-
+          w.style.webkitTextStroke = "0px transparent";
           w.style.textShadow = "none";
-
-          w.style.fontWeight = "800";
-
-          w.style.letterSpacing = "0.35px";
+          w.style.fontWeight = isArabic ? "normal" : "700";
+          w.style.letterSpacing = isArabic ? "0px" : "0.35px";
 
           w.style.padding = "1.5px 6.5px";
 
