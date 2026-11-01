@@ -489,8 +489,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 box_tag = (
                     f"\\bord{self.outline_width}\\3c{out_ass}\\fscx100\\fscy100"
-                    f"\\t(0,{t1},0.6,\\bord{self.outline_width + 2.5}\\3c{hl_ass}\\fscx112\\fscy112)"
-                    f"\\t({t1},{t2},1.3,\\bord{self.outline_width + 2}\\3c{hl_ass}\\fscx106\\fscy106)"
+                    f"\\t(0,{t1},0.6,\\bord{self.outline_width + 0.8}\\3c{hl_ass}\\fscx112\\fscy112)"
+                    f"\\t({t1},{t2},1.3,\\bord{self.outline_width}\\3c{hl_ass}\\fscx106\\fscy106)"
                 )
                 reset_box = f"\\bord{self.outline_width}\\3c{out_ass}\\fscx100\\fscy100"
 
@@ -504,7 +504,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     w = chunk[j]
                     word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
                     if j == i:
-                        formatted_words.append(f"{{{hl_tag}\\blur1.8{box_tag}}}{word_text}{{{pri_tag}{reset_box}}}")
+                        formatted_words.append(f"{{{hl_tag}\\blur0.8{box_tag}}}{word_text}{{{pri_tag}{reset_box}}}")
                     else:
                         formatted_words.append(f"{{{pri_tag}\\blur1.8{reset_box}}}{word_text}")
 

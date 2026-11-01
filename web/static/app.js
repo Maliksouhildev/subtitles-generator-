@@ -1055,8 +1055,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const activeAnim = animationStyle.value || "karaoke_pop";
     const words = [subWord1, subWord2, subWord3];
 
-    // Ensure CSS highlight preview color is kept in sync
-    document.documentElement.style.setProperty("--highlight-preview", highlightColor.value);
+    // Ensure CSS highlight preview color and badge contrast color are kept in sync
+    const hlVal = highlightColor ? highlightColor.value : "#FFE600";
+    function getBadgeContrastColor(hex) {
+      if (!hex || hex.length < 7) return "#111111";
+      const r = parseInt(hex.slice(1, 3), 16) || 0;
+      const g = parseInt(hex.slice(3, 5), 16) || 0;
+      const b = parseInt(hex.slice(5, 7), 16) || 0;
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return lum > 0.55 ? "#111111" : "#FFFFFF";
+    }
+    const badgeContrast = getBadgeContrastColor(hlVal);
+    document.documentElement.style.setProperty("--highlight-preview", hlVal);
+    document.documentElement.style.setProperty("--badge-contrast-color", badgeContrast);
 
     words.forEach((w, idx) => {
       if (!w) return;
@@ -1081,20 +1092,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
         w.className = `sub-word active anim-${activeAnim}${bidiClass}`;
         if (activeAnim === "box_highlight" || activeAnim === "badge_invert") {
-          w.style.background = highlightColor.value;
-          w.style.color = "#000000";
-          w.style.padding = "1px 6px";
-          w.style.borderRadius = "4px";
+          w.style.background = hlVal;
+          w.style.color = badgeContrast;
+          w.style.webkitTextStroke = "0 transparent";
+          w.style.textShadow = "none";
+          w.style.fontWeight = "800";
+          w.style.letterSpacing = "0.35px";
+          w.style.padding = "1.5px 6.5px";
+          w.style.borderRadius = "5px";
+          w.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.35)";
         } else {
           w.style.background = "none";
-          w.style.color = highlightColor.value;
+          w.style.color = hlVal;
+          w.style.webkitTextStroke = "1.2px #000";
+          w.style.textShadow = "0 2px 6px rgba(0, 0, 0, 0.85)";
+          w.style.fontWeight = "";
+          w.style.letterSpacing = "";
           w.style.padding = "0";
+          w.style.borderRadius = "";
+          w.style.boxShadow = "none";
         }
       } else {
         w.className = `sub-word${bidiClass}`;
         w.style.background = "none";
-        w.style.color = primaryColor.value;
+        w.style.color = primaryColor ? primaryColor.value : "#FFFFFF";
+        w.style.webkitTextStroke = "1.2px #000";
+        w.style.textShadow = "0 2px 4px rgba(0, 0, 0, 0.7)";
+        w.style.fontWeight = "";
+        w.style.letterSpacing = "";
         w.style.padding = "0";
+        w.style.borderRadius = "";
+        w.style.boxShadow = "none";
       }
     });
 

@@ -538,6 +538,14 @@ export const BadgeInvertTemplate: React.FC<TemplateProps> = ({
           });
 
           const scale = isSpoken ? interpolate(springProgress, [0, 0.4, 1], [1.0, 1.18, 1.06]) : 1.0;
+          const isLight = () => {
+            const h = (highlightColor || "#FFE600").replace("#", "");
+            const r = parseInt(h.substring(0, 2), 16) || 255;
+            const g = parseInt(h.substring(2, 4), 16) || 230;
+            const b = parseInt(h.substring(4, 6), 16) || 0;
+            return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55;
+          };
+          const badgeContrast = isLight() ? "#111111" : "#FFFFFF";
 
           return (
             <span
@@ -548,17 +556,17 @@ export const BadgeInvertTemplate: React.FC<TemplateProps> = ({
                 justifyContent: "center",
                 transform: `scale(${scale})`,
                 transformOrigin: "center center",
-                color: isSpoken ? "#000000" : primaryColor,
+                color: isSpoken ? badgeContrast : primaryColor,
                 backgroundColor: isSpoken ? highlightColor : "transparent",
                 borderRadius: "8px",
                 padding: isSpoken ? "2px 10px" : "2px 2px",
                 fontSize: `${fontSize}px`,
-                fontWeight: 900,
+                fontWeight: 800,
                 textShadow: isSpoken ? "none" : `0 3px 8px rgba(0,0,0,0.8)`,
                 WebkitTextStroke: isSpoken ? "none" : `2px ${outlineColor}`,
-                letterSpacing: run.isLatin ? "1px" : "0.5px",
+                letterSpacing: run.isLatin ? "1px" : "0.6px",
                 lineHeight: 1.15,
-                boxShadow: isSpoken ? "0 4px 12px rgba(0,0,0,0.4)" : "none",
+                boxShadow: isSpoken ? "0 4px 12px rgba(0,0,0,0.35)" : "none",
                 userSelect: "none",
                 whiteSpace: "nowrap",
                 transition: "background-color 0.08s ease, color 0.08s ease",
