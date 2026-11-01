@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DZ Subtitles AI - مولّد الترجمة الجزائرية المتحركة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="brand-icon">🎙️</div>
+        <div class="brand-text">
+          <h1>DZ Subtitles AI <span class="badge">الدارجة الجزائرية</span></h1>
+          <p>مولّد الترجمة المتحركة للدارجة الجزائرية بتقنية Gemini AI مع كروما خضراء وبلاك سكرين</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="guideBtn" class="btn btn-secondary">📖 دليل الاستخدام</button>
+        <a href="https://github.com/Maliksouhildev/subtitles-generator-" target="_blank" class="btn btn-secondary">⭐ GitHub</a>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-grid">
+      <!-- Left Column: Controls & Configuration -->
+      <section class="card controls-panel" dir="ltr">
+        <h2 class="card-title">⚙️ Subtitle & Video Settings</h2>
+
+        <!-- File Upload Zone -->
+        <div class="upload-zone" id="dropZone">
+          <input type="file" id="fileInput" accept="audio/*,video/*" hidden>
+          <div class="upload-content">
+            <div class="upload-icon">📁</div>
+            <p class="upload-title">Drag & drop Audio / Video here</p>
+            <p class="upload-subtitle">Supports MP3, WAV, AAC, MP4, MOV, MKV, WebM</p>
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()">Browse File</button>
+          </div>
+          <div id="fileInfo" class="file-info hidden">
+            <span id="fileIcon">🎵</span>
+            <span id="fileName">sample.mp3</span>
+            <span id="fileSize" class="tag">0 MB</span>
+            <button type="button" class="btn-icon" id="removeFileBtn" title="Remove file">✕</button>
+          </div>
+        </div>
+
+        <!-- Presets Row -->
+        <div class="control-group">
+          <label class="control-label">⚡ Style Presets (Viral Shorts & Reels)</label>
+          <div class="preset-buttons">
+            <button type="button" class="btn-preset active" data-preset="gold">🌟 TikTok Gold</button>
+            <button type="button" class="btn-preset" data-preset="cyan">⚡ Cyber Cyan</button>
+            <button type="button" class="btn-preset" data-preset="coral">🔥 Hot Coral</button>
+            <button type="button" class="btn-preset" data-preset="lime">🍏 Lime Punch</button>
+            <button type="button" class="btn-preset" data-preset="white">⚪ Classic</button>
+          </div>
+        </div>
+
+        <!-- Canvas & Background Mode -->
+        <div class="grid-2">
+          <div class="control-group">
+            <label class="control-label" for="backgroundMode">Background Mode</label>
+            <select id="backgroundMode" class="form-select">
+              <option value="green_screen" selected>🟩 Green Screen (Chroma Key)</option>
+              <option value="black">⬛ Black Screen (Screen Blend)</option>
+              <option value="blue">🟦 Blue Screen</option>
+              <option value="original_video">🎬 Original Video (Burn In)</option>
+              <option value="transparent">🔲 Transparent Alpha (WebM/MOV)</option>
+              <option value="custom">🎯 Custom Hex Color</option>
+            </select>
+          </div>
+          <div class="control-group" id="customColorGroup" style="display: none;">
+            <label class="control-label" for="customColorHex">Custom Color</label>
+            <input type="color" id="customColorHex" value="#1a1a24" class="form-color">
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="aspectRatio">Aspect Ratio</label>
+            <select id="aspectRatio" class="form-select">
+              <option value="9:16" selected>📱 9:16 (Shorts / Reels / TikTok)</option>
+              <option value="16:9">💻 16:9 (Landscape / YouTube)</option>
+              <option value="1:1">⏹️ 1:1 (Square)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Font & Pacing -->
+        <div class="grid-2">
+          <div class="control-group">
+            <label class="control-label" for="fontName">Arabic Font</label>
+            <select id="fontName" class="form-select">
+              <option value="Cairo" selected>Cairo (Bold & Modern)</option>
+              <option value="Tajawal">Tajawal (Clean & Minimal)</option>
+              <option value="Almarai">Almarai (Crisp UI)</option>
+              <option value="Amiri">Amiri (Classical Naskh)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="fontSize">Font Size (<span id="fontSizeVal">56</span>px)</label>
+            <input type="range" id="fontSize" min="28" max="96" value="56" class="form-range">
+          </div>
+        </div>
+
+        <!-- Colors Pickers -->
+        <div class="grid-2">
+          <div class="control-group">
+            <label class="control-label" for="primaryColor">Main Text Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="primaryColor" value="#FFFFFF" class="form-color">
+              <span id="primaryColorText">#FFFFFF</span>
+            </div>
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="highlightColor">Active Word Highlight</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="highlightColor" value="#FFE600" class="form-color">
+              <span id="highlightColorText">#FFE600</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Animation Style & Position -->
+        <div class="grid-2">
+          <div class="control-group">
+            <label class="control-label" for="animationStyle">Animation Style</label>
+            <select id="animationStyle" class="form-select">
+              <option value="karaoke_pop" selected>🚀 Karaoke Pop & Scale (TikTok)</option>
+              <option value="word_reveal">🌊 Progressive Word Reveal</option>
+              <option value="box_highlight">🔲 Box Badge Highlight</option>
+              <option value="classic_line">🎬 Classic Subtitle Line (Fade)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="wordsPerLine">Words Per Line</label>
+            <select id="wordsPerLine" class="form-select">
+              <option value="2">2 Words (Fast Pacing)</option>
+              <option value="3" selected>3 Words (Optimal Pacing)</option>
+              <option value="4">4 Words</option>
+              <option value="5">5 Words</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="control-group">
+            <label class="control-label" for="alignment">Subtitle Position</label>
+            <select id="alignment" class="form-select">
+              <option value="2" selected>Bottom (Center)</option>
+              <option value="5">Middle (Center)</option>
+              <option value="8">Top (Center)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="dialectHint">🇩🇿 Darija Dialect Focus</label>
+            <select id="dialectHint" class="form-select">
+              <option value="General Algerian" selected>General Algerian (الجزائر العامة)</option>
+              <option value="Algiers (Centre)">Algiers / Centre (العاصمة وضواحيها)</option>
+              <option value="Oran (West)">Oran / West (وهران والغرب)</option>
+              <option value="Constantine (East)">Constantine / East (قسنطينة والشرق)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Gemini API Key (Optional Override) -->
+        <div class="control-group">
+          <label class="control-label" for="apiKey">
+            Gemini API Key <span class="tag tag-sm">Optional (Preconfigured on server)</span>
+          </label>
+          <input type="password" id="apiKey" class="form-input" placeholder="AIzaSy... (Leave empty to use server default key)">
+        </div>
+
+        <!-- Action CTA -->
+        <button type="button" id="startBtn" class="btn btn-accent btn-lg w-full">
+          🚀 Start Generate Subtitles (ابدأ الآن)
+        </button>
+      </section>
+
+      <!-- Right Column: Results & Interactive Subtitle Editor -->
+      <section class="card results-panel" dir="rtl">
+        <h2 class="card-title">🎬 النتيجة ومحرر الترجمة التفاعلي</h2>
+
+        <!-- Progress Tracker -->
+        <div id="progressContainer" class="progress-container hidden">
+          <div class="progress-bar-wrapper">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+          <p id="progressStatus" class="progress-status">جاري المعالجة...</p>
+        </div>
+
+        <!-- Video Player Showcase -->
+        <div id="videoContainer" class="video-container hidden">
+          <video id="resultVideo" controls playsinline></video>
+          <div class="download-row">
+            <a id="downloadVideoBtn" class="btn btn-success" download>🎬 تحميل الفيديو (MP4)</a>
+            <a id="downloadAssBtn" class="btn btn-secondary" download>📝 ملف ASS المتحرك</a>
+            <a id="downloadSrtBtn" class="btn btn-secondary" download>📄 ملف SRT</a>
+            <a id="downloadJsonBtn" class="btn btn-secondary" download>📊 بيانات التوقيت (JSON)</a>
+          </div>
+        </div>
+
+        <!-- Empty State PlaceHolder -->
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">✨</div>
+          <h3>قم برفع ملف صوتي أو فيديو للبدء</h3>
+          <p>سيقوم الذكاء الاصطناعي (Gemini) بتفريغ الصوت بالدارجة الجزائرية بدقة وتوليد ملف ترجمة متحرك متزامن مع كل كلمة بالملي ثانية.</p>
+        </div>
+
+        <!-- Interactive Subtitle Editor & Review Table -->
+        <div id="editorContainer" class="editor-container hidden">
+          <div class="editor-header">
+            <h3>📝 مراجعة وتعديل الترجمة (بالدارجة الجزائرية)</h3>
+            <button id="reRenderBtn" class="btn btn-primary btn-sm">⚡ إعادة رندر الفيديو بالتعديلات</button>
+          </div>
+          <div id="segmentsList" class="segments-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Usage Guide Modal -->
+    <div id="guideModal" class="modal hidden">
+      <div class="modal-card" dir="rtl">
+        <div class="modal-header">
+          <h2>📖 كيفية استخدام الكروما الخضراء في برامج المونتاج</h2>
+          <button id="closeGuideBtn" class="btn-icon">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-step">
+            <h4>1. في CapCut (الهاتف أو الكمبيوتر):</h4>
+            <p>أضف فيديو الترجمة كطبقة علوية (Overlay) فوق الفيديو الخاص بك. اذهب إلى <strong>Remove BG</strong> واختر <strong>Chroma Key</strong>، ثم حدد اللون الأخضر بالقطّارة وضع الشدة (Intensity) على 15-20%.</p>
+          </div>
+          <div class="guide-step">
+            <h4>2. في Adobe Premiere Pro:</h4>
+            <p>ضع فيديو الكروما الخضراء فوق الفيديو في الـ Timeline. في قائمة Effects ابحث عن تأثير <strong>Ultra Key</strong> وقم بتطبيقه على طبقة الترجمة، ثم اختر اللون الأخضر بأداة القطارة.</p>
+          </div>
+          <div class="guide-step">
+            <h4>3. في DaVinci Resolve:</h4>
+            <p>في صفحة Edit أو Color، استخدم أداة <strong>3D Keyer</strong> أو <strong>Delta Keyer</strong> في Fusion لإزالة اللون الأخضر بنقرة واحدة.</p>
+          </div>
+          <div class="guide-step">
+            <h4>4. وضع الشاشة السوداء (Black Screen):</h4>
+            <p>إذا اخترت Black Screen، ما عليك سوى تغيير الـ <strong>Blending Mode</strong> للطبقة إلى <strong>Screen</strong> في أي برنامج مونتاج بدون الحاجة لأي مفتاح كروما!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+{
+  "name": "DZ Darija Subtitles Generator (Gemini AI + FFmpeg)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "darija-subtitles",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "darija-subtitles-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Gemini Audio Payload for Algerian Darija\nconst binaryData = items[0].binary?.data;\nif (!binaryData) {\n  throw new Error('No audio/video file provided in binary property \"data\"');\n}\n\nconst base64Audio = binaryData.data;\nconst mimeType = binaryData.mimeType || 'audio/mp3';\nconst query = $input.item.json.query || {};\nconst dialect = query.dialect || 'General Algerian';\n\nconst prompt = `You are an expert transcriber specialized in Algerian Arabic (الدارجة الجزائرية - Darija).\\nListen to the audio and transcribe accurately into Arabic script with exact word timestamps.\\nDialect: ${dialect}.\\nReturn STRICT JSON format only:\\n{\\n  \"language\": \"ar-DZ\",\\n  \"text\": \"...\",\\n  \"segments\": [\\n    {\\n      \"id\": 0,\\n      \"start\": 0.00,\\n      \"end\": 2.50,\\n      \"text\": \"واش راك خويا\",\\n      \"words\": [\\n        {\"word\": \"واش\", \"start\": 0.00, \"end\": 0.60},\\n        {\"word\": \"راك\", \"start\": 0.60, \"end\": 1.20},\\n        {\"word\": \"خويا\", \"start\": 1.20, \"end\": 2.50}\\n      ]\\n    }\\n  ]\\n}`;\n\nreturn [{\n  json: {\n    contents: [\n      {\n        parts: [\n          {\n            inline_data: {\n              mime_type: mimeType,\n              data: base64Audio\n            }\n          },\n          {\n            text: prompt\n          }\n        ]\n      }\n    ],\n    generationConfig: {\n      temperature: 0.2,\n      responseMimeType: 'application/json'\n    },\n    query: query\n  }\n}];"
+      },
+      "id": "2",
+      "name": "Prepare Audio Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-transcribe:generateContent?key={{ $env.GEMINI_API_KEY || $json.query.api_key }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: $json.contents, generationConfig: $json.generationConfig }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "3",
+      "name": "Gemini AI Audio Transcription",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini Response and Build ASS Subtitles\nconst response = $input.item.json;\nconst candidates = response.candidates || [];\nif (!candidates.length) {\n  throw new Error('Gemini API returned no candidates');\n}\n\nconst rawText = candidates[0].content?.parts?.[0]?.text || '{}';\nlet data = {};\ntry {\n  data = JSON.parse(rawText);\n} catch (e) {\n  const clean = rawText.replace(/```json/g, '').replace(/```/g, '').trim();\n  data = JSON.parse(clean);\n}\n\nconst segments = data.segments || [];\n\nfunction formatAssTime(seconds) {\n  const h = Math.floor(seconds / 3600);\n  const m = Math.floor((seconds % 3600) / 60);\n  const s = Math.floor(seconds % 60);\n  const cs = Math.floor((seconds % 1) * 100);\n  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;\n}\n\nlet assContent = `[Script Info]\\nScriptType: v4.00+\\nPlayResX: 1080\\nPlayResY: 1920\\n\\n[V4+ Styles]\\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\\nStyle: Default,Cairo,56,&H00FFFFFF,&H0000E6FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3.5,2.0,2,30,30,90,1\\n\\n[Events]\\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\\n`;\n\nconst allWords = [];\nfor (const seg of segments) {\n  if (seg.words && seg.words.length) {\n    allWords.push(...seg.words);\n  } else {\n    const ws = (seg.text || '').split(' ');\n    const dur = (seg.end - seg.start) / ws.length;\n    let cur = seg.start;\n    for (const w of ws) {\n      allWords.push({ word: w, start: cur, end: cur + dur });\n      cur += dur;\n    }\n  }\n}\n\n// Chunk into 3 words per line\nconst wordsPerLine = 3;\nfor (let i = 0; i < allWords.length; i += wordsPerLine) {\n  const chunk = allWords.slice(i, i + wordsPerLine);\n  for (let j = 0; j < chunk.length; j++) {\n    const active = chunk[j];\n    const next = chunk[j + 1];\n    const wEnd = next ? next.start : active.end;\n    const startStr = formatAssTime(active.start);\n    const endStr = formatAssTime(wEnd);\n    \n    const formatted = chunk.map((w, idx) => {\n      return idx === j ? `{\\\\c&H0000E6FF\\\\fscx115\\\\fscy115}${w.word}{\\\\c&H00FFFFFF\\\\fscx100\\\\fscy100}` : `{\\\\c&H00FFFFFF}${w.word}`;\n    }).join(' ');\n    \n    assContent += `Dialogue: 0,${startStr},${endStr},Default,,0,0,0,,${formatted}\\n`;\n  }\n}\n\nreturn [{\n  json: {\n    transcription: data,\n    assContent: assContent\n  }\n}];"
+      },
+      "id": "4",
+      "name": "Build Animated ASS Subtitles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Audio Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audio Payload": {
+      "main": [
+        [
+          {
+            "node": "Gemini AI Audio Transcription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini AI Audio Transcription": {
+      "main": [
+        [
+          {
+            "node": "Build Animated ASS Subtitles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Animated ASS Subtitles": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
