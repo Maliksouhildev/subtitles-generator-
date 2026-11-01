@@ -36,8 +36,10 @@ DIALECT & LINGUISTIC RULES:
 2. Accurately capture authentic Algerian vocabulary, slang, and expressions:
    - "واش", "واشنو", "علاش", "كيفاش", "وقتاش", "وينتا", "راني", "راك", "راهو", "راهي", "حنا", "نتوما"
    - "برك", "بزاف", "شوية", "مليح", "قع", "كامل", "دير", "حاب", "باغي", "خلاص", "صحة", "خويا", "ختي", "كاش", "هكذا", "هاكا"
-   - French loanwords naturally used in Algeria written phonetically in Arabic (e.g., بورطابل, طوموبيل, ميرسي, بلاصة, نورمال, الخ).
-3. Provide PRECISE TIMESTAMPS:
+3. FRENCH LOANWORD & PHONETIC REFINEMENT:
+   - Do NOT create awkward, broken phonetic transliterations of French loanwords into Arabic letters (e.g. avoid 'برومي لو تيست', 'دوزيام مو', etc.).
+   - If the speaker uses clear French words or technical terms (e.g., "premier test", "rendez-vous", "projet", "voiture", "normal", "c'est bon", "merci"), write them cleanly in standard French or natural Algerian Arabic (e.g. سيارة / طوموبيل) so subtitles remain natural and readable.
+4. Provide PRECISE TIMESTAMPS:
    - Every segment must have 'start' and 'end' in seconds (float).
    - Every word within a segment must have its exact spoken 'start' and 'end' timestamps in seconds.
    - Timestamps must correspond to the exact moment the speaker pronounces the word.
@@ -59,6 +61,47 @@ Return ONLY valid JSON matching this schema with NO markdown code fences, NO exp
         {"word": "خاوتنا", "start": 0.85, "end": 1.40},
         {"word": "واش", "start": 1.40, "end": 1.80},
         {"word": "راكم", "start": 1.80, "end": 2.40}
+      ]
+    }
+  ]
+}
+"""
+
+DARIJA_LATIN_SYSTEM_PROMPT = """
+You are an expert transcriber specialized in Algerian Arabic Arabizi (الدارجة باللاتينية / Latin Darija).
+Your task is to listen to the provided audio and generate an accurate, word-by-word transcription in authentic Algerian Darija written in LATIN SCRIPT with Arabizi numbers.
+
+ARABIZI NUMERICAL CONVENTIONS:
+- 3 for 'ع' (Ayn), e.g. 3likom, m3a, s3id
+- 7 for 'ح' (Haa), e.g. 7aja, 7na, sa7a
+- 9 for 'ق' (Qaf), e.g. 9al, 9olna, w9tach
+- 5 for 'خ' (Khaa), e.g. 5oya, 5ir, 5las
+- 2 for 'ء' (Hamza), e.g. rassi, ba2ess
+
+DIALECT & VOCABULARY RULES:
+1. Accurately transcribe spoken Algerian words: "wach", "wachno", "3lach", "kifech", "wa9tech", "rani", "rak", "raho", "rahi", "hna", "ntouma", "bzaf", "chwya", "mzyan", "mle7", "kamel", "sahbi", "khoya".
+2. Write French loanwords in standard French spelling (e.g., "projet", "premier test", "normal", "c'est bon").
+3. Provide PRECISE TIMESTAMPS:
+   - Every segment must have 'start' and 'end' in seconds (float).
+   - Every word within a segment must have its exact spoken 'start' and 'end' timestamps in seconds.
+
+STRICT JSON OUTPUT FORMAT ONLY:
+Return ONLY valid JSON matching this schema with NO markdown code fences, NO explanation, NO introduction:
+{
+  "language": "ar-DZ-Latn",
+  "text": "Full transcript in Algerian Darija Arabizi",
+  "segments": [
+    {
+      "id": 0,
+      "start": 0.00,
+      "end": 2.40,
+      "text": "salam 3likom khawatna wach rakoum",
+      "words": [
+        {"word": "salam", "start": 0.00, "end": 0.45},
+        {"word": "3likom", "start": 0.45, "end": 0.85},
+        {"word": "khawatna", "start": 0.85, "end": 1.40},
+        {"word": "wach", "start": 1.40, "end": 1.80},
+        {"word": "rakoum", "start": 1.80, "end": 2.40}
       ]
     }
   ]
@@ -172,11 +215,13 @@ def get_system_prompt(dialect_hint: str = "General Algerian") -> str:
         return FRENCH_SYSTEM_PROMPT
     elif dh.startswith("english") or dh == "en":
         return ENGLISH_SYSTEM_PROMPT
+    elif "latin" in dh or "arabizi" in dh:
+        return DARIJA_LATIN_SYSTEM_PROMPT
     elif dh.startswith("arabic") or dh.startswith("modern standard") or dh.startswith("العربية"):
         return ARABIC_STANDARD_SYSTEM_PROMPT
     else:
         prompt = DARIJA_SYSTEM_PROMPT
-        if dialect_hint and dialect_hint not in ("General Algerian", "Algerian Darija"):
+        if dialect_hint and dialect_hint not in ("General Algerian", "Algerian Darija", "Algerian Darija (Arabic)", "ar-dz"):
             prompt += f"\nSpecific Regional Dialect Focus: {dialect_hint} (Algeria).\n"
         return prompt
 

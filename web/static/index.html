@@ -6,7 +6,7 @@
   <title>DZ Subtitles AI - Viral Animated Subtitles Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Cairo:wght@600;700;900&family=Tajawal:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Cairo:wght@600;700;900&family=Tajawal:wght@700&family=Lalezar&family=Almarai:wght@700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -106,7 +106,7 @@
         <div class="left-panel-content">
           <!-- File Upload Zone -->
           <div class="comic-dropzone" id="dropZone">
-            <input type="file" id="fileInput" accept="audio/*,video/*" hidden>
+            <input type="file" id="fileInput" multiple accept="audio/*,video/*" hidden>
             <div class="dropzone-body">
               <div class="dropzone-icon-box">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -117,7 +117,7 @@
               </div>
               <div class="dropzone-texts">
                 <p class="dropzone-title" data-i18n="dropzone_title">Drag & drop Audio or Video here</p>
-                <p class="dropzone-sub" data-i18n="dropzone_formats">Supports MP3, WAV, AAC, MP4, MOV, MKV, WebM</p>
+                <p class="dropzone-sub" data-i18n="dropzone_formats">Supports MP3, WAV, AAC, MP4, MOV, MKV, WebM (Multiple files supported!)</p>
               </div>
               <button type="button" class="comic-btn comic-btn-sm comic-btn-amber" onclick="document.getElementById('fileInput').click()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -152,6 +152,18 @@
             </div>
           </div>
 
+          <!-- Batch Upload Queue List -->
+          <div id="queueSection" class="batch-queue-card hidden">
+            <div class="queue-header">
+              <div class="queue-title-wrap">
+                <span class="comic-stamp" data-i18n="queue_badge">BATCH QUEUE</span>
+                <span class="queue-count-badge" id="queueCount">0 files</span>
+              </div>
+              <button type="button" id="clearQueueBtn" class="comic-btn-text" data-i18n="queue_clear">Clear Queue</button>
+            </div>
+            <div class="queue-items-container" id="queueItemsList"></div>
+          </div>
+
           <!-- Loading Text & Progress Tracker ("left side display the loading text as it is") -->
           <div id="progressContainer" class="comic-progress-card hidden">
             <div class="progress-header">
@@ -159,7 +171,10 @@
                 <span class="spinner-dot"></span>
                 <span id="progressStepBadge" class="comic-tag comic-tag-amber">Step 1/4</span>
               </div>
-              <span id="progressPercentage" class="progress-num">0%</span>
+              <div class="progress-meta-right">
+                <span id="progressEta" class="progress-eta-text">Est. ~10s</span>
+                <span id="progressPercentage" class="progress-num">0%</span>
+              </div>
             </div>
             <div class="comic-progress-track">
               <div id="progressBar" class="comic-progress-fill"></div>
@@ -327,6 +342,9 @@
               <!-- Phone Frame Wrapper -->
               <div class="phone-frame-wrapper">
                 <div class="phone-device" id="phoneDevice">
+                  <!-- Live Footage Video Background (Loops Silently) -->
+                  <video id="phoneVideoBg" class="phone-video-bg" muted loop playsinline></video>
+
                   <!-- Top Status Bar -->
                   <div class="phone-status-bar">
                     <span class="phone-time">9:41</span>
@@ -348,8 +366,14 @@
                     <span class="safe-zone-label" data-i18n="sim_safe_zone">SAFE ZONE</span>
                   </div>
 
-                  <!-- Live Subtitle Display Box (Animated and Synced!) -->
-                  <div class="live-subtitle-container" id="liveSubtitleContainer">
+                  <!-- Live Drag Position Tooltip -->
+                  <div class="drag-position-tooltip hidden" id="dragTooltip">Safe Zone (72% Y)</div>
+
+                  <!-- Live Subtitle Display Box (DRAGGABLE across the phone screen!) -->
+                  <div class="live-subtitle-container" id="liveSubtitleContainer" title="Drag subtitles up or down to set exact position">
+                    <div class="subtitle-drag-handle" title="Drag to reposition">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
+                    </div>
                     <div class="live-subtitle-box" id="liveSubtitleBox">
                       <span class="sub-word" id="subWord1">VIRAL</span>
                       <span class="sub-word active" id="subWord2">ANIMATED</span>
@@ -359,14 +383,6 @@
 
                   <!-- Bottom Safe Zone Info (Username, Subscribe/Follow button, Description, Sound) -->
                   <div class="phone-bottom-overlay" id="phoneBottomOverlay"></div>
-                </div>
-
-                <!-- Quick Snap Position Controls -->
-                <div class="quick-position-controls">
-                  <span class="position-label" data-i18n="pos_quick">Position:</span>
-                  <button type="button" class="pos-snap-btn" data-pos="8" data-i18n="pos_top">Top</button>
-                  <button type="button" class="pos-snap-btn" data-pos="5" data-i18n="pos_middle">Middle</button>
-                  <button type="button" class="pos-snap-btn active" data-pos="2" data-i18n="pos_safe_bottom">Safe Bottom</button>
                 </div>
               </div>
             </div>
@@ -419,7 +435,8 @@
                   <span data-i18n="ctrl_lang">Speech Language</span>
                 </label>
                 <select id="dialectHint" class="comic-select">
-                  <option value="General Algerian" selected data-i18n="opt_lang_dz">Algerian Darija (الدارجة الجزائرية)</option>
+                  <option value="General Algerian" selected data-i18n="opt_lang_dz">Algerian Darija (الدارجة الجزائرية - عربي)</option>
+                  <option value="Algerian Darija Latin" data-i18n="opt_lang_latin">Algerian Darija (Latin / Arabizi 3, 7, 9)</option>
                   <option value="Modern Standard Arabic" data-i18n="opt_lang_msa">Modern Standard Arabic (العربية الفصحى)</option>
                   <option value="French" data-i18n="opt_lang_fr">French (Français)</option>
                   <option value="English" data-i18n="opt_lang_en">English</option>
@@ -427,27 +444,31 @@
               </div>
 
               <div class="grid-col">
-                <label class="comic-label" for="alignment">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-                  <span data-i18n="ctrl_pos">Subtitle Position</span>
-                </label>
-                <select id="alignment" class="comic-select">
-                  <option value="2" selected data-i18n="opt_pos_bottom">Bottom (Safe Zone above UI)</option>
-                  <option value="5" data-i18n="opt_pos_center">Center (Middle)</option>
-                  <option value="8" data-i18n="opt_pos_top">Top (Header)</option>
-                </select>
+                <div class="label-with-val">
+                  <label class="comic-label" for="marginV">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                    <span data-i18n="ctrl_pos">Subtitle Position (Drag on Phone)</span>
+                  </label>
+                  <span id="marginVVal" class="comic-tag">420px (Safe Zone)</span>
+                </div>
+                <input type="range" id="marginV" min="80" max="1600" value="420" class="comic-slider" title="Drag subtitles directly on the phone or adjust slider">
+                <input type="hidden" id="alignment" value="2">
               </div>
 
               <!-- Vertical Margin Slider & Font Size Slider -->
               <div class="grid-col">
-                <div class="label-with-val">
-                  <label class="comic-label" for="marginV">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-                    <span data-i18n="ctrl_margin">Vertical Margin</span>
-                  </label>
-                  <span id="marginVVal" class="comic-tag">280px</span>
-                </div>
-                <input type="range" id="marginV" min="40" max="500" value="280" class="comic-slider">
+                <label class="comic-label" for="fontName">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                  <span data-i18n="ctrl_font">Font Family</span>
+                </label>
+                <select id="fontName" class="comic-select">
+                  <option value="Lalezar" selected>Lalezar (Ultra Bold & Viral)</option>
+                  <option value="Cairo">Cairo (Punchy Geometric)</option>
+                  <option value="Tajawal">Tajawal (Clean Modern)</option>
+                  <option value="Almarai">Almarai (Crisp UI)</option>
+                  <option value="Amiri">Amiri (Naskh Classic)</option>
+                  <option value="Plus Jakarta Sans">Plus Jakarta Sans (Latin)</option>
+                </select>
               </div>
 
               <div class="grid-col">
@@ -461,32 +482,100 @@
                 <input type="range" id="fontSize" min="28" max="96" value="56" class="comic-slider">
               </div>
 
-              <!-- Font Family & Animation Style -->
-              <div class="grid-col">
-                <label class="comic-label" for="fontName">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
-                  <span data-i18n="ctrl_font">Font Family</span>
-                </label>
-                <select id="fontName" class="comic-select">
-                  <option value="Cairo" selected>Cairo (Bold & Viral)</option>
-                  <option value="Tajawal">Tajawal (Clean Modern)</option>
-                  <option value="Almarai">Almarai (Crisp UI)</option>
-                  <option value="Amiri">Amiri (Naskh Classic)</option>
-                  <option value="Plus Jakarta Sans">Plus Jakarta Sans (Latin)</option>
-                </select>
-              </div>
-
-              <div class="grid-col">
-                <label class="comic-label" for="animationStyle">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                  <span data-i18n="ctrl_anim">Animation Style</span>
-                </label>
-                <select id="animationStyle" class="comic-select">
-                  <option value="karaoke_pop" selected data-i18n="opt_anim_karaoke">Karaoke Pop & Scale</option>
-                  <option value="word_reveal" data-i18n="opt_anim_reveal">Progressive Word Reveal</option>
-                  <option value="box_highlight" data-i18n="opt_anim_box">Box Badge Highlight</option>
-                  <option value="classic_line" data-i18n="opt_anim_classic">Classic Subtitle Line</option>
-                </select>
+              <!-- Animation Style with Live Simulation Trigger & Options -->
+              <div class="grid-col anim-style-grid-col">
+                <div class="label-with-val">
+                  <label class="comic-label" for="animSelectTrigger">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span data-i18n="ctrl_anim">Animation Style</span>
+                  </label>
+                  <span class="comic-tag comic-tag-amber" style="font-size: 7.5px;">LIVE PREVIEW</span>
+                </div>
+                <div class="custom-select-wrap" id="animSelectWrap">
+                  <button type="button" class="custom-select-trigger" id="animSelectTrigger" aria-haspopup="listbox">
+                    <div class="trigger-left">
+                      <span class="trigger-label" id="animSelectLabel">Karaoke Pop & Scale</span>
+                      <span class="trigger-live-anim" id="animSelectLivePreview">
+                        <span class="demo-sub-word anim-karaoke_pop">POP</span>
+                      </span>
+                    </div>
+                    <svg class="trigger-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </button>
+                  <div class="custom-dropdown-panel hidden" id="animDropdownPanel" role="listbox">
+                    <div class="anim-option-row active" data-value="karaoke_pop">
+                      <div class="opt-left">
+                        <span class="opt-name" data-i18n="opt_anim_karaoke">Karaoke Pop & Scale</span>
+                        <span class="opt-desc">Active word pops up with smooth scaling</span>
+                      </div>
+                      <div class="opt-demo-box">
+                        <span class="demo-sub-word anim-karaoke_pop">VIRAL</span>
+                      </div>
+                    </div>
+                    <div class="anim-option-row" data-value="bouncy_spring">
+                      <div class="opt-left">
+                        <span class="opt-name" data-i18n="opt_anim_bouncy">Bouncy Spring</span>
+                        <span class="opt-desc">Words jump with elastic bounce physics</span>
+                      </div>
+                      <div class="opt-demo-box">
+                        <span class="demo-sub-word anim-bouncy_spring">BOUNCE</span>
+                      </div>
+                    </div>
+                    <div class="anim-option-row" data-value="neon_glow">
+                      <div class="opt-left">
+                        <span class="opt-name" data-i18n="opt_anim_neon">Neon Glow Pulse</span>
+                        <span class="opt-desc">Intense luminous halo outline</span>
+                      </div>
+                      <div class="opt-demo-box">
+                        <span class="demo-sub-word anim-neon_glow">GLOW</span>
+                      </div>
+                    </div>
+                    <div class="anim-option-row" data-value="color_flash">
+                      <div class="opt-left">
+                        <span class="opt-name" data-i18n="opt_anim_flash">Color Flash Cycle</span>
+                        <span class="opt-desc">Alternates neon yellow & cyan contrast</span>
+                      </div>
+                      <div class="opt-demo-box">
+                        <span class="demo-sub-word anim-color_flash">FLASH</span>
+                      </div>
+                    </div>
+                    <div class="anim-option-row" data-value="box_highlight">
+                      <div class="opt-left">
+                        <span class="opt-name" data-i18n="opt_anim_box">Box Badge Highlight</span>
+                        <span class="opt-desc">Solid colored accent pill behind word</span>
+                      </div>
+                      <div class="opt-demo-box">
+                        <span class="demo-sub-word anim-box_highlight">BADGE</span>
+                      </div>
+                    </div>
+                    <div class="anim-option-row" data-value="word_reveal">
+                      <div class="opt-left">
+                        <span class="opt-name" data-i18n="opt_anim_reveal">Progressive Reveal</span>
+                        <span class="opt-desc">Words reveal sequentially on beat</span>
+                      </div>
+                      <div class="opt-demo-box">
+                        <span class="demo-sub-word anim-word_reveal">REVEAL</span>
+                      </div>
+                    </div>
+                    <div class="anim-option-row" data-value="classic_line">
+                      <div class="opt-left">
+                        <span class="opt-name" data-i18n="opt_anim_classic">Classic Subtitle Line</span>
+                        <span class="opt-desc">Smooth line-by-line subtitle fade</span>
+                      </div>
+                      <div class="opt-demo-box">
+                        <span class="demo-sub-word anim-classic_fade">FADE</span>
+                      </div>
+                    </div>
+                  </div>
+                  <select id="animationStyle" class="comic-select visually-hidden">
+                    <option value="karaoke_pop" selected>Karaoke Pop & Scale</option>
+                    <option value="bouncy_spring">Bouncy Spring</option>
+                    <option value="neon_glow">Neon Glow Pulse</option>
+                    <option value="color_flash">Color Flash Cycle</option>
+                    <option value="box_highlight">Box Badge Highlight</option>
+                    <option value="word_reveal">Progressive Reveal</option>
+                    <option value="classic_line">Classic Subtitle Line</option>
+                  </select>
+                </div>
               </div>
 
               <!-- Colors: Primary Text & Highlight -->
@@ -556,11 +645,11 @@
                   <span data-i18n="ctrl_bg">Background Canvas</span>
                 </label>
                 <select id="backgroundMode" class="comic-select">
-                  <option value="green_screen" selected data-i18n="opt_bg_green">Green Screen (Chroma Key)</option>
+                  <option value="transparent" selected data-i18n="opt_bg_trans">Transparent Alpha (WebM - No Chroma Key!)</option>
+                  <option value="green_screen" data-i18n="opt_bg_green">Green Screen (Chroma Key)</option>
                   <option value="black" data-i18n="opt_bg_black">Black Screen (Screen Blend)</option>
                   <option value="blue" data-i18n="opt_bg_blue">Blue Screen</option>
                   <option value="original_video" data-i18n="opt_bg_orig">Original Video (Burn-In)</option>
-                  <option value="transparent" data-i18n="opt_bg_trans">Transparent Alpha (WebM)</option>
                   <option value="custom" data-i18n="opt_bg_custom">Custom Color</option>
                 </select>
               </div>

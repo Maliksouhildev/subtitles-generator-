@@ -74,10 +74,12 @@ def test_interpolate_word_timestamps_user_edit():
 
 
 def test_get_system_prompt_languages():
-    from core.transcriber import get_system_prompt, FRENCH_SYSTEM_PROMPT, ENGLISH_SYSTEM_PROMPT, ARABIC_STANDARD_SYSTEM_PROMPT, DARIJA_SYSTEM_PROMPT
+    from core.transcriber import get_system_prompt, FRENCH_SYSTEM_PROMPT, ENGLISH_SYSTEM_PROMPT, ARABIC_STANDARD_SYSTEM_PROMPT, DARIJA_SYSTEM_PROMPT, DARIJA_LATIN_SYSTEM_PROMPT
     assert get_system_prompt("French") == FRENCH_SYSTEM_PROMPT
     assert get_system_prompt("English") == ENGLISH_SYSTEM_PROMPT
     assert get_system_prompt("Modern Standard Arabic") == ARABIC_STANDARD_SYSTEM_PROMPT
+    assert get_system_prompt("Algerian Darija Latin") == DARIJA_LATIN_SYSTEM_PROMPT
+    assert get_system_prompt("General Algerian") == DARIJA_SYSTEM_PROMPT
     assert "Algerian" in get_system_prompt("General Algerian")
 
 

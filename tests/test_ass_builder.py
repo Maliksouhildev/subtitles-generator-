@@ -61,7 +61,7 @@ def test_ass_builder_karaoke_pop():
 
 
 def test_ass_builder_all_styles():
-    for style in ["karaoke_pop", "word_reveal", "classic_line", "box_highlight"]:
+    for style in ["karaoke_pop", "bouncy_spring", "neon_glow", "color_flash", "word_reveal", "classic_line", "box_highlight"]:
         builder = ASSSubtitleBuilder(animation_style=style)
         data = {
             "segments": [
@@ -79,6 +79,13 @@ def test_ass_builder_all_styles():
         out = builder.generate_ass(data)
         assert "[Events]" in out
         assert "صحا" in out
+
+
+def test_ass_builder_pos_y_override():
+    builder = ASSSubtitleBuilder(pos_y=1400, video_height=1920)
+    assert builder.margin_v == 1920 - 1400  # 520px
+    ass_text = builder.generate_ass({"segments": []})
+    assert ",520,1" in ass_text
 
 
 def test_ass_builder_rtl_ordering():

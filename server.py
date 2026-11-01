@@ -63,7 +63,8 @@ class RenderRequest(BaseModel):
     outline_width: float = 3.5
     shadow_depth: float = 2.0
     alignment: int = 2
-    margin_v: int = 90
+    margin_v: int = 420
+    pos_y: Optional[int] = None
     words_per_line: int = 3
     animation_style: str = "karaoke_pop"
     background_mode: str = "green_screen"
@@ -215,6 +216,7 @@ async def render_subtitles(req: RenderRequest):
             shadow_depth=req.shadow_depth,
             alignment=req.alignment,
             margin_v=req.margin_v,
+            pos_y=req.pos_y,
             words_per_line=req.words_per_line,
             animation_style=req.animation_style,
             video_width=w,

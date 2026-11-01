@@ -56,6 +56,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const langButtons = document.querySelectorAll(".lang-btn");
 
   // Phone Simulation Elements
+  const phoneDevice = document.getElementById("phoneDevice");
+  const phoneVideoBg = document.getElementById("phoneVideoBg");
+  const dragTooltip = document.getElementById("dragTooltip");
   const platformTabs = document.querySelectorAll(".platform-tab");
   const platformTopBar = document.getElementById("platformTopBar");
   const phoneSidebar = document.getElementById("phoneSidebar");
@@ -65,7 +68,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const subWord1 = document.getElementById("subWord1");
   const subWord2 = document.getElementById("subWord2");
   const subWord3 = document.getElementById("subWord3");
-  const posSnapButtons = document.querySelectorAll(".pos-snap-btn");
+
+  // Custom Animation Select & Batch Queue Elements
+  const animSelectWrap = document.getElementById("animSelectWrap");
+  const animSelectTrigger = document.getElementById("animSelectTrigger");
+  const animSelectLabel = document.getElementById("animSelectLabel");
+  const animSelectLivePreview = document.getElementById("animSelectLivePreview");
+  const animDropdownPanel = document.getElementById("animDropdownPanel");
+  const animOptionRows = document.querySelectorAll(".anim-option-row");
+
+  const progressEta = document.getElementById("progressEta");
+  const queueSection = document.getElementById("queueSection");
+  const queueItemsList = document.getElementById("queueItemsList");
+  const queueCount = document.getElementById("queueCount");
+  const clearQueueBtn = document.getElementById("clearQueueBtn");
 
   // Guide Modal
   const guideBtn = document.getElementById("guideBtn");
@@ -79,6 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentLang = localStorage.getItem("dz_subtitles_lang") || "en";
   let currentTheme = localStorage.getItem("dz_subtitles_theme") || "dark";
   let currentPlatform = "tiktok";
+  let batchQueue = [];
+  let isProcessingBatch = false;
 
   // COMPLETE MULTILINGUAL TRANSLATION DICTIONARY (ZERO EMOJIS, CLEAN & PROFESSIONAL)
   const TRANSLATIONS = {
@@ -150,7 +168,8 @@ document.addEventListener("DOMContentLoaded", () => {
       sim_follow: "Follow",
       sim_subscribe: "Subscribe",
       // Dropdown Options
-      opt_lang_dz: "Algerian Darija (الدارجة الجزائرية)",
+      opt_lang_dz: "Algerian Darija (الدارجة الجزائرية - عربي)",
+      opt_lang_latin: "Algerian Darija (Latin / Arabizi 3, 7, 9)",
       opt_lang_msa: "Modern Standard Arabic (العربية الفصحى)",
       opt_lang_fr: "French (Français)",
       opt_lang_en: "English",
@@ -158,6 +177,9 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_pos_center: "Center (Middle)",
       opt_pos_top: "Top (Header)",
       opt_anim_karaoke: "Karaoke Pop & Scale",
+      opt_anim_bouncy: "Bouncy Spring",
+      opt_anim_neon: "Neon Glow Pulse",
+      opt_anim_flash: "Color Flash Cycle",
       opt_anim_reveal: "Progressive Word Reveal",
       opt_anim_box: "Box Badge Highlight",
       opt_anim_classic: "Classic Subtitle Line",
@@ -173,7 +195,10 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_bg_blue: "Blue Screen",
       opt_bg_orig: "Original Video (Burn-In)",
       opt_bg_trans: "Transparent Alpha (WebM)",
-      opt_bg_custom: "Custom Color"
+      opt_bg_custom: "Custom Color",
+      queue_title: "Batch Processing Queue",
+      queue_badge: "BATCH QUEUE",
+      queue_clear: "Clear Queue"
     },
     fr: {
       header_badge: "STUDIO",
@@ -244,6 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
       sim_subscribe: "S'abonner",
       // Dropdown Options
       opt_lang_dz: "Darija algérienne (الدارجة الجزائرية)",
+      opt_lang_latin: "Darija algérienne (Latin / Arabizi 3, 7, 9)",
       opt_lang_msa: "Arabe standard moderne (العربية الفصحى)",
       opt_lang_fr: "Français",
       opt_lang_en: "Anglais",
@@ -251,6 +277,9 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_pos_center: "Centre (Milieu)",
       opt_pos_top: "Haut (En-tête)",
       opt_anim_karaoke: "Karaoké Pop & Échelle",
+      opt_anim_bouncy: "Rebond Élastique",
+      opt_anim_neon: "Halo Néon Brillant",
+      opt_anim_flash: "Flash de Couleurs Alternées",
       opt_anim_reveal: "Révélation Progressive de Mots",
       opt_anim_box: "Surlignage en Boîte Badge",
       opt_anim_classic: "Ligne Classique de Sous-titres",
@@ -266,7 +295,10 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_bg_blue: "Fond Bleu",
       opt_bg_orig: "Vidéo d'origine (Incrustation)",
       opt_bg_trans: "Alpha Transparent (WebM)",
-      opt_bg_custom: "Couleur Personnalisée"
+      opt_bg_custom: "Couleur Personnalisée",
+      queue_title: "File de Traitement par Lot",
+      queue_badge: "FILE D'ATTENTE",
+      queue_clear: "Vider la file"
     },
     ar: {
       header_badge: "استوديو",
@@ -336,7 +368,8 @@ document.addEventListener("DOMContentLoaded", () => {
       sim_follow: "متابعة",
       sim_subscribe: "اشتراك",
       // Dropdown Options
-      opt_lang_dz: "الدارجة الجزائرية",
+      opt_lang_dz: "الدارجة الجزائرية - عربي",
+      opt_lang_latin: "الدارجة الجزائرية باللاتينية (عربيزي 3, 7, 9)",
       opt_lang_msa: "العربية الفصحى",
       opt_lang_fr: "الفرنسية (Français)",
       opt_lang_en: "الإنجليزية (English)",
@@ -344,6 +377,9 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_pos_center: "الوسط (المنتصف)",
       opt_pos_top: "أعلى (الترويسة)",
       opt_anim_karaoke: "كاراوكي بوب وتكبير",
+      opt_anim_bouncy: "قفز مرن نطاط",
+      opt_anim_neon: "توهج نيون مضيء",
+      opt_anim_flash: "وميض ألوان متبادلة",
       opt_anim_reveal: "كشف تدريجي للكلمات",
       opt_anim_box: "تسليط الضوء بمربع مميز",
       opt_anim_classic: "سطر الترجمة الكلاسيكي",
@@ -359,7 +395,10 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_bg_blue: "شاشة زرقاء",
       opt_bg_orig: "الفيديو الأصلي (حرق مباشر)",
       opt_bg_trans: "خلفية شفافة (WebM)",
-      opt_bg_custom: "لون مخصص"
+      opt_bg_custom: "لون مخصص",
+      queue_title: "قائمة المعالجة المتعددة",
+      queue_badge: "قائمة الملفات",
+      queue_clear: "إفراغ القائمة"
     }
   };
 
@@ -615,20 +654,40 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateLiveSubtitlePreview() {
     if (!liveSubtitleContainer || !liveSubtitleBox) return;
 
-    // Font styling
-    liveSubtitleBox.style.fontFamily = fontName.value;
-    const scaledSize = Math.max(8, Math.round(parseInt(fontSize.value) * 0.17));
+    // Font styling (supports Lalezar, Cairo, Tajawal, etc.)
+    liveSubtitleBox.style.fontFamily = fontName.value + ", sans-serif";
+    const scaledSize = Math.max(9, Math.round(parseInt(fontSize.value) * 0.18));
     liveSubtitleBox.style.fontSize = scaledSize + "px";
 
     subWord1.style.color = primaryColor.value;
     subWord2.style.color = highlightColor.value;
     subWord3.style.color = primaryColor.value;
 
-    // Animation visual distinction
-    if (animationStyle.value === "box_highlight") {
+    // RTL Detection: Ensure Arabic / Algerian Darija words are strictly RTL in the flex container
+    const sampleText = (subWord1.innerText || "") + (subWord2.innerText || "") + (subWord3.innerText || "");
+    const isArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(sampleText) || 
+                     dialectHint.value.includes("Algerian") || 
+                     dialectHint.value.includes("Arabic");
+
+    if (isArabic && !dialectHint.value.includes("Latin")) {
+      liveSubtitleBox.setAttribute("dir", "rtl");
+      liveSubtitleBox.classList.remove("is-ltr");
+      liveSubtitleBox.classList.add("is-rtl");
+    } else {
+      liveSubtitleBox.setAttribute("dir", "ltr");
+      liveSubtitleBox.classList.remove("is-rtl");
+      liveSubtitleBox.classList.add("is-ltr");
+    }
+
+    // Animation Style class binding on the active word
+    const activeAnim = animationStyle.value || "karaoke_pop";
+    subWord2.className = `sub-word active anim-${activeAnim}`;
+
+    // Specific style tweaks
+    if (activeAnim === "box_highlight") {
       subWord2.style.background = highlightColor.value;
       subWord2.style.color = "#000000";
-      subWord2.style.padding = "0 3px";
+      subWord2.style.padding = "1px 4px";
       subWord2.style.borderRadius = "3px";
     } else {
       subWord2.style.background = "none";
@@ -636,58 +695,128 @@ document.addEventListener("DOMContentLoaded", () => {
       subWord2.style.padding = "0";
     }
 
-    // Position mapping inside simulated phone
-    const alignVal = alignment.value;
-    const marginPixels = parseInt(marginV.value);
-
-    if (alignVal === "8") {
-      // Top Position
-      liveSubtitleContainer.style.top = "34px";
+    // Position mapping inside simulated phone (based on marginV)
+    const marginPixels = parseInt(marginV.value) || 420;
+    const topPct = Math.max(10, Math.min(88, (1 - (marginPixels / 1920)) * 100));
+    
+    // Only set style if not currently dragging by pointer
+    if (!isDraggingSubtitle) {
+      liveSubtitleContainer.style.top = topPct + "%";
       liveSubtitleContainer.style.bottom = "auto";
-      liveSubtitleContainer.style.transform = "none";
-    } else if (alignVal === "5") {
-      // Center Position
-      liveSubtitleContainer.style.top = "48%";
-      liveSubtitleContainer.style.bottom = "auto";
-      liveSubtitleContainer.style.transform = "translateY(-50%)";
-    } else {
-      // Safe Bottom Position (Mapped to stay safely above platform overlay)
-      const phoneBottomPx = Math.round(52 + (marginPixels / 500) * 75);
-      liveSubtitleContainer.style.top = "auto";
-      liveSubtitleContainer.style.bottom = phoneBottomPx + "px";
-      liveSubtitleContainer.style.transform = "none";
+      liveSubtitleContainer.style.transform = "translateX(-50%)";
     }
-
-    // Update Quick Snap Button active state
-    posSnapButtons.forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.pos === alignVal);
-    });
   }
 
-  // QUICK POSITION SNAP BUTTONS
-  posSnapButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const pos = btn.dataset.pos;
-      alignment.value = pos;
-      if (pos === "2") {
-        marginV.value = 280;
-        marginVVal.innerText = "280px";
-      } else if (pos === "8") {
-        marginV.value = 90;
-        marginVVal.innerText = "90px";
-      }
-      updateLiveSubtitlePreview();
-    });
+  // DRAGGABLE SUBTITLES ON PHONE SIMULATION (Direct mouse / touch dragging!)
+  let isDraggingSubtitle = false;
+
+  function handleDragStart(e) {
+    if (!phoneDevice || !liveSubtitleContainer) return;
+    isDraggingSubtitle = true;
+    liveSubtitleContainer.classList.add("is-dragging");
+    if (dragTooltip) dragTooltip.classList.remove("hidden");
+    e.preventDefault();
+  }
+
+  function handleDragMove(e) {
+    if (!isDraggingSubtitle || !phoneDevice || !liveSubtitleContainer) return;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const rect = phoneDevice.getBoundingClientRect();
+    const offsetY = clientY - rect.top;
+    let pct = (offsetY / rect.height) * 100;
+    // Constrain inside phone screen safe zones (10% to 86%)
+    pct = Math.max(10, Math.min(86, pct));
+
+    liveSubtitleContainer.style.top = pct + "%";
+    liveSubtitleContainer.style.bottom = "auto";
+    liveSubtitleContainer.style.transform = "translateX(-50%)";
+
+    // Calibrate corresponding MarginV for 1920px vertical resolution
+    const calculatedMarginV = Math.round((1 - (pct / 100)) * 1920);
+    marginV.value = calculatedMarginV;
+
+    let zoneLabel = "Custom";
+    if (pct >= 62 && pct <= 80) {
+      zoneLabel = "Safe Zone";
+    } else if (pct < 30) {
+      zoneLabel = "Top Header";
+    } else {
+      zoneLabel = "Middle";
+    }
+
+    if (dragTooltip) {
+      dragTooltip.innerText = `${zoneLabel} (${Math.round(pct)}% Y • ${calculatedMarginV}px)`;
+    }
+    marginVVal.innerText = `${calculatedMarginV}px (${zoneLabel})`;
+  }
+
+  function handleDragEnd() {
+    if (!isDraggingSubtitle) return;
+    isDraggingSubtitle = false;
+    liveSubtitleContainer.classList.remove("is-dragging");
+    if (dragTooltip) dragTooltip.classList.add("hidden");
+  }
+
+  liveSubtitleContainer.addEventListener("mousedown", handleDragStart);
+  window.addEventListener("mousemove", handleDragMove);
+  window.addEventListener("mouseup", handleDragEnd);
+
+  liveSubtitleContainer.addEventListener("touchstart", handleDragStart, { passive: false });
+  window.addEventListener("touchmove", handleDragMove, { passive: false });
+  window.addEventListener("touchend", handleDragEnd);
+
+  // MarginV slider listener
+  marginV.addEventListener("input", (e) => {
+    const val = parseInt(e.target.value);
+    const pct = Math.max(10, Math.min(86, (1 - (val / 1920)) * 100));
+    liveSubtitleContainer.style.top = pct + "%";
+    let zone = "Custom";
+    if (pct >= 62 && pct <= 80) zone = "Safe Zone";
+    else if (pct < 30) zone = "Top Header";
+    else zone = "Middle";
+    marginVVal.innerText = `${val}px (${zone})`;
   });
 
-  // FORM INPUT LISTENERS FOR INSTANT PREVIEW & SATISFYING FEEDBACK
-  alignment.addEventListener("change", () => {
-    if (alignment.value === "2" && parseInt(marginV.value) < 150) {
-      marginV.value = 280;
-      marginVVal.innerText = "280px";
-    }
-    updateLiveSubtitlePreview();
-  });
+  // CUSTOM ANIMATED SELECT DROPDOWN LOGIC
+  if (animSelectTrigger && animDropdownPanel) {
+    animSelectTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      animDropdownPanel.classList.toggle("hidden");
+      const chevron = animSelectTrigger.querySelector(".trigger-chevron");
+      if (chevron) {
+        chevron.style.transform = animDropdownPanel.classList.contains("hidden") ? "rotate(0deg)" : "rotate(180deg)";
+      }
+    });
+
+    animOptionRows.forEach(row => {
+      row.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const val = row.dataset.value;
+        animationStyle.value = val;
+        animOptionRows.forEach(r => r.classList.remove("active"));
+        row.classList.add("active");
+
+        const nameEl = row.querySelector(".opt-name");
+        const demoEl = row.querySelector(".opt-demo-box");
+        if (nameEl && animSelectLabel) animSelectLabel.innerText = nameEl.innerText;
+        if (demoEl && animSelectLivePreview) animSelectLivePreview.innerHTML = demoEl.innerHTML;
+
+        animDropdownPanel.classList.add("hidden");
+        const chevron = animSelectTrigger.querySelector(".trigger-chevron");
+        if (chevron) chevron.style.transform = "rotate(0deg)";
+
+        updateLiveSubtitlePreview();
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!animSelectWrap.contains(e.target)) {
+        animDropdownPanel.classList.add("hidden");
+        const chevron = animSelectTrigger.querySelector(".trigger-chevron");
+        if (chevron) chevron.style.transform = "rotate(0deg)";
+      }
+    });
+  }
 
   marginV.addEventListener("input", (e) => {
     marginVVal.innerText = e.target.value + "px";
@@ -771,8 +900,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isVideo) {
       backgroundMode.value = "original_video";
+      if (phoneVideoBg) {
+        phoneVideoBg.src = URL.createObjectURL(file);
+        phoneVideoBg.style.display = "block";
+        phoneVideoBg.play().catch(() => {});
+      }
     } else {
-      backgroundMode.value = "green_screen";
+      backgroundMode.value = "transparent";
+      if (phoneVideoBg) {
+        phoneVideoBg.src = "";
+        phoneVideoBg.style.display = "none";
+      }
     }
     backgroundMode.dispatchEvent(new Event("change"));
 
@@ -783,12 +921,116 @@ document.addEventListener("DOMContentLoaded", () => {
   function clearFile() {
     currentFile = null;
     fileInput.value = "";
+    if (phoneVideoBg) {
+      phoneVideoBg.src = "";
+      phoneVideoBg.style.display = "none";
+    }
     fileInfo.classList.add("hidden");
     document.querySelector(".dropzone-body").classList.remove("hidden");
   }
 
+  // BATCH QUEUE FUNCTIONS
+  function renderQueueList() {
+    if (!queueItemsList || !queueSection) return;
+    if (batchQueue.length === 0) {
+      queueSection.classList.add("hidden");
+      return;
+    }
+
+    queueSection.classList.remove("hidden");
+    if (queueCount) queueCount.innerText = `${batchQueue.length} ${batchQueue.length === 1 ? 'file' : 'files'}`;
+    queueItemsList.innerHTML = "";
+
+    batchQueue.forEach((item, idx) => {
+      const qItem = document.createElement("div");
+      qItem.className = `queue-item ${item.file === currentFile ? 'active' : ''} ${item.status === 'done' ? 'done' : ''}`;
+      
+      const isVid = item.file.type.startsWith("video/") || /\.(mp4|mov|mkv|webm)$/i.test(item.file.name);
+      const iconSvg = isVid ? `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
+          <line x1="7" y1="2" x2="7" y2="22"></line>
+        </svg>` : `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M9 18V5l12-2v13"></path>
+          <circle cx="6" cy="18" r="3"></circle>
+        </svg>`;
+
+      let statusBadgeClass = "chip-queued";
+      let statusText = "Queued";
+      if (item.status === "processing") {
+        statusBadgeClass = "chip-processing";
+        statusText = "Processing...";
+      } else if (item.status === "done") {
+        statusBadgeClass = "chip-done";
+        statusText = "Ready";
+      } else if (item.status === "error") {
+        statusBadgeClass = "chip-error";
+        statusText = "Error";
+      }
+
+      qItem.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 5px; flex: 1; overflow: hidden;">
+          <span style="color: var(--amber);">${iconSvg}</span>
+          <div class="queue-item-meta">
+            <span class="queue-item-name" title="${item.file.name}">${item.file.name}</span>
+            <span class="queue-item-sub">${(item.file.size / (1024 * 1024)).toFixed(2)} MB</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span class="queue-status-chip ${statusBadgeClass}">${statusText}</span>
+          ${item.result ? `<a href="${item.result.video_url}" download class="comic-tag" style="text-decoration:none; padding: 1px 4px; font-size: 8px;">DL</a>` : ''}
+        </div>
+      `;
+
+      qItem.addEventListener("click", () => {
+        setFile(item.file);
+        renderQueueList();
+        if (item.result) {
+          resultVideo.src = item.result.video_url;
+          downloadVideoBtn.href = item.result.video_url;
+          downloadAssBtn.href = item.result.ass_url;
+          downloadSrtBtn.href = item.result.srt_url;
+          downloadJsonBtn.href = item.result.json_url;
+          videoContainer.classList.remove("hidden");
+          emptyState.classList.add("hidden");
+          if (item.transcription) renderEditor(item.transcription);
+        }
+      });
+
+      queueItemsList.appendChild(qItem);
+    });
+  }
+
+  function handleBatchFiles(filesList) {
+    if (!filesList || filesList.length === 0) return;
+    const newItems = Array.from(filesList).map(f => ({
+      file: f,
+      status: "queued",
+      result: null,
+      transcription: null
+    }));
+
+    batchQueue.push(...newItems);
+    if (!currentFile && batchQueue.length > 0) {
+      setFile(batchQueue[0].file);
+    }
+    renderQueueList();
+  }
+
+  if (clearQueueBtn) {
+    clearQueueBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      batchQueue = [];
+      renderQueueList();
+      clearFile();
+    });
+  }
+
   fileInput.addEventListener("change", (e) => {
-    if (e.target.files.length > 0) setFile(e.target.files[0]);
+    if (e.target.files.length > 0) {
+      handleBatchFiles(e.target.files);
+    }
   });
 
   removeFileBtn.addEventListener("click", (e) => {
@@ -808,16 +1050,57 @@ document.addEventListener("DOMContentLoaded", () => {
   dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropZone.classList.remove("dragover");
-    if (e.dataTransfer.files.length > 0) setFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files.length > 0) {
+      handleBatchFiles(e.dataTransfer.files);
+    }
   });
 
+  // SYNTHESIZED COMPLETION CHIME (WEB AUDIO API)
+  function playCompletionChime() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // Note 1: C5 (523.25 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(523.25, now);
+      gain1.gain.setValueAtTime(0.18, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Note 2: G5 (783.99 Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(783.99, now + 0.12);
+      gain2.gain.setValueAtTime(0.22, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.55);
+    } catch (e) {
+      console.log("Audio chime note skipped", e);
+    }
+  }
+
   // PROGRESS TRACKER HELPER
-  function updateProgress(percent, stepText, message) {
+  function updateProgress(percent, stepText, message, etaText = "") {
     progressContainer.classList.remove("hidden");
     progressBar.style.width = percent + "%";
     progressPercentage.innerText = percent + "%";
     progressStepBadge.innerText = stepText;
     progressStatus.innerText = message;
+    if (progressEta) {
+      progressEta.innerText = etaText || (percent === 100 ? "Done!" : "Est. ~8s");
+    }
   }
 
   // SUBTITLE EDITOR POPULATION
@@ -863,56 +1146,87 @@ document.addEventListener("DOMContentLoaded", () => {
     editorContainer.classList.remove("hidden");
   }
 
-  // GENERATE SUBTITLES FLOW
+  // PROCESS SINGLE ITEM IN BATCH OR DIRECT
+  async function processFileItem(item) {
+    const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+    setFile(item.file);
+    item.status = "processing";
+    renderQueueList();
+
+    emptyState.classList.add("hidden");
+    videoContainer.classList.add("hidden");
+
+    // Step 1: Upload & Transcribe
+    updateProgress(25, "Step 1/4", dict.step_1, "Est. ~12s");
+
+    const formData = new FormData();
+    formData.append("file", item.file);
+    if (apiKey.value.trim()) {
+      formData.append("api_key", apiKey.value.trim());
+    }
+    formData.append("dialect_hint", dialectHint.value);
+
+    const transcribeRes = await fetch("/api/transcribe", {
+      method: "POST",
+      body: formData
+    });
+
+    if (!transcribeRes.ok) {
+      const err = await transcribeRes.json();
+      throw new Error(err.detail || "Transcription failed");
+    }
+
+    const transcribeData = await transcribeRes.json();
+    currentTaskId = transcribeData.task_id;
+    currentTranscription = transcribeData.transcription;
+    item.transcription = currentTranscription;
+
+    updateProgress(65, "Step 2/4", dict.step_2, "Est. ~6s");
+    renderEditor(currentTranscription);
+
+    // Step 2: Render Subtitles & Composite Video
+    const renderRes = await triggerRender();
+    item.result = renderRes;
+    item.status = "done";
+    renderQueueList();
+  }
+
+  // GENERATE SUBTITLES FLOW (With Batch Queue support!)
   startBtn.addEventListener("click", async () => {
     const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-    if (!currentFile) {
+    if (batchQueue.length === 0 && !currentFile) {
       alert(dict.alert_no_file);
       return;
     }
 
+    // If single file uploaded directly without queue
+    if (batchQueue.length === 0 && currentFile) {
+      batchQueue.push({
+        file: currentFile,
+        status: "queued",
+        result: null,
+        transcription: null
+      });
+      renderQueueList();
+    }
+
     startBtn.disabled = true;
-    emptyState.classList.add("hidden");
-    videoContainer.classList.add("hidden");
+    isProcessingBatch = true;
 
     try {
-      // Step 1: Upload & Transcribe
-      updateProgress(25, "Step 1/4", dict.step_1);
-
-      const formData = new FormData();
-      formData.append("file", currentFile);
-      if (apiKey.value.trim()) {
-        formData.append("api_key", apiKey.value.trim());
+      for (const item of batchQueue) {
+        if (item.status === "done") continue;
+        try {
+          await processFileItem(item);
+        } catch (itemErr) {
+          console.error("Item processing failed", itemErr);
+          item.status = "error";
+          renderQueueList();
+        }
       }
-      formData.append("dialect_hint", dialectHint.value);
-
-      const transcribeRes = await fetch("/api/transcribe", {
-        method: "POST",
-        body: formData
-      });
-
-      if (!transcribeRes.ok) {
-        const err = await transcribeRes.json();
-        throw new Error(err.detail || "Transcription failed");
-      }
-
-      const transcribeData = await transcribeRes.json();
-      currentTaskId = transcribeData.task_id;
-      currentTranscription = transcribeData.transcription;
-
-      updateProgress(65, "Step 2/4", dict.step_2);
-      renderEditor(currentTranscription);
-
-      // Step 2: Render Subtitles & Composite Video
-      await triggerRender();
-
-    } catch (err) {
-      console.error(err);
-      alert("Error: " + err.message);
-      progressContainer.classList.add("hidden");
-      emptyState.classList.remove("hidden");
     } finally {
       startBtn.disabled = false;
+      isProcessingBatch = false;
     }
   });
 
@@ -921,7 +1235,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!currentTaskId || !currentTranscription) return;
     reRenderBtn.disabled = true;
     const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-    updateProgress(50, "Re-rendering", dict.step_3);
+    updateProgress(50, "Re-rendering", dict.step_3, "Est. ~4s");
     try {
       await triggerRender();
     } catch (err) {
@@ -933,7 +1247,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function triggerRender() {
     const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-    updateProgress(80, "Step 3/4", dict.step_3);
+    updateProgress(80, "Step 3/4", dict.step_3, "Est. ~3s");
 
     const renderPayload = {
       task_id: currentTaskId,
@@ -946,13 +1260,13 @@ document.addEventListener("DOMContentLoaded", () => {
       shadow_color: "#000000",
       outline_width: 3.5,
       shadow_depth: 2.0,
-      alignment: parseInt(alignment.value),
-      margin_v: parseInt(marginV.value),
-      words_per_line: parseInt(wordsPerLine.value),
-      animation_style: animationStyle.value,
-      background_mode: backgroundMode.value,
+      alignment: parseInt(alignment.value) || 2,
+      margin_v: parseInt(marginV.value) || 420,
+      words_per_line: parseInt(wordsPerLine.value) || 3,
+      animation_style: animationStyle.value || "karaoke_pop",
+      background_mode: backgroundMode.value || "transparent",
       custom_color_hex: customColorHex.value,
-      aspect_ratio: aspectRatio.value
+      aspect_ratio: aspectRatio.value || "9:16"
     };
 
     const renderRes = await fetch("/api/render", {
@@ -967,7 +1281,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const data = await renderRes.json();
-    updateProgress(100, "Step 4/4", dict.step_4);
+    updateProgress(100, "Step 4/4", dict.step_4, "Complete!");
+
+    // Play synthesized bell chime!
+    playCompletionChime();
+
+    // Smoothly dismiss loading progress bar after 1.4s
+    setTimeout(() => {
+      progressContainer.classList.add("hidden");
+    }, 1400);
 
     // Update Player & Download buttons
     resultVideo.src = data.video_url;
@@ -979,6 +1301,8 @@ document.addEventListener("DOMContentLoaded", () => {
     videoContainer.classList.remove("hidden");
     resultVideo.load();
     resultVideo.play().catch(() => {});
+
+    return data;
   }
 
   // INITIAL SETUP CALLS

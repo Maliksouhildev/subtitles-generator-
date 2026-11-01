@@ -66,11 +66,12 @@ class ASSSubtitleBuilder:
         outline_width: float = 3.5,
         shadow_depth: float = 2.0,
         alignment: int = 2,  # 2: Bottom Center, 5: Middle Center, 8: Top Center
-        margin_v: int = 90,
+        margin_v: int = 420,  # Safe Zone above Shorts/Reels/TikTok native bottom UI
         words_per_line: int = 3,
-        animation_style: str = "karaoke_pop",  # "karaoke_pop", "word_reveal", "classic_line", "box_highlight"
+        animation_style: str = "karaoke_pop",  # "karaoke_pop", "bouncy_spring", "neon_glow", "color_flash", "box_highlight", "word_reveal", "classic_line"
         video_width: int = 1080,
-        video_height: int = 1920
+        video_height: int = 1920,
+        pos_y: Optional[int] = None
     ):
         self.font_name = font_name
         self.font_size = font_size
@@ -81,7 +82,11 @@ class ASSSubtitleBuilder:
         self.outline_width = outline_width
         self.shadow_depth = shadow_depth
         self.alignment = alignment
-        self.margin_v = margin_v
+        # If explicit pos_y was provided, calculate margin_v from bottom (for alignment=2)
+        if pos_y is not None:
+            self.margin_v = max(30, video_height - pos_y)
+        else:
+            self.margin_v = margin_v
         self.words_per_line = max(1, words_per_line)
         self.animation_style = animation_style
         self.video_width = video_width
@@ -272,6 +277,125 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         return events
 
+    def build_bouncy_spring_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
+        """Builds energetic bouncy spring animation with vertical bounce on active word."""
+        events = []
+        pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
+        hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
+        # Elastic bounce scale transform
+        bounce_tag = "\\t(0,110,\\fscy130\\fscx108)\\t(110,220,\\fscy100\\fscx100)"
+        norm_tag = "\\fscx100\\fscy100"
+
+        for chunk in chunks:
+            if not chunk:
+                continue
+
+            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+
+            for i, active_word in enumerate(chunk):
+                w_start = active_word["start"]
+                w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
+                if w_end <= w_start:
+                    w_end = w_start + 0.25
+
+                start_str = format_ass_time(w_start)
+                end_str = format_ass_time(w_end)
+
+                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+
+                formatted_words = []
+                for j in display_indices:
+                    w = chunk[j]
+                    word_text = w.get("word", "")
+                    if j == i:
+                        formatted_words.append(f"{{{hl_tag}{bounce_tag}}}{word_text}{{{pri_tag}{norm_tag}}}")
+                    else:
+                        formatted_words.append(f"{{{pri_tag}{norm_tag}}}{word_text}")
+
+                line_text = " ".join(formatted_words)
+                events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
+
+        return events
+
+    def build_neon_glow_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
+        """Builds intense luminous neon halo outline around the active word."""
+        events = []
+        pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
+        hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
+        hl_ass = hex_to_ass_color(self.highlight_color)
+        neon_tag = f"\\bord{self.outline_width + 3}\\3c{hl_ass}\\blur3\\fscx112\\fscy112"
+        norm_tag = f"\\bord{self.outline_width}\\3c{hex_to_ass_color(self.outline_color)}\\blur0\\fscx100\\fscy100"
+
+        for chunk in chunks:
+            if not chunk:
+                continue
+
+            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+
+            for i, active_word in enumerate(chunk):
+                w_start = active_word["start"]
+                w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
+                if w_end <= w_start:
+                    w_end = w_start + 0.25
+
+                start_str = format_ass_time(w_start)
+                end_str = format_ass_time(w_end)
+
+                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+
+                formatted_words = []
+                for j in display_indices:
+                    w = chunk[j]
+                    word_text = w.get("word", "")
+                    if j == i:
+                        formatted_words.append(f"{{{hl_tag}{neon_tag}}}{word_text}{{{pri_tag}{norm_tag}}}")
+                    else:
+                        formatted_words.append(f"{{{pri_tag}{norm_tag}}}{word_text}")
+
+                line_text = " ".join(formatted_words)
+                events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
+
+        return events
+
+    def build_color_flash_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
+        """Builds high-contrast dual-color flashing effect (alternates yellow & cyan)."""
+        events = []
+        pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
+        hl_ass = hex_to_ass_color(self.highlight_color)
+        flash_tag = f"\\c{hl_ass}\\t(0,140,\\c&H00FFFF00&)\\t(140,280,\\c{hl_ass})\\fscx115\\fscy115"
+        norm_tag = f"{pri_tag}\\fscx100\\fscy100"
+
+        for chunk in chunks:
+            if not chunk:
+                continue
+
+            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+
+            for i, active_word in enumerate(chunk):
+                w_start = active_word["start"]
+                w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
+                if w_end <= w_start:
+                    w_end = w_start + 0.25
+
+                start_str = format_ass_time(w_start)
+                end_str = format_ass_time(w_end)
+
+                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+
+                formatted_words = []
+                for j in display_indices:
+                    w = chunk[j]
+                    word_text = w.get("word", "")
+                    if j == i:
+                        formatted_words.append(f"{{{flash_tag}}}{word_text}{{{norm_tag}}}")
+                    else:
+                        formatted_words.append(f"{{{norm_tag}}}{word_text}")
+
+                line_text = " ".join(formatted_words)
+                events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
+
+        return events
+
     def generate_ass(self, transcription_data: Dict[str, Any]) -> str:
         """
         Generates full ASS file content from transcription data.
@@ -296,11 +420,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         if self.animation_style == "karaoke_pop":
             events = self.build_karaoke_pop_events(chunks)
+        elif self.animation_style == "bouncy_spring":
+            events = self.build_bouncy_spring_events(chunks)
+        elif self.animation_style == "neon_glow":
+            events = self.build_neon_glow_events(chunks)
+        elif self.animation_style == "color_flash":
+            events = self.build_color_flash_events(chunks)
         elif self.animation_style == "word_reveal":
             events = self.build_word_reveal_events(chunks)
         elif self.animation_style == "box_highlight":
             events = self.build_box_highlight_events(chunks)
-        elif self.animation_style == "classic_line":
+        elif self.animation_style == "classic_line" or self.animation_style == "classic_fade":
             events = self.build_classic_line_events(segments)
         else:
             events = self.build_karaoke_pop_events(chunks)
