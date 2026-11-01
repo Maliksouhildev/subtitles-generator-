@@ -2983,3 +2983,36 @@ html, body, :root, *,
   animation: letterRiseAnim calc(0.42s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.25, 1, 0.5, 1)) both;
   animation-delay: calc(var(--letter-idx, 0) * (0.045s / var(--anim-speed, 1)));
 }
+
+
+/* Cumulative Progressive Word Fill */
+@keyframes animCumulativePop {
+  0% {
+    transform: scale(1.0);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1.04);
+  }
+}
+
+.anim-cumulative_fill,
+.anim-cumulative_pop,
+.anim-cumulative_bounce {
+  animation: animCumulativePop calc(0.35s / var(--anim-speed, 1)) var(--anim-ease-spring) both;
+  display: inline-block;
+  will-change: transform;
+}
+
+.anim-cumulative_glow {
+  animation: animCumulativePop calc(0.35s / var(--anim-speed, 1)) var(--anim-ease-spring) both;
+  display: inline-block;
+  filter: drop-shadow(0 0 8px var(--highlight-preview, #FFE600));
+}
+
+.sub-word.cumulative-filled {
+  transform: scale(1.0);
+  display: inline-block;
+}

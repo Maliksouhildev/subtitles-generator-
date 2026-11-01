@@ -620,6 +620,10 @@ export const TEMPLATE_REGISTRY: Record<string, React.FC<TemplateProps>> = {
   "letter-pop": LetterPopTemplate,
   "letter_drop": LetterPopTemplate,
   "letter_rise": LetterPopTemplate,
+  "cumulative_fill": CumulativeFillTemplate,
+  "cumulative-fill": CumulativeFillTemplate,
+  "cumulative_pop": CumulativeFillTemplate,
+  "cumulative_glow": CumulativeFillTemplate,
 };
 
 export const DEFAULT_TEMPLATE_ID = "hormozi-pop";

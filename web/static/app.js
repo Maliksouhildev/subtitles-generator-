@@ -1090,7 +1090,19 @@ document.addEventListener("DOMContentLoaded", () => {
         w.style.unicodeBidi = "isolate";
       }
 
-      if (idx === previewActiveIdx) {
+      const isCumulative = activeAnim.startsWith("cumulative_") || activeAnim === "cumulative_fill";
+
+      if (isCumulative && idx < previewActiveIdx) {
+        // Words that have been spoken in this line REMAIN colored!
+        w.className = `sub-word spoken cumulative-filled${bidiClass}`;
+        w.innerText = wordText;
+        w.style.background = "none";
+        w.style.color = hlVal;
+        w.style.webkitTextStroke = "1.2px #000";
+        w.style.textShadow = "0 2px 8px rgba(255, 230, 0, 0.45)";
+        w.style.padding = "0";
+        w.style.boxShadow = "none";
+      } else if (idx === previewActiveIdx) {
         w.className = `sub-word active anim-${activeAnim}${bidiClass}`;
 
         // Letter-by-letter rendering

@@ -311,7 +311,10 @@ def test_ass_builder_new_creative_templates():
         "badge-invert",
         "letter_pop",
         "letter_drop",
-        "letter_rise"
+        "letter_rise",
+        "cumulative_fill",
+        "cumulative_bounce",
+        "cumulative_glow"
     ]
     
     for style in new_styles:

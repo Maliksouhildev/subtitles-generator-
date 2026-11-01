@@ -758,6 +758,79 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         return events
 
+    def build_cumulative_fill_events(self, chunks: List[List[Dict[str, Any]]], style_type: str = "pop") -> List[str]:
+        """
+        Builds cumulative word fill animations: words transition to highlight color
+        as spoken and remain permanently highlighted for the rest of the sentence.
+        """
+        events = []
+        pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
+        hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
+        spd = self.animation_speed
+        norm_tag = "\\fscx100\\fscy100\\frz0"
+
+        for chunk_idx, chunk in enumerate(chunks):
+            if not chunk:
+                continue
+
+            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
+
+            for i, active_word in enumerate(chunk):
+                w_start = active_word["start"]
+                if i + 1 < len(chunk):
+                    w_end = chunk[i + 1]["start"]
+                else:
+                    natural_end = active_word["end"]
+                    min_hold = w_start + 0.85
+                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+
+                if w_end <= w_start:
+                    w_end = w_start + 0.30
+
+                dur_ms = max(100, int((w_end - w_start) * 1000))
+                t1 = max(30, min(int(dur_ms * 0.4), int(100 / spd)))
+                t2 = max(t1 + 30, min(int(dur_ms * 0.8), int(200 / spd)))
+
+                if style_type == "glow":
+                    active_tag = (
+                        f"\\t(0,{t1},0.6,\\fscx114\\fscy114\\blur3.5)"
+                        f"\\t({t1},{t2},1.3,\\fscx104\\fscy104\\blur1.8)"
+                    )
+                elif style_type == "bounce":
+                    active_tag = (
+                        f"\\t(0,{t1},0.5,\\fscx120\\fscy120\\frz-2)"
+                        f"\\t({t1},{t2},1.4,\\fscx104\\fscy104\\frz0)"
+                    )
+                else:
+                    active_tag = (
+                        f"\\t(0,{t1},0.6,\\fscx115\\fscy115)"
+                        f"\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
+                    )
+
+                start_str = format_ass_time(w_start)
+                end_str = format_ass_time(w_end)
+
+                display_indices = resolve_visual_word_order(chunk, in_rtl_context=chunk_is_rtl)
+                formatted_words = []
+                for j in display_indices:
+                    w = chunk[j]
+                    word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
+                    if j < i:
+                        # Previously spoken in this sentence: REMAINS in highlight color!
+                        formatted_words.append(f"{{{hl_tag}\\blur0.8{norm_tag}}}{word_text}")
+                    elif j == i:
+                        # Currently being spoken: POP and turn to highlight color!
+                        formatted_words.append(f"{{{hl_tag}\\blur0.8{active_tag}}}{word_text}{{{pri_tag}{norm_tag}}}")
+                    else:
+                        # Not yet spoken in this sentence: remains primary (unspoken) color
+                        formatted_words.append(f"{{{pri_tag}\\blur0.8{norm_tag}}}{word_text}")
+
+                line_text = " ".join(formatted_words)
+                events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
+
+        return events
+
     def generate_ass(self, transcription_data: Dict[str, Any]) -> str:
         """
         Generates full ASS file content from transcription data.
@@ -798,6 +871,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             events = self.build_letter_pop_events(chunks, style_type="drop")
         elif anim in ("letter_rise", "wave_rise"):
             events = self.build_letter_pop_events(chunks, style_type="rise")
+        elif anim in ("cumulative_fill", "cumulative_pop", "hormozi_fill", "word_fill"):
+            events = self.build_cumulative_fill_events(chunks, style_type="pop")
+        elif anim in ("cumulative_bounce", "bounce_stay"):
+            events = self.build_cumulative_fill_events(chunks, style_type="bounce")
+        elif anim in ("cumulative_glow", "neon_lock"):
+            events = self.build_cumulative_fill_events(chunks, style_type="glow")
         elif anim in ("box_highlight", "badge_invert"):
             events = self.build_box_highlight_events(chunks)
         elif anim == "color_flash":
