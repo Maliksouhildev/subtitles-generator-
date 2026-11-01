@@ -199,6 +199,13 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_anim_punch: "Viral Punch Snap",
       opt_anim_editorial: "Cinematic Smooth Fade",
       opt_anim_badge: "Badge Invert Pill",
+      btn_save_preset: "+ Save Current",
+      save_preset_title: "Save Custom Preset",
+      save_preset_desc: "Save your current font, colors, animation, and position for future videos with zero login needed.",
+      preset_name_label: "Preset Name",
+      preset_name_placeholder: "e.g. My TikTok Viral, Gaming Shorts",
+      btn_save: "Save Preset",
+      btn_cancel: "Cancel",
       opt_anim_bouncy: "Bouncy Spring",
       opt_anim_neon: "Neon Glow Pulse",
       opt_anim_flash: "Color Flash Cycle",
@@ -314,6 +321,13 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_anim_punch: "Impact viral percutant",
       opt_anim_editorial: "Fondu fluide editorial",
       opt_anim_badge: "Badge inverse neon",
+      btn_save_preset: "+ Enregistrer actuel",
+      save_preset_title: "Enregistrer un Prereglage",
+      save_preset_desc: "Enregistrez vos polices, couleurs, animation et position pour vos futures sessions sans connexion.",
+      preset_name_label: "Nom du Prereglage",
+      preset_name_placeholder: "ex. TikTok Viral, Shorts Gaming",
+      btn_save: "Enregistrer",
+      btn_cancel: "Annuler",
       opt_anim_bouncy: "Rebond Élastique",
       opt_anim_neon: "Halo Néon Brillant",
       opt_anim_flash: "Flash de Couleurs Alternées",
@@ -429,6 +443,13 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_anim_punch: "Impact viral percutant",
       opt_anim_editorial: "Fondu fluide editorial",
       opt_anim_badge: "Badge inverse neon",
+      btn_save_preset: "+ حفظ الحالي",
+      save_preset_title: "حفظ قالب مخصص",
+      save_preset_desc: "احفظ خطك وألوانك وحركاتك وموضعك الحالي لجلساتك القادمة بكل سهولة وبدون أي تسجيل دخول.",
+      preset_name_label: "اسم القالب",
+      preset_name_placeholder: "مثال: تيك توك فيرال، شورتس ألعاب",
+      btn_save: "حفظ القالب",
+      btn_cancel: "إلغاء",
       opt_anim_bouncy: "قفز مرن نطاط",
       opt_anim_neon: "توهج نيون مضيء",
       opt_anim_flash: "وميض ألوان متبادلة",
@@ -524,7 +545,253 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("dz_gemini_api_key", apiKey.value.trim());
   });
 
-  // STYLE PRESETS
+  // -------------------------------------------------------------
+  // CONFIGURATION STATE & PERSISTENT PRESET ENGINE
+  // -------------------------------------------------------------
+  const presetPillsGrid = document.getElementById("presetPillsGrid");
+  const savePresetBtn = document.getElementById("savePresetBtn");
+  const savePresetModal = document.getElementById("savePresetModal");
+  const closeSavePresetBtn = document.getElementById("closeSavePresetBtn");
+  const cancelSavePresetBtn = document.getElementById("cancelSavePresetBtn");
+  const confirmSavePresetBtn = document.getElementById("confirmSavePresetBtn");
+  const presetNameInput = document.getElementById("presetNameInput");
+  const summaryFontPill = document.getElementById("summaryFontPill");
+  const summaryAnimPill = document.getElementById("summaryAnimPill");
+  const summaryPrimaryDot = document.getElementById("summaryPrimaryDot");
+  const summaryHighlightDot = document.getElementById("summaryHighlightDot");
+
+  let customPresets = [];
+  try {
+    const rawCustom = localStorage.getItem("dz_subtitles_custom_presets");
+    if (rawCustom) customPresets = JSON.parse(rawCustom);
+  } catch (e) {
+    customPresets = [];
+  }
+
+  // Sync custom presets with backend server (zero-auth persistence)
+  async function fetchServerPresets() {
+    try {
+      const res = await fetch("/api/presets");
+      if (res.ok) {
+        const srv = await res.json();
+        if (Array.isArray(srv) && srv.length > 0) {
+          const idMap = new Map();
+          customPresets.forEach(p => idMap.set(p.id, p));
+          srv.forEach(p => idMap.set(p.id, p));
+          customPresets = Array.from(idMap.values());
+          localStorage.setItem("dz_subtitles_custom_presets", JSON.stringify(customPresets));
+          renderCustomPresets();
+        }
+      }
+    } catch (e) {}
+  }
+  fetchServerPresets();
+
+  function syncPresetsToDisk() {
+    try {
+      localStorage.setItem("dz_subtitles_custom_presets", JSON.stringify(customPresets));
+      fetch("/api/presets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(customPresets)
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  function getCurrentSettings() {
+    return {
+      font: fontName ? fontName.value : "Lalezar",
+      fontSize: fontSize ? (parseInt(fontSize.value) || 56) : 56,
+      primary: primaryColor ? primaryColor.value : "#FFFFFF",
+      highlight: highlightColor ? highlightColor.value : "#FFE600",
+      anim: animationStyle ? animationStyle.value : "karaoke_pop",
+      speed: animSpeed ? (parseFloat(animSpeed.value) || 1.0) : 1.0,
+      margin: marginV ? (parseInt(marginV.value) || 420) : 420,
+      wordsPerLine: wordsPerLine ? (parseInt(wordsPerLine.value) || 3) : 3,
+      alignment: alignment ? (parseInt(alignment.value) || 2) : 2,
+      dialect: dialectHint ? dialectHint.value : "General Algerian",
+      aspectRatio: aspectRatio ? aspectRatio.value : "9:16",
+      backgroundMode: backgroundMode ? backgroundMode.value : "original_video",
+      customColorHex: customColorHex ? customColorHex.value : "#1A1A24",
+      subBoxStyle: subBoxStyle ? subBoxStyle.value : "none",
+      subBoxColor: subBoxColor ? subBoxColor.value : "#000000",
+      subBoxAlpha: subBoxAlpha ? (parseFloat(subBoxAlpha.value) || 0.85) : 0.85,
+    };
+  }
+
+  function applySettings(s) {
+    if (!s) return;
+    if (s.font && fontName) fontName.value = s.font;
+    if (s.fontSize && fontSize) {
+      fontSize.value = s.fontSize;
+      if (fontSizeVal) fontSizeVal.innerText = s.fontSize + "px";
+    }
+    if (s.primary && primaryColor) {
+      primaryColor.value = s.primary;
+      if (primaryColorText) primaryColorText.innerText = s.primary.toUpperCase();
+    }
+    if (s.highlight && highlightColor) {
+      highlightColor.value = s.highlight;
+      if (highlightColorText) highlightColorText.innerText = s.highlight.toUpperCase();
+    }
+    if (s.anim && animationStyle) animationStyle.value = s.anim;
+    if (s.speed && animSpeed) {
+      animSpeed.value = s.speed;
+      updateAnimationSpeed(s.speed);
+    }
+    if (s.margin && marginV) {
+      marginV.value = s.margin;
+      if (marginVVal) marginVVal.innerText = s.margin + "px";
+    }
+    if (s.wordsPerLine && wordsPerLine) wordsPerLine.value = s.wordsPerLine;
+    if (s.alignment && alignment) alignment.value = s.alignment;
+    if (s.dialect && dialectHint) dialectHint.value = s.dialect;
+    if (s.aspectRatio && aspectRatio) aspectRatio.value = s.aspectRatio;
+    if (s.backgroundMode && backgroundMode) {
+      backgroundMode.value = s.backgroundMode;
+      if (customColorGroup) customColorGroup.style.display = (s.backgroundMode === "custom") ? "flex" : "none";
+    }
+    if (s.customColorHex && customColorHex) {
+      customColorHex.value = s.customColorHex;
+      if (customColorText) customColorText.innerText = s.customColorHex.toUpperCase();
+    }
+    if (s.subBoxStyle && subBoxStyle) subBoxStyle.value = s.subBoxStyle;
+    if (s.subBoxColor && subBoxColor) {
+      subBoxColor.value = s.subBoxColor;
+      if (subBoxColorText) subBoxColorText.innerText = s.subBoxColor.toUpperCase();
+    }
+    if (s.subBoxAlpha && subBoxAlpha) {
+      subBoxAlpha.value = s.subBoxAlpha;
+      if (subBoxAlphaVal) subBoxAlphaVal.innerText = Math.round(parseFloat(s.subBoxAlpha) * 100) + "%";
+    }
+
+    updateLiveSubtitlePreview();
+    syncAllCustomDropdowns();
+    autoSaveSettings();
+  }
+
+  function autoSaveSettings() {
+    try {
+      const s = getCurrentSettings();
+      localStorage.setItem("dz_subtitles_last_settings", JSON.stringify(s));
+    } catch (e) {}
+  }
+
+  function restoreLastSettings() {
+    try {
+      const raw = localStorage.getItem("dz_subtitles_last_settings");
+      if (raw) {
+        const s = JSON.parse(raw);
+        applySettings(s);
+      }
+    } catch (e) {}
+  }
+
+  // Render Custom Presets into Preset Pill Grid
+  function renderCustomPresets() {
+    if (!presetPillsGrid) return;
+    presetPillsGrid.querySelectorAll(".comic-preset-btn.is-custom").forEach(el => el.remove());
+
+    customPresets.forEach(p => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "comic-preset-btn is-custom";
+      btn.dataset.presetId = p.id;
+      btn.title = `Custom Preset: ${p.name}`;
+
+      const dot = document.createElement("span");
+      dot.className = "preset-dot";
+      dot.style.background = p.highlight || "#FFE600";
+      dot.style.borderColor = p.primary || "#000000";
+
+      const label = document.createElement("span");
+      label.innerText = p.name;
+
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "preset-remove-btn";
+      delBtn.innerHTML = "&times;";
+      delBtn.title = "Delete Preset";
+
+      delBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (confirm(`Delete preset "${p.name}"?`)) {
+          customPresets = customPresets.filter(item => item.id !== p.id);
+          syncPresetsToDisk();
+          renderCustomPresets();
+        }
+      });
+
+      btn.appendChild(dot);
+      btn.appendChild(label);
+      btn.appendChild(delBtn);
+
+      btn.addEventListener("click", () => {
+        presetPillsGrid.querySelectorAll(".comic-preset-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        applySettings(p);
+      });
+
+      presetPillsGrid.appendChild(btn);
+    });
+  }
+
+  // Modal event listeners
+  if (savePresetBtn && savePresetModal) {
+    savePresetBtn.addEventListener("click", () => {
+      const s = getCurrentSettings();
+      if (summaryFontPill) summaryFontPill.innerText = `${s.font} (${s.fontSize}px)`;
+      if (summaryAnimPill) summaryAnimPill.innerText = s.anim.replace(/_/g, " ").replace(/-/g, " ");
+      if (summaryPrimaryDot) summaryPrimaryDot.style.background = s.primary;
+      if (summaryHighlightDot) summaryHighlightDot.style.background = s.highlight;
+      if (presetNameInput) {
+        presetNameInput.value = "";
+        setTimeout(() => presetNameInput.focus(), 100);
+      }
+      savePresetModal.classList.remove("hidden");
+    });
+  }
+
+  if (closeSavePresetBtn && savePresetModal) {
+    closeSavePresetBtn.addEventListener("click", () => savePresetModal.classList.add("hidden"));
+  }
+  if (cancelSavePresetBtn && savePresetModal) {
+    cancelSavePresetBtn.addEventListener("click", () => savePresetModal.classList.add("hidden"));
+  }
+  if (savePresetModal) {
+    savePresetModal.addEventListener("click", (e) => {
+      if (e.target === savePresetModal) savePresetModal.classList.add("hidden");
+    });
+  }
+
+  if (confirmSavePresetBtn) {
+    confirmSavePresetBtn.addEventListener("click", () => {
+      const name = (presetNameInput && presetNameInput.value.trim()) || `Preset ${customPresets.length + 1}`;
+      const s = getCurrentSettings();
+      const newPreset = {
+        id: "preset_" + Date.now(),
+        name,
+        ...s,
+        createdAt: Date.now()
+      };
+      customPresets.push(newPreset);
+      syncPresetsToDisk();
+      renderCustomPresets();
+      if (savePresetModal) savePresetModal.classList.add("hidden");
+
+      setTimeout(() => {
+        const newBtn = presetPillsGrid.querySelector(`[data-preset-id="${newPreset.id}"]`);
+        if (newBtn) {
+          presetPillsGrid.querySelectorAll(".comic-preset-btn").forEach(b => b.classList.remove("active"));
+          newBtn.classList.add("active");
+        }
+      }, 50);
+    });
+  }
+
+  window.addEventListener("beforeunload", autoSaveSettings);
+
+  // STYLE PRESETS (Built-in)
   const PRESETS = {
     gold: { primary: "#FFFFFF", highlight: "#FFE600", font: "Lalezar", anim: "karaoke_pop", align: "2", margin: 420 },
     cyan: { primary: "#FFFFFF", highlight: "#00F0FF", font: "Tajawal", anim: "karaoke_pop", align: "2", margin: 420 },
@@ -536,21 +803,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   presetButtons.forEach(btn => {
     btn.addEventListener("click", () => {
-      presetButtons.forEach(b => b.classList.remove("active"));
+      if (presetPillsGrid) {
+        presetPillsGrid.querySelectorAll(".comic-preset-btn").forEach(b => b.classList.remove("active"));
+      }
       btn.classList.add("active");
       const p = PRESETS[btn.dataset.preset];
       if (p) {
-        primaryColor.value = p.primary;
-        primaryColorText.innerText = p.primary;
-        highlightColor.value = p.highlight;
-        highlightColorText.innerText = p.highlight;
-        fontName.value = p.font;
-        animationStyle.value = p.anim;
-        alignment.value = p.align;
-        marginV.value = p.margin;
-        marginVVal.innerText = p.margin + "px";
-        updateLiveSubtitlePreview();
-        syncAllCustomDropdowns();
+        applySettings({
+          ...getCurrentSettings(),
+          primary: p.primary,
+          highlight: p.highlight,
+          font: p.font,
+          anim: p.anim,
+          alignment: p.align,
+          margin: p.margin
+        });
       }
     });
   });
@@ -1224,10 +1491,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  fontName.addEventListener("change", updateLiveSubtitlePreview);
+  fontName.addEventListener("change", () => { updateLiveSubtitlePreview(); autoSaveSettings(); });
   animationStyle.addEventListener("change", () => {
     updateLiveSubtitlePreview();
     restartPreviewCycle();
+    autoSaveSettings();
   });
 
   primaryColor.addEventListener("input", (e) => {
@@ -1819,6 +2087,8 @@ document.addEventListener("DOMContentLoaded", () => {
   enhanceSelectsToComicDropdowns();
   applyLanguage(currentLang);
   applyTheme(currentTheme);
+  renderCustomPresets();
+  restoreLastSettings();
   updatePhonePlatformUI();
   updateLiveSubtitlePreview();
   syncAllCustomDropdowns();

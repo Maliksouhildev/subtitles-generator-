@@ -111,6 +111,34 @@ async def get_fonts():
     return {"fonts": fonts}
 
 
+PRESETS_FILE = OUTPUT_DIR / "presets.json"
+
+
+@app.get("/api/presets")
+async def get_saved_presets():
+    """Returns saved custom styling presets."""
+    if PRESETS_FILE.exists():
+        try:
+            with open(PRESETS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to read presets.json: {e}")
+            return []
+    return []
+
+
+@app.post("/api/presets")
+async def save_presets(payload: List[Dict[str, Any]]):
+    """Saves user custom presets to disk."""
+    try:
+        with open(PRESETS_FILE, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        return {"status": "success", "count": len(payload)}
+    except Exception as e:
+        logger.error(f"Failed to write presets.json: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/transcribe")
 async def transcribe_media(
     file: UploadFile = File(...),

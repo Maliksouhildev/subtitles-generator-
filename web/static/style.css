@@ -1540,6 +1540,129 @@ html, body, :root, *,
 .dot-terracotta { background: var(--terracotta); }
 .dot-white { background: #FFFFFF; }
 
+/* Custom Named Presets & Header Row */
+.presets-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.presets-title-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.preset-pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3.5px;
+}
+
+.preset-pill-grid .comic-preset-btn {
+  flex: 1 1 calc(16.66% - 4px);
+  min-width: 65px;
+}
+
+.comic-preset-btn.is-custom {
+  position: relative;
+  padding-right: 18px;
+  background: var(--bg-card-inner);
+  border-color: var(--amber);
+}
+
+.comic-preset-btn.is-custom.active {
+  background: var(--amber);
+  color: var(--pitch-black);
+  border-color: var(--pitch-black);
+}
+
+.preset-remove-btn {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.preset-remove-btn:hover {
+  background: var(--terracotta);
+  transform: translateY(-50%) scale(1.15);
+}
+
+.preset-modal-window {
+  max-width: 440px;
+}
+
+.custom-preset-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0 12px;
+}
+
+.preset-summary-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.summary-pill {
+  background: var(--bg-shell);
+  border: 1.5px solid var(--pitch-black);
+  border-radius: var(--radius-pill);
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.color-preview-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot-preview {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--pitch-black);
+  display: inline-block;
+}
+
+.modal-desc-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.modal-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 /* Form Controls Grid */
 .controls-form-grid {
   display: grid;

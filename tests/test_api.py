@@ -167,3 +167,44 @@ def test_custom_dropdowns_and_rtl_preview():
     # Verify CSS custom dropdown styling
     assert ".comic-dropdown-option" in css_content
     assert ".custom-select-wrap" in css_content
+
+
+def test_presets_api_and_persistence(client, tmp_path):
+    # Test GET presets initially
+    res_get = client.get("/api/presets")
+    assert res_get.status_code == 200
+    assert isinstance(res_get.json(), list)
+
+    # Test POST custom preset
+    custom_preset = [
+        {
+            "id": "preset_test_viral",
+            "name": "My Test Viral Style",
+            "settings": {
+                "font": "Lalezar",
+                "fontSize": 62,
+                "primary": "#FFFFFF",
+                "highlight": "#FFE600",
+                "anim": "karaoke_pop",
+                "speed": 1.2,
+                "words": 3,
+                "subBox": "pill",
+                "boxColor": "#000000",
+                "boxAlpha": 0.8,
+                "posY": 920
+            }
+        }
+    ]
+    res_post = client.post("/api/presets", json=custom_preset)
+    assert res_post.status_code == 200
+    data = res_post.json()
+    assert data["status"] == "success"
+    assert data["count"] == 1
+
+    # Verify retrieval
+    res_verify = client.get("/api/presets")
+    assert res_verify.status_code == 200
+    presets_list = res_verify.json()
+    assert len(presets_list) >= 1
+    assert any(p["id"] == "preset_test_viral" for p in presets_list)
+

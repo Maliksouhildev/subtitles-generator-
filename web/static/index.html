@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Cairo:wght@600;700;900&family=Tajawal:wght@700&family=Lalezar&family=Almarai:wght@700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.7.0">
+  <link rel="stylesheet" href="style.css?v=2.7.1">
 </head>
 <body>
   <div class="comic-app-shell">
@@ -410,13 +410,19 @@
           <div class="subcol-controls">
             <!-- Quick Style Presets -->
             <div class="comic-control-box presets-box">
-              <div class="control-box-title">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
-                <span data-i18n="presets_title">Viral Style Presets</span>
+              <div class="control-box-title presets-header-row">
+                <div class="presets-title-left">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  <span data-i18n="presets_title">Viral Style Presets</span>
+                </div>
+                <button type="button" id="savePresetBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Save current settings as a new named preset">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span data-i18n="btn_save_preset">+ Save Current</span>
+                </button>
               </div>
-              <div class="preset-pill-grid">
+              <div class="preset-pill-grid" id="presetPillsGrid">
                 <button type="button" class="comic-preset-btn active" data-preset="gold">
                   <span class="preset-dot dot-gold"></span>
                   <span data-i18n="preset_gold">TikTok Gold</span>
@@ -829,6 +835,42 @@
     </main>
 
     <!-- Usage Guide Modal -->
+    <!-- Save Preset Modal -->
+    <div id="savePresetModal" class="comic-modal-backdrop hidden">
+      <div class="comic-modal-window preset-modal-window">
+        <div class="modal-top">
+          <div class="modal-title-wrap">
+            <svg class="modal-star" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <h2 data-i18n="save_preset_title">Save Custom Preset</h2>
+          </div>
+          <button id="closeSavePresetBtn" class="comic-btn-square" aria-label="Close Modal">✕</button>
+        </div>
+
+        <div class="modal-scroll-content">
+          <p class="modal-desc-sub" data-i18n="save_preset_desc">Save your current font, colors, animation, and position for future videos with zero login needed.</p>
+          <div class="custom-preset-input-wrap">
+            <label class="comic-label" for="presetNameInput" data-i18n="preset_name_label">Preset Name</label>
+            <input type="text" id="presetNameInput" class="comic-input" placeholder="e.g. My TikTok Viral, Gaming Shorts" maxlength="28" autocomplete="off">
+          </div>
+          <div class="preset-summary-pills">
+            <span class="summary-pill" id="summaryFontPill">Lalezar (56px)</span>
+            <span class="summary-pill" id="summaryAnimPill">Hormozi Pop</span>
+            <span class="summary-pill color-preview-pill">
+              <span class="dot-preview" id="summaryPrimaryDot"></span>
+              <span class="dot-preview" id="summaryHighlightDot"></span>
+            </span>
+          </div>
+          <div class="modal-action-row">
+            <button type="button" id="cancelSavePresetBtn" class="comic-btn comic-btn-sm comic-btn-secondary" data-i18n="btn_cancel">Cancel</button>
+            <button type="button" id="confirmSavePresetBtn" class="comic-btn comic-btn-sm comic-btn-green" data-i18n="btn_save">Save Preset</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="guideModal" class="comic-modal-backdrop hidden">
       <div class="comic-modal-window">
         <div class="modal-top">
@@ -886,6 +928,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=2.7.0"></script>
+  <script src="app.js?v=2.7.1"></script>
 </body>
 </html>
