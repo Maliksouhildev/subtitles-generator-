@@ -223,3 +223,41 @@ def test_presets_api_and_persistence(client, tmp_path):
     assert len(presets_list) >= 1
     assert any(p["id"] == "preset_test_viral" for p in presets_list)
 
+def test_keyframe_ease_editor_and_letter_animations():
+    from pathlib import Path
+    base_dir = Path(__file__).resolve().parent.parent
+    html_file = base_dir / "web" / "static" / "index.html"
+    css_file = base_dir / "web" / "static" / "style.css"
+    js_file = base_dir / "web" / "static" / "app.js"
+    remotion_file = base_dir / "remotion" / "src" / "TemplateMapper.tsx"
+
+    html = html_file.read_text(encoding="utf-8")
+    css = css_file.read_text(encoding="utf-8")
+    js = js_file.read_text(encoding="utf-8")
+    remotion = remotion_file.read_text(encoding="utf-8")
+
+    # 1. Verify all new animation options exist in visual dropdown and select
+    for anim in ["cumulative_fill", "letter_pop", "letter_drop", "letter_rise", "word_reveal"]:
+        assert f'data-value="{anim}"' in html, f"Animation {anim} missing from animDropdownPanel"
+        assert f'value="{anim}"' in html, f"Animation {anim} missing from animationStyle select"
+
+    # 2. Verify interactive After Effects Style Ease Graph & Live Preview
+    assert 'id="easeCanvas"' in html
+    assert 'id="easeLivePreviewWord"' in html
+    assert 'id="easeCoordsReadout"' in html
+    assert 'id="easeGraphContainer"' in html
+    assert 'grid-col-full' in html
+
+    # 3. Verify Phone Simulation is aligned at top without dead space
+    assert 'align-items: flex-start;' in css
+    assert '.phone-frame-wrapper' in css
+
+    # 4. Verify JS handles draggable keyframes and updates --anim-ease
+    assert 'evalCubicBezier' in js
+    assert 'updateAnimEaseProperty' in js
+    assert 'easeP1' in js and 'easeP2' in js
+    assert 'fromCanvasCoords' in js
+
+    # 5. Verify Remotion Template registry maps word_reveal
+    assert '"word_reveal":' in remotion
+
