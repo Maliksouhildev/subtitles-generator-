@@ -87,6 +87,9 @@ class RenderRequest(BaseModel):
     background_mode: str = "green_screen"
     custom_color_hex: Optional[str] = None
     aspect_ratio: str = "9:16"
+    ease_p1: Optional[List[float]] = None
+    ease_p2: Optional[List[float]] = None
+    cubic_bezier: Optional[str] = None
 
 
 @app.get("/api/health")
@@ -309,6 +312,9 @@ async def render_subtitles(req: RenderRequest):
                 "sub_box_style": req.sub_box_style,
                 "sub_box_color": req.sub_box_color,
                 "sub_box_alpha": req.sub_box_alpha,
+                "ease_p1": req.ease_p1 or [0.34, 1.56],
+                "ease_p2": req.ease_p2 or [0.64, 1.00],
+                "cubic_bezier": req.cubic_bezier or "cubic-bezier(0.34, 1.56, 0.64, 1.00)",
             },
             "backgroundMode": req.background_mode,
             "customColorHex": req.custom_color_hex
@@ -324,7 +330,9 @@ async def render_subtitles(req: RenderRequest):
             highlight_color=req.highlight_color,
             animation_style=active_style,
             words_per_line=req.words_per_line,
-            pos_y=req.pos_y or 960
+            pos_y=req.pos_y or 960,
+            ease_p1=req.ease_p1,
+            ease_p2=req.ease_p2
         )
         ae_script_content = ae_builder.generate_jsx(transcription)
         with open(task_folder / "subtitles_after_effects.jsx", "w", encoding="utf-8") as f:

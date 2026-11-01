@@ -381,3 +381,56 @@ def test_arabic_cursive_letter_shaping():
     res = subprocess.run(node_cmd, capture_output=True, text=True)
     assert res.returncode == 0, f"Node shaper test failed: {res.stderr}"
     assert "OK" in res.stdout
+
+
+def test_fixed_phone_preview_and_ae_graph_integration():
+    """Verify fixed phone preview styles, AE graph easing, and AE JSX export."""
+    with open("web/static/style.css", "r", encoding="utf-8") as f:
+        css = f.read()
+
+    # Fixed phone preview
+    assert "position: sticky" in css
+    assert "overflow: hidden" in css
+    assert "--anim-ease:" in css
+    assert "var(--anim-ease" in css
+    assert "ease-canvas-wrap" in css
+    assert "anim-bouncy_spring" in css
+
+    # AE Script Builder KeyframeEase influence
+    from core.ae_script_builder import AfterEffectsScriptBuilder
+    builder = AfterEffectsScriptBuilder(
+        font_name="Cairo",
+        font_size=56,
+        primary_color="#FFFFFF",
+        highlight_color="#FFE600",
+        animation_style="bouncy_spring",
+        words_per_line=3,
+        ease_p1=[0.34, 1.56],
+        ease_p2=[0.64, 1.00]
+    )
+    jsx = builder.generate_jsx({
+        "segments": [{
+            "start": 0.0,
+            "end": 2.0,
+            "text": "السيارة تاعي",
+            "words": [
+                {"word": "السيارة", "start": 0.0, "end": 1.0},
+                {"word": "تاعي", "start": 1.0, "end": 2.0}
+            ]
+        }]
+    })
+    assert "KeyframeEase" in jsx
+    assert "setTemporalEaseAtKey" in jsx
+    assert "34.0" in jsx or "36.0" in jsx  # Influences derived from ease_p1/p2
+
+    # RenderRequest schema
+    from server import RenderRequest
+    req = RenderRequest(
+        task_id="test_task",
+        ease_p1=[0.25, 1.0],
+        ease_p2=[0.50, 1.0],
+        cubic_bezier="cubic-bezier(0.25, 1.00, 0.50, 1.00)"
+    )
+    assert req.ease_p1 == [0.25, 1.0]
+    assert req.cubic_bezier == "cubic-bezier(0.25, 1.00, 0.50, 1.00)"
+

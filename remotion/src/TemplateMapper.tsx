@@ -23,6 +23,9 @@ export interface CaptionsStyleProps {
   sub_box_style?: "none" | "pill" | "box" | "shadow";
   sub_box_color?: string;
   sub_box_alpha?: number;
+  ease_p1?: [number, number];
+  ease_p2?: [number, number];
+  cubic_bezier?: string;
 }
 
 export interface TemplateProps {

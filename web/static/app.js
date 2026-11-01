@@ -1565,9 +1565,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.easeP1 && s.easeP2 && Array.isArray(s.easeP1) && Array.isArray(s.easeP2)) {
 
-      easeP1 = { x: parseFloat(s.easeP1[0]) || 0.34, y: parseFloat(s.easeP1[1]) || 1.56 };
+      const parseNum = (val, dflt) => {
 
-      easeP2 = { x: parseFloat(s.easeP2[0]) || 0.64, y: parseFloat(s.easeP2[1]) || 1.00 };
+        const n = parseFloat(val);
+
+        return Number.isFinite(n) ? n : dflt;
+
+      };
+
+      easeP1 = { x: parseNum(s.easeP1[0], 0.34), y: parseNum(s.easeP1[1], 1.56) };
+
+      easeP2 = { x: parseNum(s.easeP2[0], 0.64), y: parseNum(s.easeP2[1], 1.00) };
 
       activeEaseType = s.easeType || "custom";
 
@@ -2677,6 +2685,12 @@ document.addEventListener("DOMContentLoaded", () => {
       liveSubtitleContainer.style.bottom = "auto";
 
       liveSubtitleContainer.style.transform = "translate(-50%, -50%)";
+
+    }
+
+    if (typeof updateEaseLivePreview === "function") {
+
+      updateEaseLivePreview();
 
     }
 
@@ -4633,7 +4647,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       custom_color_hex: customColorHex.value,
 
-      aspect_ratio: aspectRatio.value || "9:16"
+      aspect_ratio: aspectRatio.value || "9:16",
+
+      ease_p1: [easeP1.x, easeP1.y],
+
+      ease_p2: [easeP2.x, easeP2.y],
+
+      cubic_bezier: `cubic-bezier(${easeP1.x.toFixed(2)}, ${easeP1.y.toFixed(2)}, ${easeP2.x.toFixed(2)}, ${easeP2.y.toFixed(2)})`
 
     };
 
@@ -4725,656 +4745,434 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-  // INITIAL SETUP CALLS
-
+    // INITIAL SETUP CALLS
   enhanceSelectsToComicDropdowns();
   const initIsArabic = !dialectHint || (dialectHint.value === "General Algerian" || dialectHint.value === "Modern Standard Arabic" || (!dialectHint.value.includes("Latin") && !dialectHint.value.includes("French") && !dialectHint.value.includes("English")));
   updateAdaptiveFontList(initIsArabic ? "arabic" : "latin");
   applyLanguage(currentLang);
-
   applyTheme(currentTheme);
-
   renderCustomPresets();
 
+  // INTERACTIVE KEYFRAME EASE GRAPH COMPONENT (After Effects Style + Live Preview)
+  const easeCanvas = document.getElementById("easeCanvas");
+  const activeEaseBadge = document.getElementById("activeEaseBadge");
+  const easeCoordsReadout = document.getElementById("easeCoordsReadout");
+  const easeLivePreviewWord = document.getElementById("easeLivePreviewWord");
+  const easePresetButtons = document.querySelectorAll(".ease-btn");
+  const easeCustomBtn = document.getElementById("easeCustomBtn");
+
+  let activeDragHandle = null; // 'P1' | 'P2' | null
+  let easeTracerT = 0;
+
+  const EASE_PRESETS = {
+    spring: {
+      name: "Snappy Spring",
+      p1: { x: 0.34, y: 1.56 },
+      p2: { x: 0.64, y: 1.00 }
+    },
+    back: {
+      name: "Bounce Back",
+      p1: { x: 0.68, y: -0.40 },
+      p2: { x: 0.32, y: 1.40 }
+    },
+    smooth: {
+      name: "Smooth Fluid",
+      p1: { x: 0.25, y: 1.00 },
+      p2: { x: 0.50, y: 1.00 }
+    },
+    linear: {
+      name: "Linear Pop",
+      p1: { x: 0.00, y: 0.00 },
+      p2: { x: 1.00, y: 1.00 }
+    }
+  };
+
+  const padX = 30;
+  const padY = 16;
+  const minY = -0.55;
+  const maxY = 1.65;
+
+  function toCanvasCoords(nx, ny, w, h, dpr = 1) {
+    const px = padX * dpr;
+    const py = padY * dpr;
+    const plotW = w - px * 2;
+    const plotH = h - py * 2;
+    const cx = px + nx * plotW;
+    const cy = py + plotH - ((ny - minY) / (maxY - minY)) * plotH;
+    return { cx, cy };
+  }
+
+  function fromCanvasCoords(cx, cy, w, h, dpr = 1) {
+    const px = padX * dpr;
+    const py = padY * dpr;
+    const plotW = w - px * 2;
+    const plotH = h - py * 2;
+    const nx = Math.max(0, Math.min(1, (cx - px) / plotW));
+    const ny = Math.max(minY, Math.min(maxY, minY + (1 - (cy - py) / plotH) * (maxY - minY)));
+    return { x: parseFloat(nx.toFixed(2)), y: parseFloat(ny.toFixed(2)) };
+  }
+
+  function evalCubicBezier(t, p1, p2) {
+    const u = 1 - t;
+    const tt = t * t;
+    const uu = u * u;
+    const ttt = tt * t;
+    const x = 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt;
+    const y = 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt;
+    return { x, y };
+  }
+
+  updateAnimEaseProperty = function() {
+    const css = `cubic-bezier(${easeP1.x.toFixed(2)}, ${easeP1.y.toFixed(2)}, ${easeP2.x.toFixed(2)}, ${easeP2.y.toFixed(2)})`;
+    document.documentElement.style.setProperty("--anim-ease", css);
+    document.documentElement.style.setProperty("--anim-ease-spring", css);
+    document.documentElement.style.setProperty("--anim-ease-out-back", css);
+    document.documentElement.style.setProperty("--anim-ease-fluid", css);
+    document.documentElement.style.setProperty("--anim-ease-smooth", css);
+
+    if (easeCoordsReadout) {
+      easeCoordsReadout.innerText = `${easeP1.x.toFixed(2)}, ${easeP1.y.toFixed(2)} | ${easeP2.x.toFixed(2)}, ${easeP2.y.toFixed(2)}`;
+    }
+    if (activeEaseBadge) {
+      if (activeEaseType && EASE_PRESETS[activeEaseType]) {
+        activeEaseBadge.innerText = EASE_PRESETS[activeEaseType].name;
+      } else {
+        activeEaseBadge.innerText = "Custom Ease";
+      }
+    }
+    easePresetButtons.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.ease === activeEaseType);
+    });
+
+    if (typeof updateEaseLivePreview === "function") {
+      updateEaseLivePreview();
+    }
+  };
+
+  setEaseCurve = function(type) {
+    if (EASE_PRESETS[type]) {
+      activeEaseType = type;
+      easeP1 = { ...EASE_PRESETS[type].p1 };
+      easeP2 = { ...EASE_PRESETS[type].p2 };
+    } else {
+      activeEaseType = "custom";
+    }
+    updateAnimEaseProperty();
+    if (typeof updateLiveSubtitlePreview === "function") {
+      updateLiveSubtitlePreview();
+    }
+    autoSaveSettings();
+  };
+
+  function updateEaseLivePreview() {
+    if (!easeLivePreviewWord) return;
+    const activeAnim = animationStyle ? (animationStyle.value || "bouncy_spring") : "bouncy_spring";
+    const isArabic = dialectHint && (dialectHint.value === "General Algerian" || dialectHint.value === "Modern Standard Arabic" || (!dialectHint.value.includes("Latin") && !dialectHint.value.includes("French") && !dialectHint.value.includes("English")));
+    const previewWord = isArabic ? "فيديو" : "VIRAL";
+
+    // Clean base class
+    easeLivePreviewWord.className = "ease-live-preview-pill";
+    // Trigger DOM reflow to immediately replay CSS animation with latest easing curve
+    void easeLivePreviewWord.offsetWidth;
+    easeLivePreviewWord.classList.add(`anim-${activeAnim}`);
+
+    if (activeAnim.startsWith("letter_")) {
+      let letters = previewWord.split("");
+      if (isArabic && typeof shapeArabicWordToLetters === "function") {
+        letters = shapeArabicWordToLetters(previewWord);
+      }
+      easeLivePreviewWord.innerHTML = letters
+        .map((ch, idx) => `<span class="sub-letter" style="--letter-idx: ${idx}; display: inline-block;">${ch}</span>`)
+        .join("");
+    } else {
+      easeLivePreviewWord.innerText = previewWord;
+    }
+  }
+
+  function drawEaseGraph() {
+    if (!easeCanvas) return;
+    const rect = easeCanvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      requestAnimationFrame(drawEaseGraph);
+      return;
+    }
+    const dpr = window.devicePixelRatio || 1;
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+    if (easeCanvas.width !== targetW || easeCanvas.height !== targetH) {
+      easeCanvas.width = targetW;
+      easeCanvas.height = targetH;
+    }
+
+    const ctx = easeCanvas.getContext("2d");
+    const w = easeCanvas.width;
+    const h = easeCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // After Effects Graph Editor Dark Background
+    ctx.fillStyle = "#07090C";
+    ctx.fillRect(0, 0, w, h);
+
+    // AE Value & Speed Grid Lines
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+    ctx.lineWidth = 1 * dpr;
+    [0.25, 0.50, 0.75].forEach(tx => {
+      const p = toCanvasCoords(tx, 0, w, h, dpr);
+      ctx.beginPath();
+      ctx.moveTo(p.cx, padY * dpr);
+      ctx.lineTo(p.cx, h - padY * dpr);
+      ctx.stroke();
+    });
+
+    [-0.5, 0.5, 1.5].forEach(ty => {
+      const p = toCanvasCoords(0, ty, w, h, dpr);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+      ctx.beginPath();
+      ctx.moveTo(padX * dpr, p.cy);
+      ctx.lineTo(w - padX * dpr, p.cy);
+      ctx.stroke();
+    });
+
+    // Reference lines: 0% (Baseline) and 100% (Target Value)
+    const p0 = toCanvasCoords(0, 0, w, h, dpr);
+    const p1 = toCanvasCoords(0, 1, w, h, dpr);
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+    ctx.lineWidth = 1.2 * dpr;
+    ctx.setLineDash([4 * dpr, 4 * dpr]);
+
+    ctx.beginPath();
+    ctx.moveTo(padX * dpr, p0.cy);
+    ctx.lineTo(w - padX * dpr, p0.cy);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(padX * dpr, p1.cy);
+    ctx.lineTo(w - padX * dpr, p1.cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // AE Value markings
+    ctx.font = `${Math.round(8 * dpr)}px monospace`;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.fillText("0%", 6 * dpr, p0.cy + 3 * dpr);
+    ctx.fillText("100%", 4 * dpr, p1.cy + 3 * dpr);
+
+    // Coordinates of Start (0,0), End (1,1), and Tangent Handles (K1, K2)
+    const pStart = toCanvasCoords(0, 0, w, h, dpr);
+    const pEnd = toCanvasCoords(1, 1, w, h, dpr);
+    const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h, dpr);
+    const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h, dpr);
+
+    // Tangent Arm 1: Start (0,0) -> K1 (easeP1) in Cyan
+    ctx.strokeStyle = "rgba(0, 240, 255, 0.85)";
+    ctx.lineWidth = 1.8 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(pStart.cx, pStart.cy);
+    ctx.lineTo(pK1.cx, pK1.cy);
+    ctx.stroke();
+
+    // Tangent Arm 2: End (1,1) -> K2 (easeP2) in Amber
+    ctx.strokeStyle = "rgba(255, 230, 0, 0.85)";
+    ctx.lineWidth = 1.8 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(pEnd.cx, pEnd.cy);
+    ctx.lineTo(pK2.cx, pK2.cy);
+    ctx.stroke();
+
+    // Draw Cubic Bezier Curve
+    const steps = 64;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const pt = evalCubicBezier(t, easeP1, easeP2);
+      const cp = toCanvasCoords(pt.x, pt.y, w, h, dpr);
+      if (i === 0) ctx.moveTo(cp.cx, cp.cy);
+      else ctx.lineTo(cp.cx, cp.cy);
+    }
+    ctx.strokeStyle = "#FFE600";
+    ctx.lineWidth = 2.4 * dpr;
+    ctx.shadowColor = "rgba(255, 230, 0, 0.5)";
+    ctx.shadowBlur = 8 * dpr;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Fill under curve down to baseline
+    ctx.lineTo(pEnd.cx, p0.cy);
+    ctx.lineTo(pStart.cx, p0.cy);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, p1.cy, 0, p0.cy);
+    grad.addColorStop(0, "rgba(255, 230, 0, 0.20)");
+    grad.addColorStop(1, "rgba(255, 230, 0, 0.00)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // AE Keyframe Diamonds at (0,0) and (1,1)
+    function drawKeyframeDiamond(cx, cy, size, color) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = color;
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1.2 * dpr;
+      ctx.beginPath();
+      ctx.rect(-size / 2, -size / 2, size, size);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    drawKeyframeDiamond(pStart.cx, pStart.cy, 7 * dpr, "#FFA500");
+    drawKeyframeDiamond(pEnd.cx, pEnd.cy, 7 * dpr, "#FFA500");
+
+    // Keyframe 1 Handle (Cyan Knob)
+    ctx.beginPath();
+    ctx.arc(pK1.cx, pK1.cy, 5.5 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = "#00F0FF";
+    ctx.shadowColor = "rgba(0, 240, 255, 0.8)";
+    ctx.shadowBlur = 6 * dpr;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1.8 * dpr;
+    ctx.stroke();
+
+    ctx.font = `bold ${Math.round(9 * dpr)}px sans-serif`;
+    ctx.fillStyle = "#00F0FF";
+    ctx.fillText("K1", pK1.cx + 8 * dpr, pK1.cy - 3 * dpr);
+
+    // Keyframe 2 Handle (Amber Knob)
+    ctx.beginPath();
+    ctx.arc(pK2.cx, pK2.cy, 5.5 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFE600";
+    ctx.shadowColor = "rgba(255, 230, 0, 0.8)";
+    ctx.shadowBlur = 6 * dpr;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1.8 * dpr;
+    ctx.stroke();
+
+    ctx.fillStyle = "#FFE600";
+    ctx.fillText("K2", pK2.cx + 8 * dpr, pK2.cy - 3 * dpr);
+
+    // Dynamic Tracer Particle
+    const spd = parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0;
+    easeTracerT = (easeTracerT + 0.015 * spd) % 1;
+    const tracerPt = evalCubicBezier(easeTracerT, easeP1, easeP2);
+    const tracerCp = toCanvasCoords(tracerPt.x, tracerPt.y, w, h, dpr);
+
+    ctx.beginPath();
+    ctx.arc(tracerCp.cx, tracerCp.cy, 4 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.shadowColor = "#00F0FF";
+    ctx.shadowBlur = 8 * dpr;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    requestAnimationFrame(drawEaseGraph);
+  }
+
+  if (easeCanvas) {
+    function getCanvasPos(e) {
+      const rect = easeCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const scaleX = easeCanvas.width / rect.width;
+      const scaleY = easeCanvas.height / rect.height;
+      return {
+        cx: (clientX - rect.left) * scaleX,
+        cy: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function onPointerDown(e) {
+      const pos = getCanvasPos(e);
+      const w = easeCanvas.width;
+      const h = easeCanvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h, dpr);
+      const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h, dpr);
+
+      const d1 = Math.hypot(pos.cx - pK1.cx, pos.cy - pK1.cy);
+      const d2 = Math.hypot(pos.cx - pK2.cx, pos.cy - pK2.cy);
+
+      const hitRadius = 24 * dpr;
+      if (d1 < hitRadius) {
+        activeDragHandle = "P1";
+      } else if (d2 < hitRadius) {
+        activeDragHandle = "P2";
+      } else {
+        activeDragHandle = (d1 <= d2) ? "P1" : "P2";
+      }
+
+      easeCanvas.style.cursor = "grabbing";
+      onPointerMove(e);
+      e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      const w = easeCanvas.width;
+      const h = easeCanvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      const pos = getCanvasPos(e);
+
+      if (!activeDragHandle) {
+        // Hover cursor cue
+        const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h, dpr);
+        const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h, dpr);
+        const d1 = Math.hypot(pos.cx - pK1.cx, pos.cy - pK1.cy);
+        const d2 = Math.hypot(pos.cx - pK2.cx, pos.cy - pK2.cy);
+        easeCanvas.style.cursor = (d1 < 24 * dpr || d2 < 24 * dpr) ? "grab" : "crosshair";
+        return;
+      }
+
+      const norm = fromCanvasCoords(pos.cx, pos.cy, w, h, dpr);
+
+      if (activeDragHandle === "P1") {
+        easeP1 = { x: norm.x, y: norm.y };
+      } else if (activeDragHandle === "P2") {
+        easeP2 = { x: norm.x, y: norm.y };
+      }
+
+      activeEaseType = "custom";
+      updateAnimEaseProperty();
+      if (typeof updateLiveSubtitlePreview === "function") {
+        updateLiveSubtitlePreview();
+      }
+      e.preventDefault();
+    }
+
+    function onPointerUp() {
+      if (activeDragHandle) {
+        activeDragHandle = null;
+        easeCanvas.style.cursor = "crosshair";
+        autoSaveSettings();
+      }
+    }
+
+    easeCanvas.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("mousemove", onPointerMove);
+    window.addEventListener("mouseup", onPointerUp);
+
+    easeCanvas.addEventListener("touchstart", onPointerDown, { passive: false });
+    window.addEventListener("touchmove", onPointerMove, { passive: false });
+    window.addEventListener("touchend", onPointerUp);
+
+    easePresetButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        setEaseCurve(btn.dataset.ease);
+      });
+    });
+
+    updateAnimEaseProperty();
+    drawEaseGraph();
+  }
+
+  // Restore previous settings and initialize live previews
   restoreLastSettings();
-
   updatePhonePlatformUI();
-
   updateLiveSubtitlePreview();
-
+  updateEaseLivePreview();
   syncAllCustomDropdowns();
 
 });
-
-
-
-
-
-  // INTERACTIVE KEYFRAME EASE GRAPH COMPONENT (After Effects Style + Live Preview)
-
-  const easeCanvas = document.getElementById("easeCanvas");
-
-  const activeEaseBadge = document.getElementById("activeEaseBadge");
-
-  const easeCoordsReadout = document.getElementById("easeCoordsReadout");
-
-  const easeLivePreviewWord = document.getElementById("easeLivePreviewWord");
-
-  const easePresetButtons = document.querySelectorAll(".ease-btn");
-
-  const easeCustomBtn = document.getElementById("easeCustomBtn");
-
-
-
-  let activeDragHandle = null; // 'P1' | 'P2' | null
-
-  let easeTracerT = 0;
-
-
-
-  const EASE_PRESETS = {
-
-    spring: {
-
-      name: "Snappy Spring",
-
-      p1: { x: 0.34, y: 1.56 },
-
-      p2: { x: 0.64, y: 1.00 }
-
-    },
-
-    back: {
-
-      name: "Bounce Back",
-
-      p1: { x: 0.68, y: -0.40 },
-
-      p2: { x: 0.32, y: 1.40 }
-
-    },
-
-    smooth: {
-
-      name: "Smooth Fluid",
-
-      p1: { x: 0.25, y: 1.00 },
-
-      p2: { x: 0.50, y: 1.00 }
-
-    },
-
-    linear: {
-
-      name: "Linear Pop",
-
-      p1: { x: 0.00, y: 0.00 },
-
-      p2: { x: 1.00, y: 1.00 }
-
-    }
-
-  };
-
-
-
-  const padX = 26;
-
-  const padY = 14;
-
-  const minY = -0.55;
-
-  const maxY = 1.65;
-
-
-
-  function toCanvasCoords(nx, ny, w, h) {
-
-    const plotW = w - padX * 2;
-
-    const plotH = h - padY * 2;
-
-    const cx = padX + nx * plotW;
-
-    const cy = padY + plotH - ((ny - minY) / (maxY - minY)) * plotH;
-
-    return { cx, cy };
-
-  }
-
-
-
-  function fromCanvasCoords(cx, cy, w, h) {
-
-    const plotW = w - padX * 2;
-
-    const plotH = h - padY * 2;
-
-    const nx = Math.max(0, Math.min(1, (cx - padX) / plotW));
-
-    const ny = Math.max(minY, Math.min(maxY, minY + (1 - (cy - padY) / plotH) * (maxY - minY)));
-
-    return { x: parseFloat(nx.toFixed(2)), y: parseFloat(ny.toFixed(2)) };
-
-  }
-
-
-
-  function evalCubicBezier(t, p1, p2) {
-
-    const u = 1 - t;
-
-    const tt = t * t;
-
-    const uu = u * u;
-
-    const ttt = tt * t;
-
-    const x = 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt;
-
-    const y = 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt;
-
-    return { x, y };
-
-  }
-
-
-
-  updateAnimEaseProperty = function() {
-
-    const css = `cubic-bezier(${easeP1.x.toFixed(2)}, ${easeP1.y.toFixed(2)}, ${easeP2.x.toFixed(2)}, ${easeP2.y.toFixed(2)})`;
-
-    document.documentElement.style.setProperty("--anim-ease", css);
-
-    if (easeCoordsReadout) {
-
-      easeCoordsReadout.innerText = `${easeP1.x.toFixed(2)}, ${easeP1.y.toFixed(2)} | ${easeP2.x.toFixed(2)}, ${easeP2.y.toFixed(2)}`;
-
-    }
-
-    if (activeEaseBadge) {
-
-      if (activeEaseType && EASE_PRESETS[activeEaseType]) {
-
-        activeEaseBadge.innerText = EASE_PRESETS[activeEaseType].name;
-
-      } else {
-
-        activeEaseBadge.innerText = "Custom Ease";
-
-      }
-
-    }
-
-    easePresetButtons.forEach(btn => {
-
-      btn.classList.toggle("active", btn.dataset.ease === activeEaseType);
-
-    });
-
-  };
-
-
-
-  setEaseCurve = function(type) {
-
-    if (EASE_PRESETS[type]) {
-
-      activeEaseType = type;
-
-      easeP1 = { ...EASE_PRESETS[type].p1 };
-
-      easeP2 = { ...EASE_PRESETS[type].p2 };
-
-    } else {
-
-      activeEaseType = "custom";
-
-    }
-
-    updateAnimEaseProperty();
-
-    autoSaveSettings();
-
-  };
-
-
-
-  function drawEaseGraph() {
-
-    if (!easeCanvas) return;
-
-    const ctx = easeCanvas.getContext("2d");
-
-    const w = easeCanvas.width;
-
-    const h = easeCanvas.height;
-
-    ctx.clearRect(0, 0, w, h);
-
-
-
-    // Background
-
-    ctx.fillStyle = "#090B0E";
-
-    ctx.fillRect(0, 0, w, h);
-
-
-
-    // Grid lines
-
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
-
-    ctx.lineWidth = 1;
-
-    for (let x = padX; x <= w - padX; x += 35) {
-
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-
-    }
-
-    for (let y = padY; y <= h - padY; y += 14) {
-
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-
-    }
-
-
-
-    // Baseline (y=0) and Ceiling (y=1) reference lines
-
-    const pBase0 = toCanvasCoords(0, 0, w, h);
-
-    const pBase1 = toCanvasCoords(1, 0, w, h);
-
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
-
-    ctx.setLineDash([3, 3]);
-
-    ctx.beginPath();
-
-    ctx.moveTo(padX, pBase0.cy);
-
-    ctx.lineTo(w - padX, pBase1.cy);
-
-    ctx.stroke();
-
-
-
-    const pCeil0 = toCanvasCoords(0, 1, w, h);
-
-    const pCeil1 = toCanvasCoords(1, 1, w, h);
-
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
-
-    ctx.beginPath();
-
-    ctx.moveTo(padX, pCeil0.cy);
-
-    ctx.lineTo(w - padX, pCeil1.cy);
-
-    ctx.stroke();
-
-    ctx.setLineDash([]); // reset
-
-
-
-    // Tangent lines for Keyframes (After Effects Style Handles)
-
-    const pStart = toCanvasCoords(0, 0, w, h);
-
-    const pEnd = toCanvasCoords(1, 1, w, h);
-
-    const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h);
-
-    const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h);
-
-
-
-    // Tangent bar 1: Start (0,0) -> K1 (easeP1)
-
-    ctx.strokeStyle = "rgba(0, 240, 255, 0.75)";
-
-    ctx.lineWidth = 1.5;
-
-    ctx.beginPath();
-
-    ctx.moveTo(pStart.cx, pStart.cy);
-
-    ctx.lineTo(pK1.cx, pK1.cy);
-
-    ctx.stroke();
-
-
-
-    // Tangent bar 2: End (1,1) -> K2 (easeP2)
-
-    ctx.strokeStyle = "rgba(255, 230, 0, 0.75)";
-
-    ctx.lineWidth = 1.5;
-
-    ctx.beginPath();
-
-    ctx.moveTo(pEnd.cx, pEnd.cy);
-
-    ctx.lineTo(pK2.cx, pK2.cy);
-
-    ctx.stroke();
-
-
-
-    // Draw Cubic Bezier Curve
-
-    const steps = 48;
-
-    ctx.beginPath();
-
-    for (let i = 0; i <= steps; i++) {
-
-      const t = i / steps;
-
-      const pt = evalCubicBezier(t, easeP1, easeP2);
-
-      const cp = toCanvasCoords(pt.x, pt.y, w, h);
-
-      if (i === 0) ctx.moveTo(cp.cx, cp.cy);
-
-      else ctx.lineTo(cp.cx, cp.cy);
-
-    }
-
-    ctx.strokeStyle = "#FFE600";
-
-    ctx.lineWidth = 2.5;
-
-    ctx.shadowColor = "rgba(255, 230, 0, 0.4)";
-
-    ctx.shadowBlur = 6;
-
-    ctx.stroke();
-
-    ctx.shadowBlur = 0;
-
-
-
-    // Fill under curve
-
-    ctx.lineTo(pEnd.cx, pBase0.cy);
-
-    ctx.lineTo(pStart.cx, pBase0.cy);
-
-    ctx.closePath();
-
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-
-    grad.addColorStop(0, "rgba(255, 230, 0, 0.18)");
-
-    grad.addColorStop(1, "rgba(255, 230, 0, 0.00)");
-
-    ctx.fillStyle = grad;
-
-    ctx.fill();
-
-
-
-    // Start anchor (0,0) & End anchor (1,1)
-
-    ctx.fillStyle = "#888888";
-
-    ctx.beginPath();
-
-    ctx.arc(pStart.cx, pStart.cy, 3, 0, Math.PI * 2);
-
-    ctx.fill();
-
-    ctx.beginPath();
-
-    ctx.arc(pEnd.cx, pEnd.cy, 3, 0, Math.PI * 2);
-
-    ctx.fill();
-
-
-
-    // Keyframe 1 Handle (Cyan Handle - K1 In-Influence)
-
-    ctx.fillStyle = "#00F0FF";
-
-    ctx.strokeStyle = "#FFFFFF";
-
-    ctx.lineWidth = 1.8;
-
-    ctx.beginPath();
-
-    ctx.arc(pK1.cx, pK1.cy, 5.5, 0, Math.PI * 2);
-
-    ctx.fill();
-
-    ctx.stroke();
-
-
-
-    ctx.font = "8px monospace";
-
-    ctx.fillStyle = "#00F0FF";
-
-    ctx.fillText("K1", pK1.cx + 7, pK1.cy - 3);
-
-
-
-    // Keyframe 2 Handle (Amber Handle - K2 Out-Influence)
-
-    ctx.fillStyle = "#FFE600";
-
-    ctx.strokeStyle = "#FFFFFF";
-
-    ctx.lineWidth = 1.8;
-
-    ctx.beginPath();
-
-    ctx.arc(pK2.cx, pK2.cy, 5.5, 0, Math.PI * 2);
-
-    ctx.fill();
-
-    ctx.stroke();
-
-
-
-    ctx.fillStyle = "#FFE600";
-
-    ctx.fillText("K2", pK2.cx + 7, pK2.cy - 3);
-
-
-
-    // Dynamic Tracer Particle
-
-    const spd = parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0;
-
-    easeTracerT = (easeTracerT + 0.018 * spd) % 1;
-
-    const tracerPt = evalCubicBezier(easeTracerT, easeP1, easeP2);
-
-    const tracerCp = toCanvasCoords(tracerPt.x, tracerPt.y, w, h);
-
-
-
-    ctx.beginPath();
-
-    ctx.arc(tracerCp.cx, tracerCp.cy, 4, 0, Math.PI * 2);
-
-    ctx.fillStyle = "#FFFFFF";
-
-    ctx.shadowColor = "#00F0FF";
-
-    ctx.shadowBlur = 8;
-
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-
-
-
-    requestAnimationFrame(drawEaseGraph);
-
-  }
-
-
-
-  if (easeCanvas) {
-
-    function getCanvasPos(e) {
-
-      const rect = easeCanvas.getBoundingClientRect();
-
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-      const scaleX = easeCanvas.width / rect.width;
-
-      const scaleY = easeCanvas.height / rect.height;
-
-      return {
-
-        cx: (clientX - rect.left) * scaleX,
-
-        cy: (clientY - rect.top) * scaleY
-
-      };
-
-    }
-
-
-
-    function onPointerDown(e) {
-
-      const pos = getCanvasPos(e);
-
-      const w = easeCanvas.width;
-
-      const h = easeCanvas.height;
-
-      const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h);
-
-      const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h);
-
-
-
-      const d1 = Math.hypot(pos.cx - pK1.cx, pos.cy - pK1.cy);
-
-      const d2 = Math.hypot(pos.cx - pK2.cx, pos.cy - pK2.cy);
-
-
-
-      if (d1 < 18) {
-
-        activeDragHandle = "P1";
-
-      } else if (d2 < 18) {
-
-        activeDragHandle = "P2";
-
-      } else {
-
-        activeDragHandle = (d1 <= d2) ? "P1" : "P2";
-
-      }
-
-
-
-      onPointerMove(e);
-
-      e.preventDefault();
-
-    }
-
-
-
-    function onPointerMove(e) {
-
-      if (!activeDragHandle) return;
-
-      const pos = getCanvasPos(e);
-
-      const w = easeCanvas.width;
-
-      const h = easeCanvas.height;
-
-      const norm = fromCanvasCoords(pos.cx, pos.cy, w, h);
-
-
-
-      if (activeDragHandle === "P1") {
-
-        easeP1 = { x: norm.x, y: norm.y };
-
-      } else if (activeDragHandle === "P2") {
-
-        easeP2 = { x: norm.x, y: norm.y };
-
-      }
-
-      activeEaseType = "custom";
-
-      updateAnimEaseProperty();
-
-      if (typeof updateLiveSubtitlePreview === "function") {
-
-        updateLiveSubtitlePreview();
-
-      }
-
-      e.preventDefault();
-
-    }
-
-
-
-    function onPointerUp() {
-
-      if (activeDragHandle) {
-
-        activeDragHandle = null;
-
-        autoSaveSettings();
-
-      }
-
-    }
-
-
-
-    easeCanvas.addEventListener("mousedown", onPointerDown);
-
-    window.addEventListener("mousemove", onPointerMove);
-
-    window.addEventListener("mouseup", onPointerUp);
-
-
-
-    easeCanvas.addEventListener("touchstart", onPointerDown, { passive: false });
-
-    window.addEventListener("touchmove", onPointerMove, { passive: false });
-
-    window.addEventListener("touchend", onPointerUp);
-
-
-
-    easePresetButtons.forEach(btn => {
-
-      btn.addEventListener("click", () => {
-
-        setEaseCurve(btn.dataset.ease);
-
-      });
-
-    });
-
-
-
-    setEaseCurve("spring");
-
-    drawEaseGraph();
-
-  }
-

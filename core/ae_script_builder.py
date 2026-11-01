@@ -4,7 +4,7 @@ Generates native After Effects compositions with fully editable keyframed text l
 """
 
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 
 class AfterEffectsScriptBuilder:
@@ -19,7 +19,9 @@ class AfterEffectsScriptBuilder:
         comp_width: int = 1080,
         comp_height: int = 1920,
         fps: float = 30.0,
-        pos_y: int = 960
+        pos_y: int = 960,
+        ease_p1: Optional[List[float]] = None,
+        ease_p2: Optional[List[float]] = None
     ):
         self.font_name = font_name
         self.font_size = font_size
@@ -31,6 +33,8 @@ class AfterEffectsScriptBuilder:
         self.comp_height = comp_height
         self.fps = fps
         self.pos_y = pos_y
+        self.ease_p1 = ease_p1 or [0.34, 1.56]
+        self.ease_p2 = ease_p2 or [0.64, 1.00]
 
     def hex_to_rgb_norm(self, hex_code: str) -> List[float]:
         """Converts HEX string #RRGGBB to normalized [R, G, B] array (0.0 to 1.0) for After Effects."""
@@ -160,12 +164,19 @@ class AfterEffectsScriptBuilder:
                     ""
                 ])
             else:
-                # Spring pop scale keyframes
+                # Spring pop scale keyframes with native After Effects KeyframeEase influence
+                inf_out = round(max(5.0, min(95.0, float(self.ease_p1[0]) * 100.0)), 1)
+                inf_in = round(max(5.0, min(95.0, (1.0 - float(self.ease_p2[0])) * 100.0)), 1)
                 jsx_lines.extend([
                     f"    var scaleProp_{chunk_idx + 1} = {var_name}.property('Scale');",
                     f"    scaleProp_{chunk_idx + 1}.setValueAtTime({chunk_start}, [90, 90, 100]);",
                     f"    scaleProp_{chunk_idx + 1}.setValueAtTime({round(chunk_start + 0.12, 3)}, [115, 115, 100]);",
                     f"    scaleProp_{chunk_idx + 1}.setValueAtTime({round(chunk_start + 0.24, 3)}, [100, 100, 100]);",
+                    f"    var easeIn_{chunk_idx + 1} = new KeyframeEase(0, {inf_in});",
+                    f"    var easeOut_{chunk_idx + 1} = new KeyframeEase(0, {inf_out});",
+                    f"    scaleProp_{chunk_idx + 1}.setTemporalEaseAtKey(1, [new KeyframeEase(0, 33.3)], [easeOut_{chunk_idx + 1}]);",
+                    f"    scaleProp_{chunk_idx + 1}.setTemporalEaseAtKey(2, [easeIn_{chunk_idx + 1}], [easeOut_{chunk_idx + 1}]);",
+                    f"    scaleProp_{chunk_idx + 1}.setTemporalEaseAtKey(3, [easeIn_{chunk_idx + 1}], [new KeyframeEase(0, 33.3)]);",
                     ""
                 ])
 
