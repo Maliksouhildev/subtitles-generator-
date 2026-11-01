@@ -172,7 +172,7 @@ class ASSSubtitleBuilder:
         outline_width: float = 2.4,
         shadow_depth: float = 2.2,
         alignment: int = 2,  # 2: Bottom Center, 5: Middle Center, 8: Top Center
-        margin_v: int = 420,  # Safe Zone above Shorts/Reels/TikTok native bottom UI
+        margin_v: int = 960,  # Center of the screen (960px on 1920h)
         words_per_line: int = 4,
         animation_style: str = "karaoke_pop",  # "karaoke_pop", "bouncy_spring", "neon_glow", "color_flash", "box_highlight", "word_reveal", "classic_line"
         video_width: int = 1080,

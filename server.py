@@ -75,7 +75,7 @@ class RenderRequest(BaseModel):
     outline_width: float = 3.5
     shadow_depth: float = 2.0
     alignment: int = 2
-    margin_v: int = 420
+    margin_v: int = 960
     pos_y: Optional[int] = None
     words_per_line: int = 3
     animation_style: str = "karaoke_pop"

@@ -606,7 +606,7 @@ document.addEventListener("DOMContentLoaded", () => {
       highlight: highlightColor ? highlightColor.value : "#FFE600",
       anim: animationStyle ? animationStyle.value : "karaoke_pop",
       speed: animSpeed ? (parseFloat(animSpeed.value) || 1.0) : 1.0,
-      margin: marginV ? (parseInt(marginV.value) || 420) : 420,
+      margin: marginV ? (parseInt(marginV.value) || 960) : 960,
       wordsPerLine: wordsPerLine ? (parseInt(wordsPerLine.value) || 3) : 3,
       alignment: alignment ? (parseInt(alignment.value) || 2) : 2,
       dialect: dialectHint ? dialectHint.value : "General Algerian",
@@ -640,8 +640,14 @@ document.addEventListener("DOMContentLoaded", () => {
       updateAnimationSpeed(s.speed);
     }
     if (s.margin && marginV) {
-      marginV.value = s.margin;
-      if (marginVVal) marginVVal.innerText = s.margin + "px";
+      const effMargin = (s.margin === 420) ? 960 : s.margin;
+      marginV.value = effMargin;
+      let zone = "Custom";
+      const pct = Math.max(10, Math.min(86, (1 - (effMargin / 1920)) * 100));
+      if (pct >= 62 && pct <= 80) zone = "Safe Zone";
+      else if (pct < 30) zone = "Top Header";
+      else zone = "Middle";
+      if (marginVVal) marginVVal.innerText = `${effMargin}px (${zone})`;
     }
     if (s.wordsPerLine && wordsPerLine) wordsPerLine.value = s.wordsPerLine;
     if (s.alignment && alignment) alignment.value = s.alignment;
@@ -793,12 +799,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // STYLE PRESETS (Built-in)
   const PRESETS = {
-    gold: { primary: "#FFFFFF", highlight: "#FFE600", font: "Lalezar", anim: "karaoke_pop", align: "2", margin: 420 },
-    cyan: { primary: "#FFFFFF", highlight: "#00F0FF", font: "Tajawal", anim: "karaoke_pop", align: "2", margin: 420 },
-    coral: { primary: "#FFFFFF", highlight: "#FF8A00", font: "Lalezar", anim: "bouncy_spring", align: "2", margin: 420 },
-    lime: { primary: "#FFFFFF", highlight: "#00FF9D", font: "Almarai", anim: "karaoke_pop", align: "2", margin: 420 },
-    comic: { primary: "#FFFFFF", highlight: "#FFE600", font: "Lalezar", anim: "box_highlight", align: "2", margin: 420 },
-    white: { primary: "#FFFFFF", highlight: "#FFE600", font: "Cairo", anim: "classic_line", align: "2", margin: 420 }
+    gold: { primary: "#FFFFFF", highlight: "#FFE600", font: "Lalezar", anim: "karaoke_pop", align: "2", margin: 960 },
+    cyan: { primary: "#FFFFFF", highlight: "#00F0FF", font: "Tajawal", anim: "karaoke_pop", align: "2", margin: 960 },
+    coral: { primary: "#FFFFFF", highlight: "#FF8A00", font: "Lalezar", anim: "bouncy_spring", align: "2", margin: 960 },
+    lime: { primary: "#FFFFFF", highlight: "#00FF9D", font: "Almarai", anim: "karaoke_pop", align: "2", margin: 960 },
+    comic: { primary: "#FFFFFF", highlight: "#FFE600", font: "Lalezar", anim: "box_highlight", align: "2", margin: 960 },
+    white: { primary: "#FFFFFF", highlight: "#FFE600", font: "Cairo", anim: "classic_line", align: "2", margin: 960 }
   };
 
   presetButtons.forEach(btn => {
@@ -1127,14 +1133,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Position mapping inside simulated phone (based on marginV)
-    const marginPixels = parseInt(marginV.value) || 420;
+    const marginPixels = parseInt(marginV.value) || 960;
     const topPct = Math.max(10, Math.min(88, (1 - (marginPixels / 1920)) * 100));
     
     // Only set style if not currently dragging by pointer
     if (!isDraggingSubtitle) {
       liveSubtitleContainer.style.top = topPct + "%";
       liveSubtitleContainer.style.bottom = "auto";
-      liveSubtitleContainer.style.transform = "translateX(-50%)";
+      liveSubtitleContainer.style.transform = "translate(-50%, -50%)";
     }
   }
 
@@ -1175,7 +1181,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     liveSubtitleContainer.style.top = pct + "%";
     liveSubtitleContainer.style.bottom = "auto";
-    liveSubtitleContainer.style.transform = "translateX(-50%)";
+    liveSubtitleContainer.style.transform = "translate(-50%, -50%)";
 
     // Calibrate corresponding MarginV for 1920px vertical resolution
     const calculatedMarginV = Math.round((1 - (pct / 100)) * 1920);
@@ -2058,8 +2064,8 @@ document.addEventListener("DOMContentLoaded", () => {
       outline_width: 2.4,
       shadow_depth: 2.2,
       alignment: parseInt(alignment.value) || 2,
-      margin_v: parseInt(marginV.value) || 420,
-      pos_y: Math.max(30, 1920 - (parseInt(marginV.value) || 420)),
+      margin_v: parseInt(marginV.value) || 960,
+      pos_y: Math.max(30, 1920 - (parseInt(marginV.value) || 960)),
       words_per_line: parseInt(wordsPerLine.value) || 4,
       template_id: animationStyle.value || "karaoke_pop",
       animation_style: animationStyle.value || "karaoke_pop",
