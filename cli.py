@@ -46,6 +46,9 @@ def main():
     parser.add_argument("--highlight-color", default="#FFE600", help="Active spoken word highlight color hex")
     parser.add_argument("--style", default="karaoke_pop", choices=["karaoke_pop", "bouncy_spring", "neon_glow", "color_flash", "word_reveal", "box_highlight", "classic_line"], help="Animation style")
     parser.add_argument("--speed", type=float, default=1.0, help="Animation speed & pacing multiplier (0.5 to 2.0)")
+    parser.add_argument("--box-style", default="none", choices=["none", "pill", "box", "shadow"], help="Subtitle background box style")
+    parser.add_argument("--box-color", default="#000000", help="Subtitle background box color hex (#000000)")
+    parser.add_argument("--box-alpha", type=float, default=0.85, help="Subtitle background box opacity (0.0 to 1.0)")
     parser.add_argument("--words-per-line", type=int, default=3, help="Words per line/chunk")
     parser.add_argument("--aspect-ratio", default="9:16", choices=["9:16", "16:9", "1:1"], help="Video aspect ratio")
     parser.add_argument("--force-local", action="store_true", help="Force local Faster-Whisper offline transcription")
@@ -96,6 +99,9 @@ def main():
         words_per_line=args.words_per_line,
         animation_style=args.style,
         animation_speed=args.speed,
+        sub_box_style=args.box_style,
+        sub_box_color=args.box_color,
+        sub_box_alpha=args.box_alpha,
         video_width=w,
         video_height=h
     )

@@ -432,20 +432,41 @@ html, body {
   overflow-y: auto;
 }
 
-/* Custom Minimalist Scrollbars */
-.left-panel-content::-webkit-scrollbar,
-.customization-columns-wrap::-webkit-scrollbar,
-.comic-segments-list::-webkit-scrollbar,
-.modal-scroll-content::-webkit-scrollbar {
-  width: 5px;
+/* Custom Neo-Brutalist Comic Scrollbars (Universal - Replaces all native white OS scrollbars) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--amber) var(--bg-card-inner);
 }
-.left-panel-content::-webkit-scrollbar-thumb,
-.customization-columns-wrap::-webkit-scrollbar-thumb,
-.comic-segments-list::-webkit-scrollbar-thumb,
-.modal-scroll-content::-webkit-scrollbar-thumb {
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-card-inner);
+  border-left: 1.5px solid var(--pitch-black);
+}
+
+::-webkit-scrollbar-thumb {
   background: var(--amber);
-  border: 1px solid var(--pitch-black);
-  border-radius: 3px;
+  border: 1.5px solid var(--pitch-black);
+  border-radius: 4px;
+  box-shadow: 1px 1px 0 var(--pitch-black);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--amber-hover);
+}
+
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Drop Zone */
@@ -517,6 +538,55 @@ html, body {
   border-radius: var(--radius-sm);
   padding: 6px 8px;
   box-shadow: var(--shadow-comic-sm);
+}
+
+.file-strip-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.queue-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comic-btn-xs {
+  font-size: 8.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--pitch-black);
+  box-shadow: 1.5px 1.5px 0 var(--pitch-black);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  background: var(--amber);
+  color: var(--pitch-black);
+}
+
+.comic-btn-xs:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 var(--pitch-black);
+  background: var(--amber-hover);
+}
+
+.comic-btn-xs:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0 0 0 var(--pitch-black);
+}
+
+.comic-box-config-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card-inner);
+  border: 1.5px solid var(--pitch-black);
+  border-radius: var(--radius-sm);
+  padding: 4px 7px;
 }
 
 .file-badge {
@@ -870,7 +940,7 @@ html, body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 215px 1fr;
+  grid-template-columns: 228px 1fr;
   gap: 12px;
   padding: 8px 10px 10px;
   align-items: start;
@@ -896,40 +966,47 @@ html, body {
 
 .sim-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   width: 100%;
-  margin-bottom: 6px;
+  gap: 5px;
+  margin-bottom: 7px;
 }
 
 .sim-label-wrap {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 5px;
+  padding-bottom: 2px;
 }
 
 .sim-title {
   font-family: var(--font-headline);
   font-size: 15px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .platform-tabs {
   display: flex;
+  width: 100%;
   background: var(--bg-shell);
   border: 1.5px solid var(--pitch-black);
   border-radius: var(--radius-pill);
-  padding: 1.5px;
-  gap: 1.5px;
+  padding: 2px;
+  gap: 2px;
 }
 
 .platform-tab {
+  flex: 1;
+  text-align: center;
   background: none;
   border: none;
   font-family: inherit;
   font-size: 9.5px;
   font-weight: 800;
-  padding: 2px 6px;
+  padding: 3px 6px;
   border-radius: var(--radius-pill);
   cursor: pointer;
   color: var(--text-muted);
@@ -1248,14 +1325,45 @@ html, body {
 .live-subtitle-box {
   display: inline-flex;
   gap: 4px;
-  padding: 2.5px 6.5px;
-  background: rgba(0, 0, 0, 0.65);
-  border-radius: 4px;
+  padding: 3px 8px;
+  background: var(--sub-box-bg, transparent);
+  border-radius: var(--sub-box-radius, 4px);
   text-align: center;
   direction: rtl; /* RTL by default for Algerian Darija & Arabic to prevent word inversion! */
   unicode-bidi: isolate;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: var(--sub-box-border, none);
+  box-shadow: var(--sub-box-shadow, none);
+  transition: all 0.15s ease;
+}
+
+.live-subtitle-box[data-box-style="none"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 2px 4px !important;
+}
+
+.live-subtitle-box[data-box-style="pill"] {
+  background: var(--sub-box-bg, rgba(0, 0, 0, 0.85)) !important;
+  border-radius: 9999px !important;
+  padding: 3.5px 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.live-subtitle-box[data-box-style="box"] {
+  background: var(--sub-box-bg, rgba(0, 0, 0, 0.85)) !important;
+  border-radius: 4px !important;
+  padding: 3.5px 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.live-subtitle-box[data-box-style="shadow"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: drop-shadow(3px 3px 0px var(--sub-box-color, #000000));
 }
 
 .live-subtitle-box.is-ltr {

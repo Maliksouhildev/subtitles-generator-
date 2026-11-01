@@ -143,12 +143,18 @@
                 <span id="fileName" class="file-name">sample_voice.mp3</span>
                 <span id="fileSize" class="comic-tag">0.0 MB</span>
               </div>
-              <button type="button" id="removeFileBtn" class="comic-btn-square" title="Remove File" aria-label="Remove File">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+              <div class="file-strip-actions">
+                <button type="button" id="addMoreFilesBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Add more media to queue">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span data-i18n="btn_add_more">+ Add</span>
+                </button>
+                <button type="button" id="removeFileBtn" class="comic-btn-square" title="Remove File" aria-label="Remove File">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -159,7 +165,13 @@
                 <span class="comic-stamp" data-i18n="queue_badge">BATCH QUEUE</span>
                 <span class="queue-count-badge" id="queueCount">0 files</span>
               </div>
-              <button type="button" id="clearQueueBtn" class="comic-btn-text" data-i18n="queue_clear">Clear Queue</button>
+              <div class="queue-header-actions">
+                <button type="button" id="queueAddBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Add more files to queue">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span>+ Add</span>
+                </button>
+                <button type="button" id="clearQueueBtn" class="comic-btn-text" data-i18n="queue_clear">Clear</button>
+              </div>
             </div>
             <div class="queue-items-container" id="queueItemsList"></div>
           </div>
@@ -657,6 +669,35 @@
                   <option value="16:9" data-i18n="opt_aspect_169">16:9 (Landscape / YouTube)</option>
                   <option value="1:1" data-i18n="opt_aspect_11">1:1 (Square)</option>
                 </select>
+              </div>
+
+              <!-- Subtitle Background Box & Color -->
+              <div class="grid-col">
+                <label class="comic-label" for="subBoxStyle">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="5" width="18" height="14" rx="4"></rect></svg>
+                  <span data-i18n="ctrl_sub_box">Subtitle Box Background</span>
+                </label>
+                <select id="subBoxStyle" class="comic-select">
+                  <option value="none" selected data-i18n="opt_box_none">None (Clean Text Outline)</option>
+                  <option value="pill" data-i18n="opt_box_pill">Pill Badge (Rounded)</option>
+                  <option value="box" data-i18n="opt_box_block">Full Block Box</option>
+                  <option value="shadow" data-i18n="opt_box_shadow">Deep Drop Shadow</option>
+                </select>
+              </div>
+
+              <div class="grid-col" id="subBoxControls">
+                <div class="label-with-val">
+                  <label class="comic-label" for="subBoxColor">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+                    <span data-i18n="ctrl_box_color">Box Color & Opacity</span>
+                  </label>
+                  <span id="subBoxAlphaVal" class="comic-tag">85%</span>
+                </div>
+                <div class="comic-box-config-row">
+                  <input type="color" id="subBoxColor" value="#000000" class="comic-color-input" title="Subtitle box color">
+                  <span id="subBoxColorText" class="color-hex-tag">#000000</span>
+                  <input type="range" id="subBoxAlpha" min="0.1" max="1.0" step="0.05" value="0.85" class="comic-slider" title="Box background opacity">
+                </div>
               </div>
 
               <!-- Canvas Background & Custom Color -->

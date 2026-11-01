@@ -19,12 +19,12 @@ logging.basicConfig(level=logging.INFO)
 
 # Gemini models with free-tier access ordered by speed, transcription accuracy & JSON mode support
 GEMINI_MODELS = [
+    "gemini-3.5-flash",
+    "gemini-2.5-flash",
     "gemini-3.5-flash-lite",
     "gemini-flash-latest",
-    "gemini-3.5-flash",
     "gemini-3.1-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-3.5-transcribe"
+    "gemini-2.5-pro",
 ]
 
 DARIJA_SYSTEM_PROMPT = """

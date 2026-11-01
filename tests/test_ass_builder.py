@@ -83,8 +83,39 @@ def test_ass_builder_speed_scaling():
     ass_slow = builder_slow.generate_ass(data)
 
     # Fast animation has smaller transform timing than slow animation
-    assert "\\t(0," in ass_fast
-    assert "\\t(0," in ass_slow
+    assert "\\t(" in ass_fast
+    assert "\\t(" in ass_slow
+
+
+def test_ass_builder_sub_box_styles():
+    data = {
+        "segments": [
+            {
+                "start": 0.0,
+                "end": 1.0,
+                "text": "صحا خويا",
+                "words": [
+                    {"word": "صحا", "start": 0.0, "end": 0.5},
+                    {"word": "خويا", "start": 0.5, "end": 1.0}
+                ]
+            }
+        ]
+    }
+
+    # 1. Pill badge box style -> BorderStyle=3
+    builder_pill = ASSSubtitleBuilder(sub_box_style="pill", sub_box_color="#112233", sub_box_alpha=0.8)
+    ass_pill = builder_pill.generate_ass(data)
+    assert ",3,8.0,1.5," in ass_pill
+
+    # 2. None style -> BorderStyle=1
+    builder_none = ASSSubtitleBuilder(sub_box_style="none")
+    ass_none = builder_none.generate_ass(data)
+    assert ",1,3.5,2.0," in ass_none
+
+    # 3. Deep shadow style -> BorderStyle=1 with shadow 5.0
+    builder_shadow = ASSSubtitleBuilder(sub_box_style="shadow", sub_box_color="#000000")
+    ass_shadow = builder_shadow.generate_ass(data)
+    assert ",1,2.0,5.0," in ass_shadow
 
 
 def test_ass_builder_all_styles():

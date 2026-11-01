@@ -72,7 +72,10 @@ class ASSSubtitleBuilder:
         video_width: int = 1080,
         video_height: int = 1920,
         pos_y: Optional[int] = None,
-        animation_speed: float = 1.0
+        animation_speed: float = 1.0,
+        sub_box_style: str = "none",  # "none", "pill", "box", "shadow"
+        sub_box_color: str = "#000000",
+        sub_box_alpha: float = 0.85
     ):
         self.font_name = font_name
         self.font_size = font_size
@@ -93,13 +96,36 @@ class ASSSubtitleBuilder:
         self.video_width = video_width
         self.video_height = video_height
         self.animation_speed = max(0.3, min(3.0, float(animation_speed)))
+        self.sub_box_style = sub_box_style or "none"
+        self.sub_box_color = sub_box_color or "#000000"
+        self.sub_box_alpha = max(0.0, min(1.0, float(sub_box_alpha)))
 
     def generate_header(self) -> str:
         """Generates the ASS script header and style block."""
         pri_ass = hex_to_ass_color(self.primary_color)
         sec_ass = hex_to_ass_color(self.highlight_color)
-        out_ass = hex_to_ass_color(self.outline_color)
-        sha_ass = hex_to_ass_color(self.shadow_color, alpha=120)
+
+        if self.sub_box_style in ("pill", "box"):
+            # ASS BorderStyle 3 produces an opaque/translucent bounding box around subtitle text
+            border_style = 3
+            alpha_int = max(0, min(255, int(round((1.0 - self.sub_box_alpha) * 255))))
+            out_ass = hex_to_ass_color(self.sub_box_color, alpha=alpha_int)
+            outline_val = 8.0
+            sha_ass = hex_to_ass_color("#000000", alpha=180)
+            shadow_val = 1.5
+        elif self.sub_box_style == "shadow":
+            border_style = 1
+            out_ass = hex_to_ass_color(self.outline_color)
+            outline_val = 2.0
+            alpha_int = max(0, min(255, int(round((1.0 - self.sub_box_alpha) * 255))))
+            sha_ass = hex_to_ass_color(self.sub_box_color, alpha=alpha_int)
+            shadow_val = 5.0
+        else:
+            border_style = 1
+            out_ass = hex_to_ass_color(self.outline_color)
+            outline_val = self.outline_width
+            sha_ass = hex_to_ass_color(self.shadow_color, alpha=120)
+            shadow_val = self.shadow_depth
 
         header = f"""[Script Info]
 Title: Darija Subtitles Generator
@@ -112,7 +138,7 @@ PlayResY: {self.video_height}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{self.font_name},{self.font_size},{pri_ass},{sec_ass},{out_ass},{sha_ass},-1,0,0,0,100,100,0,0,1,{self.outline_width},{self.shadow_depth},{self.alignment},30,30,{self.margin_v},1
+Style: Default,{self.font_name},{self.font_size},{pri_ass},{sec_ass},{out_ass},{sha_ass},-1,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},{self.alignment},30,30,{self.margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

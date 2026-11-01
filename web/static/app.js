@@ -85,6 +85,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const queueItemsList = document.getElementById("queueItemsList");
   const queueCount = document.getElementById("queueCount");
   const clearQueueBtn = document.getElementById("clearQueueBtn");
+  const queueAddBtn = document.getElementById("queueAddBtn");
+  const addMoreFilesBtn = document.getElementById("addMoreFilesBtn");
+
+  // Subtitle Background Box Controls
+  const subBoxStyle = document.getElementById("subBoxStyle");
+  const subBoxControls = document.getElementById("subBoxControls");
+  const subBoxColor = document.getElementById("subBoxColor");
+  const subBoxColorText = document.getElementById("subBoxColorText");
+  const subBoxAlpha = document.getElementById("subBoxAlpha");
+  const subBoxAlphaVal = document.getElementById("subBoxAlphaVal");
 
   // Guide Modal
   const guideBtn = document.getElementById("guideBtn");
@@ -200,6 +210,13 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_bg_orig: "Original Video (Burn-In)",
       opt_bg_trans: "Transparent Alpha (WebM)",
       opt_bg_custom: "Custom Color",
+      ctrl_sub_box: "Subtitle Box Background",
+      opt_box_none: "None (Clean Text Outline)",
+      opt_box_pill: "Pill Badge (Rounded)",
+      opt_box_block: "Full Block Box",
+      opt_box_shadow: "Deep Drop Shadow",
+      ctrl_box_color: "Box Color & Opacity",
+      btn_add_more: "+ Add",
       queue_title: "Batch Processing Queue",
       queue_badge: "BATCH QUEUE",
       queue_clear: "Clear Queue"
@@ -301,6 +318,13 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_bg_orig: "Vidéo d'origine (Incrustation)",
       opt_bg_trans: "Alpha Transparent (WebM)",
       opt_bg_custom: "Couleur Personnalisée",
+      ctrl_sub_box: "Boîte d'arrière-plan du texte",
+      opt_box_none: "Aucun (Contour texte seul)",
+      opt_box_pill: "Badge Pilule (Arrondi)",
+      opt_box_block: "Bloc Plein",
+      opt_box_shadow: "Ombre Portée Profonde",
+      ctrl_box_color: "Couleur et Opacité de la Boîte",
+      btn_add_more: "+ Ajouter",
       queue_title: "File de Traitement par Lot",
       queue_badge: "FILE D'ATTENTE",
       queue_clear: "Vider la file"
@@ -402,6 +426,13 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_bg_orig: "الفيديو الأصلي (حرق مباشر)",
       opt_bg_trans: "خلفية شفافة (WebM)",
       opt_bg_custom: "لون مخصص",
+      ctrl_sub_box: "خلفية مربع الترجمة",
+      opt_box_none: "بدون خلفية (تحديد النص فقط)",
+      opt_box_pill: "شارة كبسولة دائرية (Pill)",
+      opt_box_block: "مستطيل ممتلئ",
+      opt_box_shadow: "ظل عميق بارز",
+      ctrl_box_color: "لون وشفافية الخلفية",
+      btn_add_more: "+ إضافة المزيد",
       queue_title: "قائمة المعالجة المتعددة",
       queue_badge: "قائمة الملفات",
       queue_clear: "إفراغ القائمة"
@@ -713,6 +744,26 @@ document.addEventListener("DOMContentLoaded", () => {
       liveSubtitleBox.classList.add("is-ltr");
     }
 
+    // Subtitle Background Box Styling
+    const boxStyle = subBoxStyle ? subBoxStyle.value : "none";
+    liveSubtitleBox.setAttribute("data-box-style", boxStyle);
+    if (subBoxControls) {
+      subBoxControls.style.display = (boxStyle === "none") ? "none" : "block";
+    }
+
+    if (boxStyle !== "none" && subBoxColor && subBoxAlpha) {
+      const hex = subBoxColor.value;
+      const r = parseInt(hex.slice(1, 3), 16) || 0;
+      const g = parseInt(hex.slice(3, 5), 16) || 0;
+      const b = parseInt(hex.slice(5, 7), 16) || 0;
+      const a = parseFloat(subBoxAlpha.value) || 0.85;
+      liveSubtitleBox.style.setProperty("--sub-box-bg", `rgba(${r}, ${g}, ${b}, ${a})`);
+      liveSubtitleBox.style.setProperty("--sub-box-color", hex);
+    } else {
+      liveSubtitleBox.style.removeProperty("--sub-box-bg");
+      liveSubtitleBox.style.removeProperty("--sub-box-color");
+    }
+
     // Apply animation style & active word colors
     const activeAnim = animationStyle.value || "karaoke_pop";
     const words = [subWord1, subWord2, subWord3];
@@ -893,6 +944,7 @@ document.addEventListener("DOMContentLoaded", () => {
       { el: fontName, type: "font" },
       { el: wordsPerLine, type: "words" },
       { el: aspectRatio, type: "aspect" },
+      { el: subBoxStyle, type: "box" },
       { el: backgroundMode, type: "bg" }
     ];
 
@@ -1184,6 +1236,34 @@ document.addEventListener("DOMContentLoaded", () => {
     customColorText.innerText = e.target.value.toUpperCase();
   });
 
+  // SUBTITLE BACKGROUND BOX LISTENERS
+  if (subBoxStyle) {
+    subBoxStyle.addEventListener("change", () => {
+      updateLiveSubtitlePreview();
+    });
+  }
+  if (subBoxColor) {
+    subBoxColor.addEventListener("input", (e) => {
+      if (subBoxColorText) subBoxColorText.innerText = e.target.value.toUpperCase();
+      updateLiveSubtitlePreview();
+    });
+  }
+  if (subBoxAlpha) {
+    subBoxAlpha.addEventListener("input", (e) => {
+      const pct = Math.round(parseFloat(e.target.value) * 100);
+      if (subBoxAlphaVal) subBoxAlphaVal.innerText = `${pct}%`;
+      updateLiveSubtitlePreview();
+    });
+  }
+
+  // ADD MORE MEDIA BUTTONS
+  if (addMoreFilesBtn) {
+    addMoreFilesBtn.addEventListener("click", () => fileInput.click());
+  }
+  if (queueAddBtn) {
+    queueAddBtn.addEventListener("click", () => fileInput.click());
+  }
+
   // GUIDE MODAL TOGGLES
   guideBtn.addEventListener("click", () => guideModal.classList.remove("hidden"));
   closeGuideBtn.addEventListener("click", () => guideModal.classList.add("hidden"));
@@ -1305,6 +1385,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       qItem.addEventListener("click", () => {
         setFile(item.file);
+        if (item.task_id) currentTaskId = item.task_id;
+        if (item.transcription) currentTranscription = item.transcription;
         renderQueueList();
         if (item.result) {
           resultVideo.src = item.result.video_url;
@@ -1328,7 +1410,8 @@ document.addEventListener("DOMContentLoaded", () => {
       file: f,
       status: "queued",
       result: null,
-      transcription: null
+      transcription: null,
+      task_id: null
     }));
 
     batchQueue.push(...newItems);
@@ -1350,6 +1433,7 @@ document.addEventListener("DOMContentLoaded", () => {
   fileInput.addEventListener("change", (e) => {
     if (e.target.files.length > 0) {
       handleBatchFiles(e.target.files);
+      fileInput.value = "";
     }
   });
 
@@ -1476,8 +1560,21 @@ document.addEventListener("DOMContentLoaded", () => {
     emptyState.classList.add("hidden");
     videoContainer.classList.add("hidden");
 
+    // Fast-path: If item has already been transcribed, re-render directly with current settings in ~1-2s!
+    if (item.transcription && item.task_id) {
+      currentTaskId = item.task_id;
+      currentTranscription = item.transcription;
+      updateProgress(65, "Step 2/4", dict.step_2, "Est. ~2s");
+      renderEditor(currentTranscription);
+      const renderRes = await triggerRender();
+      item.result = renderRes;
+      item.status = "done";
+      renderQueueList();
+      return;
+    }
+
     // Step 1: Upload & Transcribe
-    updateProgress(25, "Step 1/4", dict.step_1, "Est. ~12s");
+    updateProgress(25, "Step 1/4", dict.step_1, "Est. ~8s");
 
     const formData = new FormData();
     formData.append("file", item.file);
@@ -1499,9 +1596,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const transcribeData = await transcribeRes.json();
     currentTaskId = transcribeData.task_id;
     currentTranscription = transcribeData.transcription;
+    item.task_id = currentTaskId;
     item.transcription = currentTranscription;
 
-    updateProgress(65, "Step 2/4", dict.step_2, "Est. ~6s");
+    updateProgress(65, "Step 2/4", dict.step_2, "Est. ~3s");
     renderEditor(currentTranscription);
 
     // Step 2: Render Subtitles & Composite Video
@@ -1525,7 +1623,17 @@ document.addEventListener("DOMContentLoaded", () => {
         file: currentFile,
         status: "queued",
         result: null,
-        transcription: null
+        transcription: currentTranscription,
+        task_id: currentTaskId
+      });
+      renderQueueList();
+    }
+
+    // If all items are currently 'done', re-mark them to 'queued' so clicking Generate RE-GENERATES!
+    const allDone = batchQueue.length > 0 && batchQueue.every(item => item.status === "done");
+    if (allDone) {
+      batchQueue.forEach(item => {
+        item.status = "queued";
       });
       renderQueueList();
     }
@@ -1585,6 +1693,9 @@ document.addEventListener("DOMContentLoaded", () => {
       words_per_line: parseInt(wordsPerLine.value) || 3,
       animation_style: animationStyle.value || "karaoke_pop",
       animation_speed: parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0,
+      sub_box_style: subBoxStyle ? subBoxStyle.value : "none",
+      sub_box_color: subBoxColor ? subBoxColor.value : "#000000",
+      sub_box_alpha: parseFloat(subBoxAlpha ? subBoxAlpha.value : 0.85) || 0.85,
       background_mode: backgroundMode.value || "transparent",
       custom_color_hex: customColorHex.value,
       aspect_ratio: aspectRatio.value || "9:16"

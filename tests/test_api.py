@@ -115,7 +115,10 @@ def test_render_api_mock(client, tmp_path):
             "highlight_color": "#FFE600",
             "background_mode": "green_screen",
             "aspect_ratio": "9:16",
-            "animation_style": "karaoke_pop"
+            "animation_style": "karaoke_pop",
+            "sub_box_style": "pill",
+            "sub_box_color": "#223344",
+            "sub_box_alpha": 0.85
         }
 
         response = client.post("/api/render", json=payload)

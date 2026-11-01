@@ -122,6 +122,7 @@ def render_video(
 
             cmd = [
                 "ffmpeg", "-y",
+                "-threads", "0",
                 "-i", os.path.basename(staged_media),
                 "-vf", "ass=filename=subtitles.ass:fontsdir=fonts",
                 "-c:v", "libx264",
@@ -147,10 +148,13 @@ def render_video(
                 if out_filename.endswith(".webm"):
                     cmd = [
                         "ffmpeg", "-y",
+                        "-threads", "0",
                         "-f", "lavfi", "-i", f"color=c=black@0.0:s={width}x{height}:d={duration}:r={fps}",
                         "-i", os.path.basename(staged_audio),
                         "-vf", "ass=filename=subtitles.ass:fontsdir=fonts",
                         "-c:v", "libvpx-vp9",
+                        "-deadline", "realtime",
+                        "-cpu-used", "8",
                         "-pix_fmt", "yuva420p",
                         "-c:a", "libopus",
                         "-b:a", "128k",
@@ -160,6 +164,7 @@ def render_video(
                 else:
                     cmd = [
                         "ffmpeg", "-y",
+                        "-threads", "0",
                         "-f", "lavfi", "-i", f"color=c=black@0.0:s={width}x{height}:d={duration}:r={fps}",
                         "-i", os.path.basename(staged_audio),
                         "-vf", "ass=filename=subtitles.ass:fontsdir=fonts",
@@ -171,7 +176,7 @@ def render_video(
                         out_filename
                     ]
             else:
-                # Solid color background (Green screen, Black, Blue, Custom)
+                # Solid color background (Green screen, Black, Blue, Custom) - optimized with ultrafast
                 if background_mode == "custom" and custom_color_hex:
                     hex_clean = custom_color_hex.lstrip("#")
                     bg_color_spec = f"0x{hex_clean}"
@@ -180,11 +185,12 @@ def render_video(
 
                 cmd = [
                     "ffmpeg", "-y",
+                    "-threads", "0",
                     "-f", "lavfi", "-i", f"color=c={bg_color_spec}:s={width}x{height}:d={duration}:r={fps}",
                     "-i", os.path.basename(staged_audio),
                     "-vf", "ass=filename=subtitles.ass:fontsdir=fonts",
                     "-c:v", "libx264",
-                    "-preset", "veryfast",
+                    "-preset", "ultrafast",
                     "-crf", "19",
                     "-pix_fmt", "yuv420p",
                     "-c:a", "aac",
