@@ -261,3 +261,51 @@ def test_keyframe_ease_editor_and_letter_animations():
     # 5. Verify Remotion Template registry maps word_reveal
     assert '"word_reveal":' in remotion
 
+def test_language_adaptive_fonts_and_deduplicated_animations():
+    from pathlib import Path
+    import re
+    base_dir = Path(__file__).resolve().parent.parent
+    html_file = base_dir / "web" / "static" / "index.html"
+    js_file = base_dir / "web" / "static" / "app.js"
+
+    html = html_file.read_text(encoding="utf-8")
+    js = js_file.read_text(encoding="utf-8")
+
+    # 1. Verify 20 Arabic and 20 Latin fonts are present in index.html and app.js
+    assert 'id="fontGroupArabic"' in html
+    assert 'id="fontGroupLatin"' in html
+    assert "ARABIC_FONTS" in js
+    assert "LATIN_FONTS" in js
+    assert "updateAdaptiveFontList" in js
+
+    # Count options in Arabic and Latin optgroups
+    arabic_opts = re.findall(r'<optgroup label="[^"]*Arabic[^"]*"[\s\S]*?<\/optgroup>', html)
+    latin_opts = re.findall(r'<optgroup label="[^"]*Latin[^"]*"[\s\S]*?<\/optgroup>', html)
+    assert len(arabic_opts) == 1
+    assert len(latin_opts) == 1
+
+    arabic_fonts = re.findall(r'<option value="([^"]+)"', arabic_opts[0])
+    latin_fonts = re.findall(r'<option value="([^"]+)"', latin_opts[0])
+
+    assert len(arabic_fonts) >= 20, f"Expected >= 20 Arabic fonts, got {len(arabic_fonts)}"
+    assert len(latin_fonts) >= 20, f"Expected >= 20 Latin fonts, got {len(latin_fonts)}"
+
+    # Check key viral fonts
+    for f in ["Lalezar", "Cairo", "Tajawal", "Changa", "Almarai", "Amiri", "El Messiri"]:
+        assert f in arabic_fonts
+    for f in ["Montserrat", "Anton", "Bebas Neue", "Poppins", "Inter", "Oswald", "Outfit"]:
+        assert f in latin_fonts
+
+    # 2. Verify clones have been removed from visual animation dropdown
+    m_dropdown = re.search(r'<div class="custom-dropdown-panel[^"]*" id="animDropdownPanel"[^>]*>([\s\S]*?)<\/div>\s*<select id="animationStyle"', html)
+    assert m_dropdown
+    dropdown_anims = re.findall(r'data-value="([^"]+)"', m_dropdown.group(1))
+
+    clones = ["bouncy_spring", "box_highlight", "classic_line", "neon_glow"]
+    for clone in clones:
+        assert clone not in dropdown_anims, f"Clone {clone} should be removed from animDropdownPanel"
+
+    # Distinct unique animations remain
+    for distinct in ["karaoke_pop", "cumulative_fill", "letter_pop", "letter_drop", "letter_rise", "minimal_slide", "cyber_glitch", "comic_bounce", "viral_punch", "fade_editorial", "badge_invert", "color_flash", "word_reveal"]:
+        assert distinct in dropdown_anims
+

@@ -1,1014 +1,1979 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr" class="theme-dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DZ Subtitles AI - Viral Animated Subtitles Studio</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Cairo:wght@600;700;900&family=Tajawal:wght@700&family=Lalezar&family=Almarai:wght@700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.8.1">
-</head>
-<body>
-  <div class="comic-app-shell">
-    <!-- Top Comic Navigation Bar (Inspired by Reference Image Header) -->
-    <header class="comic-header">
-      <div class="header-left">
-        <div class="brand-badge">
-          <!-- 4-Point Comic Diamond Star -->
-          <svg class="brand-star" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
-          </svg>
-          <span class="brand-title">DZ SUBTITLES <span class="brand-accent-box">AI</span></span>
-          <span class="comic-pill" data-i18n="header_badge">STUDIO</span>
-        </div>
-        <!-- Comic Pattern Accent -->
-        <div class="header-dots-pattern" aria-hidden="true"></div>
-        <p class="brand-tagline" data-i18n="brand_tagline">Auto Animated Subtitles & Safe-Zone Phone Simulation</p>
-      </div>
-
-      <div class="header-right">
-        <!-- Multilingual Switcher -->
-        <div class="lang-switch-group" role="group" aria-label="Language Selector">
-          <span class="lang-icon" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
-          </span>
-          <button type="button" class="lang-btn active" data-lang="en">EN</button>
-          <button type="button" class="lang-btn" data-lang="fr">FR</button>
-          <button type="button" class="lang-btn" data-lang="ar">عربي</button>
-        </div>
-
-        <!-- Dark / Light Mode Switch (Defaulting to Dark Mode) -->
-        <button type="button" id="themeToggleBtn" class="comic-btn comic-btn-sm comic-btn-neutral" title="Toggle Theme" aria-label="Toggle Theme">
-          <span class="theme-icon sun-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-          </span>
-          <span class="theme-icon moon-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-          </span>
-          <span class="btn-text" id="themeLabel">Dark</span>
-        </button>
-
-        <!-- Usage Guide Modal Button -->
-        <button type="button" id="guideBtn" class="comic-btn comic-btn-sm comic-btn-terracotta">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-          </svg>
-          <span data-i18n="btn_guide">Guide</span>
-        </button>
-
-        <!-- GitHub Repository Button -->
-        <a href="https://github.com/Maliksouhildev/subtitles-generator-" target="_blank" class="comic-btn comic-btn-sm comic-btn-amber" rel="noopener">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
-          <span>GitHub</span>
-        </a>
-      </div>
-    </header>
-
-    <!-- Main Workspace (Single Screen No-Scroll Fit) -->
-    <main class="comic-workspace">
-      <!-- LEFT PANEL: Studio, Loading Text, Results & Subtitle Editor -->
-      <section class="comic-card left-panel">
-        <div class="panel-header">
-          <div class="panel-title-wrap">
-            <span class="comic-chip comic-chip-terracotta">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-              </svg>
-            </span>
-            <h2 class="panel-title" data-i18n="studio_title">Studio & Output Preview</h2>
-          </div>
-          <div class="panel-header-badges">
-            <span class="comic-stamp" data-i18n="studio_subtitle">GENERATOR</span>
-          </div>
-        </div>
-
-        <div class="left-panel-content">
-          <!-- File Upload Zone -->
-          <div class="comic-dropzone" id="dropZone">
-            <input type="file" id="fileInput" multiple accept="audio/*,video/*" hidden>
-            <div class="dropzone-body">
-              <div class="dropzone-icon-box">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-              </div>
-              <div class="dropzone-texts">
-                <p class="dropzone-title" data-i18n="dropzone_title">Drag & drop Audio or Video here</p>
-                <p class="dropzone-sub" data-i18n="dropzone_formats">Supports MP3, WAV, AAC, MP4, MOV, MKV, WebM (Multiple files supported!)</p>
-              </div>
-              <button type="button" class="comic-btn comic-btn-sm comic-btn-amber" onclick="document.getElementById('fileInput').click()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                  <polyline points="13 2 13 9 20 9"></polyline>
-                </svg>
-                <span data-i18n="btn_browse">Browse Media</span>
-              </button>
-            </div>
-
-            <!-- Selected File Strip -->
-            <div id="fileInfo" class="selected-file-strip hidden">
-              <div class="file-badge">
-                <span id="fileIconSymbol">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 18V5l12-2v13"></path>
-                    <circle cx="6" cy="18" r="3"></circle>
-                    <circle cx="18" cy="16" r="3"></circle>
-                  </svg>
-                </span>
-              </div>
-              <div class="file-meta">
-                <span id="fileName" class="file-name">sample_voice.mp3</span>
-                <span id="fileSize" class="comic-tag">0.0 MB</span>
-              </div>
-              <div class="file-strip-actions">
-                <button type="button" id="addMoreFilesBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Add more media to queue">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  <span data-i18n="btn_add_more">+ Add</span>
-                </button>
-                <button type="button" id="removeFileBtn" class="comic-btn-square" title="Remove File" aria-label="Remove File">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Batch Upload Queue List -->
-          <div id="queueSection" class="batch-queue-card hidden">
-            <div class="queue-header">
-              <div class="queue-title-wrap">
-                <span class="comic-stamp" data-i18n="queue_badge">BATCH QUEUE</span>
-                <span class="queue-count-badge" id="queueCount">0 files</span>
-              </div>
-              <div class="queue-header-actions">
-                <button type="button" id="queueAddBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Add more files to queue">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  <span>+ Add</span>
-                </button>
-                <button type="button" id="clearQueueBtn" class="comic-btn-text" data-i18n="queue_clear">Clear</button>
-              </div>
-            </div>
-            <div class="queue-items-container" id="queueItemsList"></div>
-          </div>
-
-          <!-- Loading Text & Progress Tracker ("left side display the loading text as it is") -->
-          <div id="progressContainer" class="comic-progress-card hidden">
-            <div class="progress-header">
-              <div class="progress-title-wrap">
-                <span class="spinner-dot"></span>
-                <span id="progressStepBadge" class="comic-tag comic-tag-amber">Step 1/4</span>
-              </div>
-              <div class="progress-meta-right">
-                <span id="progressEta" class="progress-eta-text">Est. ~10s</span>
-                <span id="progressPercentage" class="progress-num">0%</span>
-              </div>
-            </div>
-            <div class="comic-progress-track">
-              <div id="progressBar" class="comic-progress-fill"></div>
-            </div>
-            <p id="progressStatus" class="progress-status-text" data-i18n="progress_idle">Ready for processing...</p>
-          </div>
-
-          <!-- Empty State Graphic Card (Neo-Brutalist Comic Poster Style) -->
-          <div id="emptyState" class="comic-empty-state">
-            <div class="empty-graphic-composition">
-              <!-- Diagonal Stripes Box from Reference Image -->
-              <div class="stripes-accent-box"></div>
-              <!-- Comic Wavy Lines Ribbon -->
-              <svg class="wavy-ribbon-accent" width="48" height="16" viewBox="0 0 48 16" fill="none">
-                <path d="M0 8C6 2 10 2 16 8C22 14 26 14 32 8C38 2 42 2 48 8" stroke="#1696A2" stroke-width="3" stroke-linecap="round"/>
-              </svg>
-              <!-- Sparkle Star with Thick Border -->
-              <div class="empty-star-wrap">
-                <svg class="empty-star" width="38" height="38" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
-                </svg>
-              </div>
-              <!-- Dot Cluster -->
-              <div class="comic-dots-cluster"></div>
-            </div>
-            <h3 class="empty-title" data-i18n="empty_title">Ready to Generate Viral Captions</h3>
-            <p class="empty-desc" data-i18n="empty_desc">Upload an audio or video file. AI transcribes speech with exact millisecond word timestamps and burns viral animated subtitles in your chosen style.</p>
-            <div class="comic-badges-row">
-              <span class="comic-pill comic-pill-sm">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                <span data-i18n="badge_synced">100% Synced</span>
-              </span>
-              <span class="comic-pill comic-pill-sm">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <rect x="5" y="2" width="14" height="20" rx="2"></rect>
-                </svg>
-                <span data-i18n="badge_shorts">Shorts & Reels</span>
-              </span>
-              <span class="comic-pill comic-pill-sm">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                <span data-i18n="badge_comic">Neo-Comic Style</span>
-              </span>
-            </div>
-          </div>
-
-          <!-- Result Video Player Container -->
-          <div id="videoContainer" class="comic-video-player-box hidden">
-            <div class="video-frame">
-              <video id="resultVideo" controls playsinline></video>
-            </div>
-            <div class="download-action-grid">
-              <a id="downloadVideoBtn" class="comic-btn comic-btn-sm comic-btn-green" download>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span data-i18n="dl_video">Video (MP4)</span>
-              </a>
-              <a id="downloadAssBtn" class="comic-btn comic-btn-sm comic-btn-cyan" download>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                <span data-i18n="dl_ass">ASS Animated</span>
-              </a>
-              <a id="downloadSrtBtn" class="comic-btn comic-btn-sm comic-btn-amber" download>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                <span data-i18n="dl_srt">SRT File</span>
-              </a>
-              <a id="downloadJsonBtn" class="comic-btn comic-btn-sm comic-btn-terracotta" download>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="16 18 22 12 16 6"></polyline>
-                  <polyline points="8 6 2 12 8 18"></polyline>
-                </svg>
-                <span data-i18n="dl_json">JSON Timings</span>
-              </a>
-              <a id="downloadRemotionBtn" class="comic-btn comic-btn-sm comic-btn-purple" download>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                <span data-i18n="dl_remotion">Remotion (React)</span>
-              </a>
-              <a id="downloadAeBtn" class="comic-btn comic-btn-sm comic-btn-blue" download title="Import directly into Adobe After Effects (.jsx)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="4"></rect>
-                  <path d="M7 17l4-10 4 10"></path>
-                  <line x1="8.5" y1="13" x2="13.5" y2="13"></line>
-                </svg>
-                <span data-i18n="dl_ae">After Effects (JSX)</span>
-              </a>
-            </div>
-          </div>
-
-          <!-- Interactive Subtitle & Word Timing Editor -->
-          <div id="editorContainer" class="comic-editor-drawer hidden">
-            <div class="editor-top-bar">
-              <div class="editor-heading">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-                <span data-i18n="editor_title">Word & Timing Editor</span>
-              </div>
-              <button id="reRenderBtn" class="comic-btn comic-btn-sm comic-btn-amber">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="23 4 23 10 17 10"></polyline>
-                  <polyline points="1 20 1 14 7 14"></polyline>
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-                <span data-i18n="btn_rerender">Re-render Edits</span>
-              </button>
-            </div>
-            <div id="segmentsList" class="comic-segments-list"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- RIGHT PANEL: Customization & Interactive Phone Simulation (Split into 2 balanced columns) -->
-      <section class="comic-card right-panel">
-        <div class="panel-header">
-          <div class="panel-title-wrap">
-            <span class="comic-chip comic-chip-amber">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="4" y1="21" x2="4" y2="14"></line>
-                <line x1="4" y1="10" x2="4" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12" y2="3"></line>
-                <line x1="20" y1="21" x2="20" y2="16"></line>
-                <line x1="20" y1="12" x2="20" y2="3"></line>
-                <line x1="1" y1="14" x2="7" y2="14"></line>
-                <line x1="9" y1="8" x2="15" y2="8"></line>
-                <line x1="17" y1="16" x2="23" y2="16"></line>
-              </svg>
-            </span>
-            <h2 class="panel-title" data-i18n="customization_title">Subtitle & Video Customization</h2>
-          </div>
-          <div class="panel-header-badges">
-            <span class="comic-stamp" data-i18n="customization_badge">CONTROLS</span>
-          </div>
-        </div>
-
-        <!-- Customization Body: Split into Phone Simulator (Left) and Controls Grid (Right) to fit with NO scrolling! -->
-        <div class="customization-columns-wrap">
-          <!-- SUB-COLUMN 1: Phone Simulator & Safe Zone Preview -->
-          <div class="subcol-phone-sim">
-            <div class="phone-simulation-section">
-              <div class="sim-header">
-                <div class="sim-label-wrap">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                  </svg>
-                  <span class="sim-title" data-i18n="sim_heading">Phone Simulation</span>
-                </div>
-                <!-- Platform Switch Tabs -->
-                <div class="platform-tabs" role="tablist">
-                  <button type="button" class="platform-tab active" data-platform="tiktok">
-                    <span>TikTok</span>
-                  </button>
-                  <button type="button" class="platform-tab" data-platform="reels">
-                    <span>Reels</span>
-                  </button>
-                  <button type="button" class="platform-tab" data-platform="shorts">
-                    <span>Shorts</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Phone Frame Wrapper -->
-              <div class="phone-frame-wrapper">
-                <div class="phone-device" id="phoneDevice">
-                  <!-- Live Footage Video Background (Loops Silently) -->
-                  <video id="phoneVideoBg" class="phone-video-bg" muted loop playsinline></video>
-
-                  <!-- Top Status Bar -->
-                  <div class="phone-status-bar">
-                    <span class="phone-time">9:41</span>
-                    <div class="phone-notch"></div>
-                    <div class="phone-status-icons">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.79-1.79C9.28 20.26 10.58 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
-                      <svg width="13" height="9" viewBox="0 0 24 14" fill="currentColor"><rect x="0" y="0" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2" y="2" width="13" height="10" fill="currentColor"/><path d="M22 4v6" stroke="currentColor" stroke-width="2"/></svg>
-                    </div>
-                  </div>
-
-                  <!-- Platform Top Navigation Bar (Dynamically updated for TikTok, Reels, Shorts) -->
-                  <div class="platform-top-bar" id="platformTopBar"></div>
-
-                  <!-- Platform Sidebar Engagement Icons (Dynamically updated) -->
-                  <div class="phone-sidebar" id="phoneSidebar"></div>
-
-                  <!-- Safe-Zone Visual Boundary Guide (Dashed line) -->
-                  <div class="safe-zone-guide-line" id="safeZoneGuide" title="Safe Subtitle Zone Boundary">
-                    <span class="safe-zone-label" data-i18n="sim_safe_zone">SAFE ZONE</span>
-                  </div>
-
-                  <!-- Live Drag Position Tooltip -->
-                  <div class="drag-position-tooltip hidden" id="dragTooltip">Safe Zone (72% Y)</div>
-
-                  <!-- Live Subtitle Display Box (DRAGGABLE across the phone screen!) -->
-                  <div class="live-subtitle-container" id="liveSubtitleContainer" title="Drag subtitles up or down to set exact position">
-                    <div class="subtitle-drag-handle" title="Drag to reposition">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
-                    </div>
-                    <div class="live-subtitle-box is-rtl" id="liveSubtitleBox" dir="rtl">
-                      <span class="sub-word" id="subWord1">السيارة</span>
-                      <span class="sub-word active anim-karaoke_pop" id="subWord2">تاعي</span>
-                      <span class="sub-word" id="subWord3">الشخصية</span>
-                    </div>
-                    <div class="sub-resize-handle resize-right" id="subResizeHandleRight" title="Drag to resize font size"></div>
-                    <div class="sub-resize-handle resize-left" id="subResizeHandleLeft" title="Drag to resize font size"></div>
-                  </div>
-
-                  <!-- Bottom Safe Zone Info (Username, Subscribe/Follow button, Description, Sound) -->
-                  <div class="phone-bottom-overlay" id="phoneBottomOverlay"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- SUB-COLUMN 2: Customization Controls & Master CTA Button -->
-          <div class="subcol-controls">
-            <!-- Quick Style Presets -->
-            <div class="comic-control-box presets-box">
-              <div class="control-box-title presets-header-row">
-                <div class="presets-title-left">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                  </svg>
-                  <span data-i18n="presets_title">Viral Style Presets</span>
-                </div>
-                <button type="button" id="savePresetBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Save current settings as a new named preset">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  <span data-i18n="btn_save_preset">+ Save Current</span>
-                </button>
-              </div>
-              <div class="preset-pill-grid" id="presetPillsGrid">
-                <button type="button" class="comic-preset-btn active" data-preset="gold">
-                  <span class="preset-dot dot-gold"></span>
-                  <span data-i18n="preset_gold">TikTok Gold</span>
-                </button>
-                <button type="button" class="comic-preset-btn" data-preset="cyan">
-                  <span class="preset-dot dot-cyan"></span>
-                  <span data-i18n="preset_cyan">Cyber Cyan</span>
-                </button>
-                <button type="button" class="comic-preset-btn" data-preset="coral">
-                  <span class="preset-dot dot-coral"></span>
-                  <span data-i18n="preset_coral">Hot Coral</span>
-                </button>
-                <button type="button" class="comic-preset-btn" data-preset="lime">
-                  <span class="preset-dot dot-lime"></span>
-                  <span data-i18n="preset_lime">Lime Punch</span>
-                </button>
-                <button type="button" class="comic-preset-btn" data-preset="comic">
-                  <span class="preset-dot dot-terracotta"></span>
-                  <span data-i18n="preset_comic">Comic Pop</span>
-                </button>
-                <button type="button" class="comic-preset-btn" data-preset="white">
-                  <span class="preset-dot dot-white"></span>
-                  <span data-i18n="preset_white">Classic White</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Configuration Controls Grid -->
-            <div class="controls-form-grid">
-              <!-- Speech Language & Subtitle Position -->
-              <div class="grid-col">
-                <label class="comic-label" for="dialectHint">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                  <span data-i18n="ctrl_lang">Speech Language</span>
-                </label>
-                <select id="dialectHint" class="comic-select">
-                  <option value="General Algerian" selected data-i18n="opt_lang_dz">Algerian Darija (الدارجة الجزائرية - عربي)</option>
-                  <option value="Algerian Darija Latin" data-i18n="opt_lang_latin">Algerian Darija (Latin / Arabizi 3, 7, 9)</option>
-                  <option value="Modern Standard Arabic" data-i18n="opt_lang_msa">Modern Standard Arabic (العربية الفصحى)</option>
-                  <option value="French" data-i18n="opt_lang_fr">French (Français)</option>
-                  <option value="English" data-i18n="opt_lang_en">English</option>
-                </select>
-              </div>
-
-              <div class="grid-col">
-                <div class="label-with-val">
-                  <label class="comic-label" for="marginV">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-                    <span data-i18n="ctrl_pos">Subtitle Position (Drag on Phone)</span>
-                  </label>
-                  <span id="marginVVal" class="comic-tag">960px (Middle)</span>
-                </div>
-                <input type="range" id="marginV" min="80" max="1600" value="960" class="comic-slider" title="Drag subtitles directly on the phone or adjust slider">
-                <input type="hidden" id="alignment" value="2">
-              </div>
-
-              <!-- Vertical Margin Slider & Font Size Slider -->
-              <div class="grid-col">
-                <label class="comic-label" for="fontName">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
-                  <span data-i18n="ctrl_font">Font Family</span>
-                </label>
-                <select id="fontName" class="comic-select">
-                  <option value="Lalezar" selected>Lalezar (Ultra Bold & Viral)</option>
-                  <option value="Cairo">Cairo (Punchy Geometric)</option>
-                  <option value="Tajawal">Tajawal (Clean Modern)</option>
-                  <option value="Almarai">Almarai (Crisp UI)</option>
-                  <option value="Amiri">Amiri (Naskh Classic)</option>
-                  <option value="Plus Jakarta Sans">Plus Jakarta Sans (Latin)</option>
-                </select>
-              </div>
-
-              <div class="grid-col">
-                <div class="label-with-val">
-                  <label class="comic-label" for="fontSize">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-                    <span data-i18n="ctrl_fontsize">Font Size</span>
-                  </label>
-                  <span id="fontSizeVal" class="comic-tag">56px</span>
-                </div>
-                <input type="range" id="fontSize" min="28" max="96" value="56" class="comic-slider">
-              </div>
-
-              <!-- Animation Style with Live Simulation Trigger & Options -->
-              <div class="grid-col anim-style-grid-col">
-                <div class="label-with-val">
-                  <label class="comic-label" for="animSelectTrigger">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span data-i18n="ctrl_anim">Animation Style</span>
-                  </label>
-                  <span class="comic-tag comic-tag-amber" style="font-size: 7.5px;">LIVE PREVIEW</span>
-                </div>
-                <div class="custom-select-wrap" id="animSelectWrap">
-                  <button type="button" class="custom-select-trigger" id="animSelectTrigger" aria-haspopup="listbox">
-                    <div class="trigger-left">
-                      <span class="trigger-label" id="animSelectLabel">Karaoke Pop & Scale</span>
-                      <span class="trigger-live-anim" id="animSelectLivePreview">
-                        <span class="demo-sub-word anim-karaoke_pop">POP</span>
-                      </span>
-                    </div>
-                    <svg class="trigger-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                  </button>
-                  <div class="custom-dropdown-panel hidden" id="animDropdownPanel" role="listbox">
-                    <div class="anim-option-row active" data-value="karaoke_pop">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_karaoke">Hormozi Viral Pop</span>
-                        <span class="opt-desc">High-energy spring pop with viral yellow highlight</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-karaoke_pop">POP</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="cumulative_fill">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_cumulative">Progressive Fill (Hormozi Stay)</span>
-                        <span class="opt-desc">Words highlight as spoken and remain permanently colored</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-cumulative_fill">FILL</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="letter_pop">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_letter_pop">Letter Pop (Kinetic Elastic)</span>
-                        <span class="opt-desc">Letters bounce out individually one by one</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-letter_pop"><span class="sub-letter">P</span><span class="sub-letter">O</span><span class="sub-letter">P</span></span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="letter_drop">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_letter_drop">Letter Gravity Drop</span>
-                        <span class="opt-desc">Letters fall from top with elastic bounce landing</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-letter_drop"><span class="sub-letter">D</span><span class="sub-letter">O</span><span class="sub-letter">W</span><span class="sub-letter">N</span></span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="letter_rise">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_letter_rise">Kinetic Wave Rise</span>
-                        <span class="opt-desc">Letters glide up smoothly in a kinetic wave reveal</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-letter_rise"><span class="sub-letter">W</span><span class="sub-letter">A</span><span class="sub-letter">V</span><span class="sub-letter">E</span></span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="minimal_slide">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_minimal">Minimal Smooth Slide</span>
-                        <span class="opt-desc">Clean upward vertical glide with soft opacity bloom</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-minimal_slide">SLIDE</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="cyber_glitch">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_cyber">Cyberpunk Neon Jitter</span>
-                        <span class="opt-desc">Cyan & magenta chromatic split with neon aura</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-cyber_glitch">CYBER</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="comic_bounce">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_comic">Comic Bounce & Tilt</span>
-                        <span class="opt-desc">High elastic spring with dynamic alternating rotation</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-comic_bounce">COMIC</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="viral_punch">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_punch">Viral Punch Snap</span>
-                        <span class="opt-desc">Aggressive instantaneous scale snap for speech hooks</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-viral_punch">PUNCH</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="fade_editorial">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_editorial">Cinematic Smooth Fade</span>
-                        <span class="opt-desc">Documentary silky alpha fade with luxury gold sweep</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-fade_editorial">FADE</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="badge_invert">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_badge">Badge Invert Pill</span>
-                        <span class="opt-desc">High contrast dark text inside glowing neon pill</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-badge_invert">BADGE</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="bouncy_spring">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_bouncy">Bouncy Spring</span>
-                        <span class="opt-desc">Words jump with elastic bounce physics</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-bouncy_spring">BOUNCE</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="neon_glow">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_neon">Neon Glow Pulse</span>
-                        <span class="opt-desc">Intense luminous halo outline</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-neon_glow">GLOW</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="color_flash">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_flash">Color Flash Cycle</span>
-                        <span class="opt-desc">Alternates neon yellow & cyan contrast</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-color_flash">FLASH</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="box_highlight">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_box">Box Badge Highlight</span>
-                        <span class="opt-desc">Solid colored accent pill behind word</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-box_highlight">BADGE</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="word_reveal">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_reveal">Kinetic Organic Reveal</span>
-                        <span class="opt-desc">Silky blur dissipation and spring deceleration</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-word_reveal">REVEAL</span>
-                      </div>
-                    </div>
-                    <div class="anim-option-row" data-value="classic_line">
-                      <div class="opt-left">
-                        <span class="opt-name" data-i18n="opt_anim_classic">Classic Subtitle Line</span>
-                        <span class="opt-desc">Smooth line-by-line subtitle fade</span>
-                      </div>
-                      <div class="opt-demo-box">
-                        <span class="demo-sub-word anim-classic_fade">FADE</span>
-                      </div>
-                    </div>
-                  </div>
-                  <select id="animationStyle" class="comic-select visually-hidden">
-                    <option value="karaoke_pop" selected>Hormozi Viral Pop</option>
-                    <option value="cumulative_fill">Progressive Fill (Hormozi Stay)</option>
-                    <option value="letter_pop">Letter Pop (Kinetic Elastic)</option>
-                    <option value="letter_drop">Letter Gravity Drop</option>
-                    <option value="letter_rise">Kinetic Wave Rise</option>
-                    <option value="minimal_slide">Minimal Smooth Slide</option>
-                    <option value="cyber_glitch">Cyberpunk Neon Jitter</option>
-                    <option value="comic_bounce">Comic Bounce & Tilt</option>
-                    <option value="viral_punch">Viral Punch Snap</option>
-                    <option value="fade_editorial">Cinematic Smooth Fade</option>
-                    <option value="badge_invert">Badge Invert Pill</option>
-                    <option value="bouncy_spring">Bouncy Spring</option>
-                    <option value="neon_glow">Neon Glow Pulse</option>
-                    <option value="color_flash">Color Flash Cycle</option>
-                    <option value="box_highlight">Box Badge Highlight</option>
-                    <option value="word_reveal">Progressive Reveal</option>
-                    <option value="classic_line">Classic Subtitle Line</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Animation Speed & Physics Fluidity -->
-              <div class="grid-col anim-speed-grid-col">
-                <div class="label-with-val">
-                  <label class="comic-label" for="animSpeed">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <span data-i18n="ctrl_animspeed">Animation Speed</span>
-                  </label>
-                  <span id="animSpeedVal" class="comic-tag comic-tag-amber">1.0x (Snappy)</span>
-                </div>
-                <input type="range" id="animSpeed" min="0.5" max="2.0" step="0.1" value="1.0" class="comic-slider" title="Adjust animation dynamic pacing and ease fluidity">
-                <div class="speed-presets-chips">
-                  <button type="button" class="speed-chip" data-speed="0.7" data-label="Smooth">0.7x Smooth</button>
-                  <button type="button" class="speed-chip active" data-speed="1.0" data-label="Snappy">1.0x Snappy</button>
-                  <button type="button" class="speed-chip" data-speed="1.4" data-label="Viral">1.4x Viral</button>
-                  <button type="button" class="speed-chip" data-speed="1.8" data-label="Rapid">1.8x Rapid</button>
-                </div>
-              </div>
-
-              <!-- Interactive Keyframe Ease Graph Editor (AE Style + Live Preview) -->
-              <div class="grid-col-full">
-                <div class="ease-graph-container" id="easeGraphContainer">
-                  <div class="ease-graph-header">
-                    <div class="ease-header-left">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"></path><path d="M18 9l-5 5-4-4-6 6"></path></svg>
-                      <span class="ease-graph-title">Keyframe Curve & Easing</span>
-                      <span class="ease-curve-badge" id="activeEaseBadge">Snappy Spring</span>
-                    </div>
-                    <div class="ease-hint-tag">Drag K1/K2 keyframes or pick preset</div>
-                  </div>
-                  <div class="ease-graph-main-row">
-                    <div class="ease-canvas-col">
-                      <div class="ease-canvas-wrap">
-                        <canvas id="easeCanvas" width="310" height="68" class="ease-graph-canvas"></canvas>
-                      </div>
-                      <div class="ease-preset-buttons">
-                        <button type="button" class="ease-btn active" data-ease="spring">Spring</button>
-                        <button type="button" class="ease-btn" data-ease="back">Bounce Back</button>
-                        <button type="button" class="ease-btn" data-ease="smooth">Smooth Fluid</button>
-                        <button type="button" class="ease-btn" data-ease="linear">Linear Pop</button>
-                        <button type="button" class="ease-btn" data-ease="custom" id="easeCustomBtn">Custom</button>
-                      </div>
-                    </div>
-                    <div class="ease-live-preview-widget">
-                      <span class="ease-preview-label">Live Preview</span>
-                      <div class="ease-preview-stage">
-                        <span id="easeLivePreviewWord" class="ease-live-preview-pill">VIRAL</span>
-                      </div>
-                      <span id="easeCoordsReadout" class="ease-coords-sub">0.34, 1.56 | 0.64, 1.00</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Colors: Primary Text & Highlight -->
-              <div class="grid-col">
-                <label class="comic-label" for="primaryColor">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
-                  <span data-i18n="ctrl_textcolor">Main Text Color</span>
-                </label>
-                <div class="comic-color-picker-wrap">
-                  <button type="button" class="color-swatch-trigger" id="primaryColorBtn" title="Click to pick color">
-                    <span class="color-disc" id="primaryColorDisc" style="background: #FFFFFF;"></span>
-                    <span id="primaryColorText" class="color-hex-tag">#FFFFFF</span>
-                    <input type="color" id="primaryColor" value="#FFFFFF" class="color-native-hidden">
-                  </button>
-                  <div class="quick-swatches">
-                    <span class="swatch-dot" data-target="primary" data-color="#FFFFFF" style="background: #FFFFFF;" title="White"></span>
-                    <span class="swatch-dot" data-target="primary" data-color="#F4EBD9" style="background: #F4EBD9;" title="Cream"></span>
-                    <span class="swatch-dot" data-target="primary" data-color="#111111" style="background: #111111;" title="Dark"></span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="grid-col">
-                <label class="comic-label" for="highlightColor">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-                  <span data-i18n="ctrl_highlight">Active Word Highlight</span>
-                </label>
-                <div class="comic-color-picker-wrap">
-                  <button type="button" class="color-swatch-trigger" id="highlightColorBtn" title="Click to pick color">
-                    <span class="color-disc" id="highlightColorDisc" style="background: #FFE600;"></span>
-                    <span id="highlightColorText" class="color-hex-tag">#FFE600</span>
-                    <input type="color" id="highlightColor" value="#FFE600" class="color-native-hidden">
-                  </button>
-                  <div class="quick-swatches">
-                    <span class="swatch-dot" data-target="highlight" data-color="#FFE600" style="background: #FFE600;" title="Gold"></span>
-                    <span class="swatch-dot" data-target="highlight" data-color="#00F0FF" style="background: #00F0FF;" title="Cyan"></span>
-                    <span class="swatch-dot" data-target="highlight" data-color="#FF3366" style="background: #FF3366;" title="Coral"></span>
-                    <span class="swatch-dot" data-target="highlight" data-color="#00FF66" style="background: #00FF66;" title="Lime"></span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Words Per Line & Aspect Ratio -->
-              <div class="grid-col">
-                <label class="comic-label" for="wordsPerLine">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="14" y2="12"></line><line x1="4" y1="18" x2="18" y2="18"></line></svg>
-                  <span data-i18n="ctrl_words">Words Per Line</span>
-                </label>
-                <select id="wordsPerLine" class="comic-select">
-                  <option value="2" data-i18n="opt_words_2">2 Words (Fast Pacing)</option>
-                  <option value="3" data-i18n="opt_words_3">3 Words (Snappy)</option>
-                  <option value="4" selected data-i18n="opt_words_4">4 Words (Broadcast Pacing)</option>
-                  <option value="5" data-i18n="opt_words_5">5 Words</option>
-                </select>
-              </div>
-
-
-
-              <!-- Subtitle Background Box & Color -->
-              <div class="grid-col">
-                <label class="comic-label" for="subBoxStyle">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="5" width="18" height="14" rx="4"></rect></svg>
-                  <span data-i18n="ctrl_sub_box">Subtitle Box Background</span>
-                </label>
-                <select id="subBoxStyle" class="comic-select">
-                  <option value="none" selected data-i18n="opt_box_none">None (Clean Text Outline)</option>
-                  <option value="pill" data-i18n="opt_box_pill">Pill Badge (Rounded)</option>
-                  <option value="box" data-i18n="opt_box_block">Full Block Box</option>
-                  <option value="shadow" data-i18n="opt_box_shadow">Deep Drop Shadow</option>
-                </select>
-              </div>
-
-              <div class="grid-col" id="subBoxControls">
-                <div class="label-with-val">
-                  <label class="comic-label" for="subBoxColor">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
-                    <span data-i18n="ctrl_box_color">Box Color & Opacity</span>
-                  </label>
-                  <span id="subBoxAlphaVal" class="comic-tag">85%</span>
-                </div>
-                <div class="comic-box-config-row">
-                  <input type="color" id="subBoxColor" value="#000000" class="comic-color-input" title="Subtitle box color">
-                  <span id="subBoxColorText" class="color-hex-tag">#000000</span>
-                  <input type="range" id="subBoxAlpha" min="0.1" max="1.0" step="0.05" value="0.85" class="comic-slider" title="Box background opacity">
-                </div>
-              </div>
-
-              <!-- Canvas Background & Custom Color -->
-              <div class="grid-col">
-                <label class="comic-label" for="backgroundMode">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                  <span data-i18n="ctrl_bg">Background Canvas</span>
-                </label>
-                <select id="backgroundMode" class="comic-select">
-                  <option value="transparent" selected data-i18n="opt_bg_trans">Transparent Alpha (WebM - No Chroma Key!)</option>
-                  <option value="green_screen" data-i18n="opt_bg_green">Green Screen (Chroma Key)</option>
-                  <option value="black" data-i18n="opt_bg_black">Black Screen (Screen Blend)</option>
-                  <option value="blue" data-i18n="opt_bg_blue">Blue Screen</option>
-                  <option value="original_video" data-i18n="opt_bg_orig">Original Video (Burn-In)</option>
-                  <option value="custom" data-i18n="opt_bg_custom">Custom Color</option>
-                </select>
-              </div>
-
-              <div class="grid-col" id="customColorGroup" style="display: none;">
-                <label class="comic-label" for="customColorHex">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
-                  <span data-i18n="ctrl_customcolor">Custom Color</span>
-                </label>
-                <div class="comic-color-picker-wrap">
-                  <input type="color" id="customColorHex" value="#1a1a24" class="comic-color-input">
-                  <span id="customColorText" class="color-hex-tag">#1A1A24</span>
-                </div>
-              </div>
-
-              <!-- Optional Gemini Key -->
-              <div class="grid-col-full">
-                <div class="collapsible-key-header" id="keyToggleHeader">
-                  <div class="key-label-wrap">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-                    <span data-i18n="ctrl_apikey">Gemini API Key (Optional)</span>
-                  </div>
-                  <span class="comic-tag comic-tag-sm" data-i18n="tag_optional">Preconfigured on server</span>
-                </div>
-                <input type="password" id="apiKey" class="comic-input" placeholder="AIzaSy... (Leave empty to use server default key)">
-              </div>
-            </div>
-
-            <!-- Bottom Master CTA Button -->
-            <div class="cta-wrapper">
-              <button type="button" id="startBtn" class="comic-btn-master">
-                <div class="btn-icon-bubble">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                </div>
-                <span class="btn-title-text" data-i18n="btn_generate">GENERATE ANIMATED SUBTITLES</span>
-                <span class="btn-arrow-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- Usage Guide Modal -->
-    <!-- Save Preset Modal -->
-    <div id="savePresetModal" class="comic-modal-backdrop hidden">
-      <div class="comic-modal-window preset-modal-window">
-        <div class="modal-top">
-          <div class="modal-title-wrap">
-            <svg class="modal-star" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-              <polyline points="17 21 17 13 7 13 7 21"></polyline>
-              <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-            <h2 data-i18n="save_preset_title">Save Custom Preset</h2>
-          </div>
-          <button id="closeSavePresetBtn" class="comic-btn-square" aria-label="Close Modal">✕</button>
-        </div>
-
-        <div class="modal-scroll-content">
-          <p class="modal-desc-sub" data-i18n="save_preset_desc">Save your current font, colors, animation, and position for future videos with zero login needed.</p>
-          <div class="custom-preset-input-wrap">
-            <label class="comic-label" for="presetNameInput" data-i18n="preset_name_label">Preset Name</label>
-            <input type="text" id="presetNameInput" class="comic-input" placeholder="e.g. My TikTok Viral, Gaming Shorts" maxlength="28" autocomplete="off">
-          </div>
-          <div class="preset-summary-pills">
-            <span class="summary-pill" id="summaryFontPill">Lalezar (56px)</span>
-            <span class="summary-pill" id="summaryAnimPill">Hormozi Pop</span>
-            <span class="summary-pill color-preview-pill">
-              <span class="dot-preview" id="summaryPrimaryDot"></span>
-              <span class="dot-preview" id="summaryHighlightDot"></span>
-            </span>
-          </div>
-          <div class="modal-action-row">
-            <button type="button" id="cancelSavePresetBtn" class="comic-btn comic-btn-sm comic-btn-secondary" data-i18n="btn_cancel">Cancel</button>
-            <button type="button" id="confirmSavePresetBtn" class="comic-btn comic-btn-sm comic-btn-green" data-i18n="btn_save">Save Preset</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div id="guideModal" class="comic-modal-backdrop hidden">
-      <div class="comic-modal-window">
-        <div class="modal-top">
-          <div class="modal-title-wrap">
-            <svg class="modal-star" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
-            </svg>
-            <h2 data-i18n="modal_guide_title">Video Editing & Safe-Zone Guide</h2>
-          </div>
-          <button id="closeGuideBtn" class="comic-btn-square" aria-label="Close Modal">✕</button>
-        </div>
-
-        <div class="modal-scroll-content">
-          <div class="guide-card">
-            <div class="guide-card-header">
-              <span class="guide-step-num">1</span>
-              <h4>CapCut (Mobile & Desktop)</h4>
-            </div>
-            <p data-i18n="guide_capcut">Add the generated subtitle video as an <strong>Overlay</strong> above your main video. Select <strong>Remove BG</strong> &gt; <strong>Chroma Key</strong>, click the green background with the color picker, and set Intensity to 15-20%.</p>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-card-header">
-              <span class="guide-step-num">2</span>
-              <h4>Adobe Premiere Pro</h4>
-            </div>
-            <p data-i18n="guide_premiere">Place the green-screen video on a track above your media. Search for the <strong>Ultra Key</strong> effect in Effects, apply it to the subtitle clip, and pick the green color using the Eyedropper tool.</p>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-card-header">
-              <span class="guide-step-num">3</span>
-              <h4>DaVinci Resolve</h4>
-            </div>
-            <p data-i18n="guide_davinci">In the Edit or Color page, use the <strong>3D Keyer</strong> or in Fusion use the <strong>Delta Keyer</strong> node to key out the green screen background instantly.</p>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-card-header">
-              <span class="guide-step-num">4</span>
-              <h4>Black Screen (Screen Blend Mode)</h4>
-            </div>
-            <p data-i18n="guide_black">If you select Black Screen, no chroma keying is needed! Simply change the video layer's <strong>Blending Mode</strong> to <strong>Screen</strong> in CapCut, Premiere, or Final Cut.</p>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-card-header">
-              <span class="guide-step-num">5</span>
-              <h4>TikTok, Reels & Shorts Safe Zones</h4>
-            </div>
-            <p data-i18n="guide_safezone">Always ensure subtitles are positioned at least 260px-320px from the bottom to prevent creator profile handles, follow buttons, captions, and the audio title from obscuring your text.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js?v=2.8.1"></script>
-</body>
-</html>
+<!DOCTYPE html>
+
+<html lang="en" dir="ltr" class="theme-dark">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>DZ Subtitles AI - Viral Animated Subtitles Studio</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;900&family=Almarai:wght@700;800&family=Amiri:wght@700&family=Anton&family=Archivo+Black&family=Aref+Ruqaa:wght@700&family=Baloo+Bhaijaan+2:wght@700;800&family=Bangers&family=Bebas+Neue&family=Black+Han+Sans&family=Cairo:wght@700;900&family=Changa:wght@700;800&family=El+Messiri:wght@700&family=Epilogue:wght@800;900&family=Harmattan:wght@700&family=IBM+Plex+Sans+Arabic:wght@700&family=Inter:wght@700;900&family=Kanit:wght@700;900&family=Lalezar&family=Lemonada:wght@700&family=Lexend:wght@700;800&family=Mada:wght@700;900&family=Marhey:wght@700&family=Montserrat:wght@800;900&family=Noto+Kufi+Arabic:wght@700;900&family=Noto+Sans+Arabic:wght@700;900&family=Oswald:wght@700&family=Outfit:wght@700;900&family=Plus+Jakarta+Sans:wght@700;800;900&family=Poppins:wght@700;800;900&family=Raleway:wght@800;900&family=Readex+Pro:wght@700&family=Reem+Kufi:wght@700&family=Righteous&family=Rubik:wght@700;900&family=Syne:wght@700;800&family=Tajawal:wght@700;900&family=Titan+One&family=Urbanist:wght@800;900&family=Work+Sans:wght@800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css?v=2.8.1">
+
+</head>
+
+<body>
+
+  <div class="comic-app-shell">
+
+    <!-- Top Comic Navigation Bar (Inspired by Reference Image Header) -->
+
+    <header class="comic-header">
+
+      <div class="header-left">
+
+        <div class="brand-badge">
+
+          <!-- 4-Point Comic Diamond Star -->
+
+          <svg class="brand-star" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+
+            <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
+
+          </svg>
+
+          <span class="brand-title">DZ SUBTITLES <span class="brand-accent-box">AI</span></span>
+
+          <span class="comic-pill" data-i18n="header_badge">STUDIO</span>
+
+        </div>
+
+        <!-- Comic Pattern Accent -->
+
+        <div class="header-dots-pattern" aria-hidden="true"></div>
+
+        <p class="brand-tagline" data-i18n="brand_tagline">Auto Animated Subtitles & Safe-Zone Phone Simulation</p>
+
+      </div>
+
+
+
+      <div class="header-right">
+
+        <!-- Multilingual Switcher -->
+
+        <div class="lang-switch-group" role="group" aria-label="Language Selector">
+
+          <span class="lang-icon" aria-hidden="true">
+
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+              <circle cx="12" cy="12" r="10"></circle>
+
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+
+            </svg>
+
+          </span>
+
+          <button type="button" class="lang-btn active" data-lang="en">EN</button>
+
+          <button type="button" class="lang-btn" data-lang="fr">FR</button>
+
+          <button type="button" class="lang-btn" data-lang="ar">عربي</button>
+
+        </div>
+
+
+
+        <!-- Dark / Light Mode Switch (Defaulting to Dark Mode) -->
+
+        <button type="button" id="themeToggleBtn" class="comic-btn comic-btn-sm comic-btn-neutral" title="Toggle Theme" aria-label="Toggle Theme">
+
+          <span class="theme-icon sun-icon">
+
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+              <circle cx="12" cy="12" r="5"></circle>
+
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+
+            </svg>
+
+          </span>
+
+          <span class="theme-icon moon-icon">
+
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+
+            </svg>
+
+          </span>
+
+          <span class="btn-text" id="themeLabel">Dark</span>
+
+        </button>
+
+
+
+        <!-- Usage Guide Modal Button -->
+
+        <button type="button" id="guideBtn" class="comic-btn comic-btn-sm comic-btn-terracotta">
+
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+
+          </svg>
+
+          <span data-i18n="btn_guide">Guide</span>
+
+        </button>
+
+
+
+        <!-- GitHub Repository Button -->
+
+        <a href="https://github.com/Maliksouhildev/subtitles-generator-" target="_blank" class="comic-btn comic-btn-sm comic-btn-amber" rel="noopener">
+
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+
+          </svg>
+
+          <span>GitHub</span>
+
+        </a>
+
+      </div>
+
+    </header>
+
+
+
+    <!-- Main Workspace (Single Screen No-Scroll Fit) -->
+
+    <main class="comic-workspace">
+
+      <!-- LEFT PANEL: Studio, Loading Text, Results & Subtitle Editor -->
+
+      <section class="comic-card left-panel">
+
+        <div class="panel-header">
+
+          <div class="panel-title-wrap">
+
+            <span class="comic-chip comic-chip-terracotta">
+
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+
+              </svg>
+
+            </span>
+
+            <h2 class="panel-title" data-i18n="studio_title">Studio & Output Preview</h2>
+
+          </div>
+
+          <div class="panel-header-badges">
+
+            <span class="comic-stamp" data-i18n="studio_subtitle">GENERATOR</span>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="left-panel-content">
+
+          <!-- File Upload Zone -->
+
+          <div class="comic-dropzone" id="dropZone">
+
+            <input type="file" id="fileInput" multiple accept="audio/*,video/*" hidden>
+
+            <div class="dropzone-body">
+
+              <div class="dropzone-icon-box">
+
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+
+                  <polyline points="17 8 12 3 7 8"></polyline>
+
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+
+                </svg>
+
+              </div>
+
+              <div class="dropzone-texts">
+
+                <p class="dropzone-title" data-i18n="dropzone_title">Drag & drop Audio or Video here</p>
+
+                <p class="dropzone-sub" data-i18n="dropzone_formats">Supports MP3, WAV, AAC, MP4, MOV, MKV, WebM (Multiple files supported!)</p>
+
+              </div>
+
+              <button type="button" class="comic-btn comic-btn-sm comic-btn-amber" onclick="document.getElementById('fileInput').click()">
+
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+
+                  <polyline points="13 2 13 9 20 9"></polyline>
+
+                </svg>
+
+                <span data-i18n="btn_browse">Browse Media</span>
+
+              </button>
+
+            </div>
+
+
+
+            <!-- Selected File Strip -->
+
+            <div id="fileInfo" class="selected-file-strip hidden">
+
+              <div class="file-badge">
+
+                <span id="fileIconSymbol">
+
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                    <path d="M9 18V5l12-2v13"></path>
+
+                    <circle cx="6" cy="18" r="3"></circle>
+
+                    <circle cx="18" cy="16" r="3"></circle>
+
+                  </svg>
+
+                </span>
+
+              </div>
+
+              <div class="file-meta">
+
+                <span id="fileName" class="file-name">sample_voice.mp3</span>
+
+                <span id="fileSize" class="comic-tag">0.0 MB</span>
+
+              </div>
+
+              <div class="file-strip-actions">
+
+                <button type="button" id="addMoreFilesBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Add more media to queue">
+
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+
+                  <span data-i18n="btn_add_more">+ Add</span>
+
+                </button>
+
+                <button type="button" id="removeFileBtn" class="comic-btn-square" title="Remove File" aria-label="Remove File">
+
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+
+                  </svg>
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- Batch Upload Queue List -->
+
+          <div id="queueSection" class="batch-queue-card hidden">
+
+            <div class="queue-header">
+
+              <div class="queue-title-wrap">
+
+                <span class="comic-stamp" data-i18n="queue_badge">BATCH QUEUE</span>
+
+                <span class="queue-count-badge" id="queueCount">0 files</span>
+
+              </div>
+
+              <div class="queue-header-actions">
+
+                <button type="button" id="queueAddBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Add more files to queue">
+
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+
+                  <span>+ Add</span>
+
+                </button>
+
+                <button type="button" id="clearQueueBtn" class="comic-btn-text" data-i18n="queue_clear">Clear</button>
+
+              </div>
+
+            </div>
+
+            <div class="queue-items-container" id="queueItemsList"></div>
+
+          </div>
+
+
+
+          <!-- Loading Text & Progress Tracker ("left side display the loading text as it is") -->
+
+          <div id="progressContainer" class="comic-progress-card hidden">
+
+            <div class="progress-header">
+
+              <div class="progress-title-wrap">
+
+                <span class="spinner-dot"></span>
+
+                <span id="progressStepBadge" class="comic-tag comic-tag-amber">Step 1/4</span>
+
+              </div>
+
+              <div class="progress-meta-right">
+
+                <span id="progressEta" class="progress-eta-text">Est. ~10s</span>
+
+                <span id="progressPercentage" class="progress-num">0%</span>
+
+              </div>
+
+            </div>
+
+            <div class="comic-progress-track">
+
+              <div id="progressBar" class="comic-progress-fill"></div>
+
+            </div>
+
+            <p id="progressStatus" class="progress-status-text" data-i18n="progress_idle">Ready for processing...</p>
+
+          </div>
+
+
+
+          <!-- Empty State Graphic Card (Neo-Brutalist Comic Poster Style) -->
+
+          <div id="emptyState" class="comic-empty-state">
+
+            <div class="empty-graphic-composition">
+
+              <!-- Diagonal Stripes Box from Reference Image -->
+
+              <div class="stripes-accent-box"></div>
+
+              <!-- Comic Wavy Lines Ribbon -->
+
+              <svg class="wavy-ribbon-accent" width="48" height="16" viewBox="0 0 48 16" fill="none">
+
+                <path d="M0 8C6 2 10 2 16 8C22 14 26 14 32 8C38 2 42 2 48 8" stroke="#1696A2" stroke-width="3" stroke-linecap="round"/>
+
+              </svg>
+
+              <!-- Sparkle Star with Thick Border -->
+
+              <div class="empty-star-wrap">
+
+                <svg class="empty-star" width="38" height="38" viewBox="0 0 24 24" fill="currentColor">
+
+                  <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
+
+                </svg>
+
+              </div>
+
+              <!-- Dot Cluster -->
+
+              <div class="comic-dots-cluster"></div>
+
+            </div>
+
+            <h3 class="empty-title" data-i18n="empty_title">Ready to Generate Viral Captions</h3>
+
+            <p class="empty-desc" data-i18n="empty_desc">Upload an audio or video file. AI transcribes speech with exact millisecond word timestamps and burns viral animated subtitles in your chosen style.</p>
+
+            <div class="comic-badges-row">
+
+              <span class="comic-pill comic-pill-sm">
+
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+
+                  <polyline points="20 6 9 17 4 12"></polyline>
+
+                </svg>
+
+                <span data-i18n="badge_synced">100% Synced</span>
+
+              </span>
+
+              <span class="comic-pill comic-pill-sm">
+
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+
+                  <rect x="5" y="2" width="14" height="20" rx="2"></rect>
+
+                </svg>
+
+                <span data-i18n="badge_shorts">Shorts & Reels</span>
+
+              </span>
+
+              <span class="comic-pill comic-pill-sm">
+
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+
+                </svg>
+
+                <span data-i18n="badge_comic">Neo-Comic Style</span>
+
+              </span>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- Result Video Player Container -->
+
+          <div id="videoContainer" class="comic-video-player-box hidden">
+
+            <div class="video-frame">
+
+              <video id="resultVideo" controls playsinline></video>
+
+            </div>
+
+            <div class="download-action-grid">
+
+              <a id="downloadVideoBtn" class="comic-btn comic-btn-sm comic-btn-green" download>
+
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+
+                  <polyline points="7 10 12 15 17 10"></polyline>
+
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+
+                </svg>
+
+                <span data-i18n="dl_video">Video (MP4)</span>
+
+              </a>
+
+              <a id="downloadAssBtn" class="comic-btn comic-btn-sm comic-btn-cyan" download>
+
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+
+                  <polyline points="14 2 14 8 20 8"></polyline>
+
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+
+                </svg>
+
+                <span data-i18n="dl_ass">ASS Animated</span>
+
+              </a>
+
+              <a id="downloadSrtBtn" class="comic-btn comic-btn-sm comic-btn-amber" download>
+
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+
+                  <polyline points="14 2 14 8 20 8"></polyline>
+
+                </svg>
+
+                <span data-i18n="dl_srt">SRT File</span>
+
+              </a>
+
+              <a id="downloadJsonBtn" class="comic-btn comic-btn-sm comic-btn-terracotta" download>
+
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <polyline points="16 18 22 12 16 6"></polyline>
+
+                  <polyline points="8 6 2 12 8 18"></polyline>
+
+                </svg>
+
+                <span data-i18n="dl_json">JSON Timings</span>
+
+              </a>
+
+              <a id="downloadRemotionBtn" class="comic-btn comic-btn-sm comic-btn-purple" download>
+
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+
+                </svg>
+
+                <span data-i18n="dl_remotion">Remotion (React)</span>
+
+              </a>
+
+              <a id="downloadAeBtn" class="comic-btn comic-btn-sm comic-btn-blue" download title="Import directly into Adobe After Effects (.jsx)">
+
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <rect x="2" y="2" width="20" height="20" rx="4"></rect>
+
+                  <path d="M7 17l4-10 4 10"></path>
+
+                  <line x1="8.5" y1="13" x2="13.5" y2="13"></line>
+
+                </svg>
+
+                <span data-i18n="dl_ae">After Effects (JSX)</span>
+
+              </a>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- Interactive Subtitle & Word Timing Editor -->
+
+          <div id="editorContainer" class="comic-editor-drawer hidden">
+
+            <div class="editor-top-bar">
+
+              <div class="editor-heading">
+
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+
+                </svg>
+
+                <span data-i18n="editor_title">Word & Timing Editor</span>
+
+              </div>
+
+              <button id="reRenderBtn" class="comic-btn comic-btn-sm comic-btn-amber">
+
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                  <polyline points="23 4 23 10 17 10"></polyline>
+
+                  <polyline points="1 20 1 14 7 14"></polyline>
+
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+
+                </svg>
+
+                <span data-i18n="btn_rerender">Re-render Edits</span>
+
+              </button>
+
+            </div>
+
+            <div id="segmentsList" class="comic-segments-list"></div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- RIGHT PANEL: Customization & Interactive Phone Simulation (Split into 2 balanced columns) -->
+
+      <section class="comic-card right-panel">
+
+        <div class="panel-header">
+
+          <div class="panel-title-wrap">
+
+            <span class="comic-chip comic-chip-amber">
+
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+
+              </svg>
+
+            </span>
+
+            <h2 class="panel-title" data-i18n="customization_title">Subtitle & Video Customization</h2>
+
+          </div>
+
+          <div class="panel-header-badges">
+
+            <span class="comic-stamp" data-i18n="customization_badge">CONTROLS</span>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- Customization Body: Split into Phone Simulator (Left) and Controls Grid (Right) to fit with NO scrolling! -->
+
+        <div class="customization-columns-wrap">
+
+          <!-- SUB-COLUMN 1: Phone Simulator & Safe Zone Preview -->
+
+          <div class="subcol-phone-sim">
+
+            <div class="phone-simulation-section">
+
+              <div class="sim-header">
+
+                <div class="sim-label-wrap">
+
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+
+                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
+
+                  </svg>
+
+                  <span class="sim-title" data-i18n="sim_heading">Phone Simulation</span>
+
+                </div>
+
+                <!-- Platform Switch Tabs -->
+
+                <div class="platform-tabs" role="tablist">
+
+                  <button type="button" class="platform-tab active" data-platform="tiktok">
+
+                    <span>TikTok</span>
+
+                  </button>
+
+                  <button type="button" class="platform-tab" data-platform="reels">
+
+                    <span>Reels</span>
+
+                  </button>
+
+                  <button type="button" class="platform-tab" data-platform="shorts">
+
+                    <span>Shorts</span>
+
+                  </button>
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Phone Frame Wrapper -->
+
+              <div class="phone-frame-wrapper">
+
+                <div class="phone-device" id="phoneDevice">
+
+                  <!-- Live Footage Video Background (Loops Silently) -->
+
+                  <video id="phoneVideoBg" class="phone-video-bg" muted loop playsinline></video>
+
+
+
+                  <!-- Top Status Bar -->
+
+                  <div class="phone-status-bar">
+
+                    <span class="phone-time">9:41</span>
+
+                    <div class="phone-notch"></div>
+
+                    <div class="phone-status-icons">
+
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.79-1.79C9.28 20.26 10.58 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+
+                      <svg width="13" height="9" viewBox="0 0 24 14" fill="currentColor"><rect x="0" y="0" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2" y="2" width="13" height="10" fill="currentColor"/><path d="M22 4v6" stroke="currentColor" stroke-width="2"/></svg>
+
+                    </div>
+
+                  </div>
+
+
+
+                  <!-- Platform Top Navigation Bar (Dynamically updated for TikTok, Reels, Shorts) -->
+
+                  <div class="platform-top-bar" id="platformTopBar"></div>
+
+
+
+                  <!-- Platform Sidebar Engagement Icons (Dynamically updated) -->
+
+                  <div class="phone-sidebar" id="phoneSidebar"></div>
+
+
+
+                  <!-- Safe-Zone Visual Boundary Guide (Dashed line) -->
+
+                  <div class="safe-zone-guide-line" id="safeZoneGuide" title="Safe Subtitle Zone Boundary">
+
+                    <span class="safe-zone-label" data-i18n="sim_safe_zone">SAFE ZONE</span>
+
+                  </div>
+
+
+
+                  <!-- Live Drag Position Tooltip -->
+
+                  <div class="drag-position-tooltip hidden" id="dragTooltip">Safe Zone (72% Y)</div>
+
+
+
+                  <!-- Live Subtitle Display Box (DRAGGABLE across the phone screen!) -->
+
+                  <div class="live-subtitle-container" id="liveSubtitleContainer" title="Drag subtitles up or down to set exact position">
+
+                    <div class="subtitle-drag-handle" title="Drag to reposition">
+
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
+
+                    </div>
+
+                    <div class="live-subtitle-box is-rtl" id="liveSubtitleBox" dir="rtl">
+
+                      <span class="sub-word" id="subWord1">السيارة</span>
+
+                      <span class="sub-word active anim-karaoke_pop" id="subWord2">تاعي</span>
+
+                      <span class="sub-word" id="subWord3">الشخصية</span>
+
+                    </div>
+
+                    <div class="sub-resize-handle resize-right" id="subResizeHandleRight" title="Drag to resize font size"></div>
+
+                    <div class="sub-resize-handle resize-left" id="subResizeHandleLeft" title="Drag to resize font size"></div>
+
+                  </div>
+
+
+
+                  <!-- Bottom Safe Zone Info (Username, Subscribe/Follow button, Description, Sound) -->
+
+                  <div class="phone-bottom-overlay" id="phoneBottomOverlay"></div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- SUB-COLUMN 2: Customization Controls & Master CTA Button -->
+
+          <div class="subcol-controls">
+
+            <!-- Quick Style Presets -->
+
+            <div class="comic-control-box presets-box">
+
+              <div class="control-box-title presets-header-row">
+
+                <div class="presets-title-left">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+
+                  </svg>
+
+                  <span data-i18n="presets_title">Viral Style Presets</span>
+
+                </div>
+
+                <button type="button" id="savePresetBtn" class="comic-btn comic-btn-xs comic-btn-amber" title="Save current settings as a new named preset">
+
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+
+                  <span data-i18n="btn_save_preset">+ Save Current</span>
+
+                </button>
+
+              </div>
+
+              <div class="preset-pill-grid" id="presetPillsGrid">
+
+                <button type="button" class="comic-preset-btn active" data-preset="gold">
+
+                  <span class="preset-dot dot-gold"></span>
+
+                  <span data-i18n="preset_gold">TikTok Gold</span>
+
+                </button>
+
+                <button type="button" class="comic-preset-btn" data-preset="cyan">
+
+                  <span class="preset-dot dot-cyan"></span>
+
+                  <span data-i18n="preset_cyan">Cyber Cyan</span>
+
+                </button>
+
+                <button type="button" class="comic-preset-btn" data-preset="coral">
+
+                  <span class="preset-dot dot-coral"></span>
+
+                  <span data-i18n="preset_coral">Hot Coral</span>
+
+                </button>
+
+                <button type="button" class="comic-preset-btn" data-preset="lime">
+
+                  <span class="preset-dot dot-lime"></span>
+
+                  <span data-i18n="preset_lime">Lime Punch</span>
+
+                </button>
+
+                <button type="button" class="comic-preset-btn" data-preset="comic">
+
+                  <span class="preset-dot dot-terracotta"></span>
+
+                  <span data-i18n="preset_comic">Comic Pop</span>
+
+                </button>
+
+                <button type="button" class="comic-preset-btn" data-preset="white">
+
+                  <span class="preset-dot dot-white"></span>
+
+                  <span data-i18n="preset_white">Classic White</span>
+
+                </button>
+
+              </div>
+
+            </div>
+
+
+
+            <!-- Configuration Controls Grid -->
+
+            <div class="controls-form-grid">
+
+              <!-- Speech Language & Subtitle Position -->
+
+              <div class="grid-col">
+
+                <label class="comic-label" for="dialectHint">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+
+                  <span data-i18n="ctrl_lang">Speech Language</span>
+
+                </label>
+
+                <select id="dialectHint" class="comic-select">
+
+                  <option value="General Algerian" selected data-i18n="opt_lang_dz">Algerian Darija (الدارجة الجزائرية - عربي)</option>
+
+                  <option value="Algerian Darija Latin" data-i18n="opt_lang_latin">Algerian Darija (Latin / Arabizi 3, 7, 9)</option>
+
+                  <option value="Modern Standard Arabic" data-i18n="opt_lang_msa">Modern Standard Arabic (العربية الفصحى)</option>
+
+                  <option value="French" data-i18n="opt_lang_fr">French (Français)</option>
+
+                  <option value="English" data-i18n="opt_lang_en">English</option>
+
+                </select>
+
+              </div>
+
+
+
+              <div class="grid-col">
+
+                <div class="label-with-val">
+
+                  <label class="comic-label" for="marginV">
+
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+
+                    <span data-i18n="ctrl_pos">Subtitle Position (Drag on Phone)</span>
+
+                  </label>
+
+                  <span id="marginVVal" class="comic-tag">960px (Middle)</span>
+
+                </div>
+
+                <input type="range" id="marginV" min="80" max="1600" value="960" class="comic-slider" title="Drag subtitles directly on the phone or adjust slider">
+
+                <input type="hidden" id="alignment" value="2">
+
+              </div>
+
+
+
+              <!-- Vertical Margin Slider & Font Size Slider -->
+
+              <div class="grid-col">
+
+                <label class="comic-label" for="fontName">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+
+                  <span data-i18n="ctrl_font">Font Family</span>
+
+                </label>
+
+                <select id="fontName" class="comic-select">
+                  <optgroup label="--- Recommended Arabic Fonts ---" id="fontGroupArabic">
+                    <option value="Lalezar" selected>Lalezar (Ultra Bold & Viral)</option>
+                    <option value="Cairo">Cairo (Punchy Modern Geometric)</option>
+                    <option value="Tajawal">Tajawal (Clean Broadcast Sans)</option>
+                    <option value="Almarai">Almarai (Crisp Premium UI)</option>
+                    <option value="Amiri">Amiri (Classic Elegant Naskh)</option>
+                    <option value="Changa">Changa (Heavy Tech Display)</option>
+                    <option value="El Messiri">El Messiri (Graceful Modern Kufic)</option>
+                    <option value="Readex Pro">Readex Pro (Ultra-Clean Geometric)</option>
+                    <option value="Rubik">Rubik Arabic (Friendly Rounded Heavy)</option>
+                    <option value="IBM Plex Sans Arabic">IBM Plex Sans (Corporate Sharp)</option>
+                    <option value="Reem Kufi">Reem Kufi (Editorial Early Kufic)</option>
+                    <option value="Alexandria">Alexandria (High-Impact Modern Sans)</option>
+                    <option value="Baloo Bhaijaan 2">Baloo Bhaijaan 2 (Playful Bouncy)</option>
+                    <option value="Aref Ruqaa">Aref Ruqaa (Artistic Calligraphic)</option>
+                    <option value="Marhey">Marhey (Trendy Quirky Casual)</option>
+                    <option value="Noto Sans Arabic">Noto Sans Arabic (Universal Legibility)</option>
+                    <option value="Noto Kufi Arabic">Noto Kufi Arabic (Formal Modern Kufi)</option>
+                    <option value="Lemonada">Lemonada (Dynamic Youthful Script)</option>
+                    <option value="Mada">Mada (Compact Technical Sans)</option>
+                    <option value="Harmattan">Harmattan (Clean West Saharan Naskh)</option>
+                  </optgroup>
+                  <optgroup label="--- Recommended Latin Fonts ---" id="fontGroupLatin">
+                    <option value="Montserrat">Montserrat (Ultra Black Viral Pacing)</option>
+                    <option value="Anton">Anton (Classic Hormozi Tall Punch)</option>
+                    <option value="Bebas Neue">Bebas Neue (Bold Condensed Billboard)</option>
+                    <option value="Poppins">Poppins (Punchy Geometric Sans)</option>
+                    <option value="Plus Jakarta Sans">Plus Jakarta Sans (Modern Tech Premium)</option>
+                    <option value="Inter">Inter (Ultra-Crisp Minimalist)</option>
+                    <option value="Oswald">Oswald (Heavy Impact Condensed)</option>
+                    <option value="Archivo Black">Archivo Black (Aggressive Heavy Slab)</option>
+                    <option value="Syne">Syne (Creative Designer Display)</option>
+                    <option value="Bangers">Bangers (High-Energy Comic Pop)</option>
+                    <option value="Outfit">Outfit (Sharp Contemporary Sans)</option>
+                    <option value="Righteous">Righteous (Retro Sci-Fi Display)</option>
+                    <option value="Kanit">Kanit (Snappy Heavy Sans)</option>
+                    <option value="Urbanist">Urbanist (Sleek Geometric Modern)</option>
+                    <option value="Lexend">Lexend (High-Readability Pacing)</option>
+                    <option value="Epilogue">Epilogue (Brutalist Punchy Grotesk)</option>
+                    <option value="Raleway">Raleway (Luxury Cinematic Weight)</option>
+                    <option value="Work Sans">Work Sans (Clean Social Pacing)</option>
+                    <option value="Titan One">Titan One (Punchy Viral Cartoon)</option>
+                    <option value="Black Han Sans">Black Han Sans (Ultra-Dense Solid Block)</option>
+                  </optgroup>
+                </select>
+
+              </div>
+
+
+
+              <div class="grid-col">
+
+                <div class="label-with-val">
+
+                  <label class="comic-label" for="fontSize">
+
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+
+                    <span data-i18n="ctrl_fontsize">Font Size</span>
+
+                  </label>
+
+                  <span id="fontSizeVal" class="comic-tag">56px</span>
+
+                </div>
+
+                <input type="range" id="fontSize" min="28" max="96" value="56" class="comic-slider">
+
+              </div>
+
+
+
+              <!-- Animation Style with Live Simulation Trigger & Options -->
+
+              <div class="grid-col anim-style-grid-col">
+
+                <div class="label-with-val">
+
+                  <label class="comic-label" for="animSelectTrigger">
+
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+
+                    <span data-i18n="ctrl_anim">Animation Style</span>
+
+                  </label>
+
+                  <span class="comic-tag comic-tag-amber" style="font-size: 7.5px;">LIVE PREVIEW</span>
+
+                </div>
+
+                <div class="custom-select-wrap" id="animSelectWrap">
+
+                  <button type="button" class="custom-select-trigger" id="animSelectTrigger" aria-haspopup="listbox">
+
+                    <div class="trigger-left">
+
+                      <span class="trigger-label" id="animSelectLabel">Karaoke Pop & Scale</span>
+
+                      <span class="trigger-live-anim" id="animSelectLivePreview">
+
+                        <span class="demo-sub-word anim-karaoke_pop">POP</span>
+
+                      </span>
+
+                    </div>
+
+                    <svg class="trigger-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
+                  </button>
+
+                  <div class="custom-dropdown-panel hidden" id="animDropdownPanel" role="listbox">
+
+                    <div class="anim-option-row active" data-value="karaoke_pop">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_karaoke">Hormozi Viral Pop</span>
+
+                        <span class="opt-desc">High-energy spring pop with viral yellow highlight</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-karaoke_pop">POP</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="cumulative_fill">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_cumulative">Progressive Fill (Hormozi Stay)</span>
+
+                        <span class="opt-desc">Words highlight as spoken and remain permanently colored</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-cumulative_fill">FILL</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="letter_pop">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_letter_pop">Letter Pop (Kinetic Elastic)</span>
+
+                        <span class="opt-desc">Letters bounce out individually one by one</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-letter_pop"><span class="sub-letter">P</span><span class="sub-letter">O</span><span class="sub-letter">P</span></span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="letter_drop">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_letter_drop">Letter Gravity Drop</span>
+
+                        <span class="opt-desc">Letters fall from top with elastic bounce landing</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-letter_drop"><span class="sub-letter">D</span><span class="sub-letter">O</span><span class="sub-letter">W</span><span class="sub-letter">N</span></span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="letter_rise">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_letter_rise">Kinetic Wave Rise</span>
+
+                        <span class="opt-desc">Letters glide up smoothly in a kinetic wave reveal</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-letter_rise"><span class="sub-letter">W</span><span class="sub-letter">A</span><span class="sub-letter">V</span><span class="sub-letter">E</span></span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="minimal_slide">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_minimal">Minimal Smooth Slide</span>
+
+                        <span class="opt-desc">Clean upward vertical glide with soft opacity bloom</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-minimal_slide">SLIDE</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="cyber_glitch">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_cyber">Cyberpunk Neon Jitter</span>
+
+                        <span class="opt-desc">Cyan & magenta chromatic split with neon aura</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-cyber_glitch">CYBER</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="comic_bounce">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_comic">Comic Bounce & Tilt</span>
+
+                        <span class="opt-desc">High elastic spring with dynamic alternating rotation</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-comic_bounce">COMIC</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="viral_punch">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_punch">Viral Punch Snap</span>
+
+                        <span class="opt-desc">Aggressive instantaneous scale snap for speech hooks</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-viral_punch">PUNCH</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="fade_editorial">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_editorial">Cinematic Smooth Fade</span>
+
+                        <span class="opt-desc">Documentary silky alpha fade with luxury gold sweep</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-fade_editorial">FADE</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="badge_invert">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_badge">Badge Invert Pill</span>
+
+                        <span class="opt-desc">High contrast dark text inside glowing neon pill</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-badge_invert">BADGE</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="color_flash">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_flash">Color Flash Cycle</span>
+
+                        <span class="opt-desc">Alternates neon yellow & cyan contrast</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-color_flash">FLASH</span>
+
+                      </div>
+
+                    </div>
+
+                    <div class="anim-option-row" data-value="word_reveal">
+
+                      <div class="opt-left">
+
+                        <span class="opt-name" data-i18n="opt_anim_reveal">Kinetic Organic Reveal</span>
+
+                        <span class="opt-desc">Silky blur dissipation and spring deceleration</span>
+
+                      </div>
+
+                      <div class="opt-demo-box">
+
+                        <span class="demo-sub-word anim-word_reveal">REVEAL</span>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                  <select id="animationStyle" class="comic-select visually-hidden">
+
+                    <option value="karaoke_pop" selected>Hormozi Viral Pop</option>
+
+                    <option value="cumulative_fill">Progressive Fill (Hormozi Stay)</option>
+
+                    <option value="letter_pop">Letter Pop (Kinetic Elastic)</option>
+
+                    <option value="letter_drop">Letter Gravity Drop</option>
+
+                    <option value="letter_rise">Kinetic Wave Rise</option>
+
+                    <option value="minimal_slide">Minimal Smooth Slide</option>
+
+                    <option value="cyber_glitch">Cyberpunk Neon Jitter</option>
+
+                    <option value="comic_bounce">Comic Bounce & Tilt</option>
+
+                    <option value="viral_punch">Viral Punch Snap</option>
+
+                    <option value="fade_editorial">Cinematic Smooth Fade</option>
+
+                    <option value="badge_invert">Badge Invert Pill</option>
+
+                    <option value="color_flash">Color Flash Cycle</option>
+
+                    <option value="word_reveal">Progressive Reveal</option>
+
+                  </select>
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Animation Speed & Physics Fluidity -->
+
+              <div class="grid-col anim-speed-grid-col">
+
+                <div class="label-with-val">
+
+                  <label class="comic-label" for="animSpeed">
+
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                      <circle cx="12" cy="12" r="10"></circle>
+
+                      <polyline points="12 6 12 12 16 14"></polyline>
+
+                    </svg>
+
+                    <span data-i18n="ctrl_animspeed">Animation Speed</span>
+
+                  </label>
+
+                  <span id="animSpeedVal" class="comic-tag comic-tag-amber">1.0x (Snappy)</span>
+
+                </div>
+
+                <input type="range" id="animSpeed" min="0.5" max="2.0" step="0.1" value="1.0" class="comic-slider" title="Adjust animation dynamic pacing and ease fluidity">
+
+                <div class="speed-presets-chips">
+
+                  <button type="button" class="speed-chip" data-speed="0.7" data-label="Smooth">0.7x Smooth</button>
+
+                  <button type="button" class="speed-chip active" data-speed="1.0" data-label="Snappy">1.0x Snappy</button>
+
+                  <button type="button" class="speed-chip" data-speed="1.4" data-label="Viral">1.4x Viral</button>
+
+                  <button type="button" class="speed-chip" data-speed="1.8" data-label="Rapid">1.8x Rapid</button>
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Interactive Keyframe Ease Graph Editor (AE Style + Live Preview) -->
+
+              <div class="grid-col-full">
+
+                <div class="ease-graph-container" id="easeGraphContainer">
+
+                  <div class="ease-graph-header">
+
+                    <div class="ease-header-left">
+
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"></path><path d="M18 9l-5 5-4-4-6 6"></path></svg>
+
+                      <span class="ease-graph-title">Keyframe Curve & Easing</span>
+
+                      <span class="ease-curve-badge" id="activeEaseBadge">Snappy Spring</span>
+
+                    </div>
+
+                    <div class="ease-hint-tag">Drag K1/K2 keyframes or pick preset</div>
+
+                  </div>
+
+                  <div class="ease-graph-main-row">
+
+                    <div class="ease-canvas-col">
+
+                      <div class="ease-canvas-wrap">
+
+                        <canvas id="easeCanvas" width="310" height="68" class="ease-graph-canvas"></canvas>
+
+                      </div>
+
+                      <div class="ease-preset-buttons">
+
+                        <button type="button" class="ease-btn active" data-ease="spring">Spring</button>
+
+                        <button type="button" class="ease-btn" data-ease="back">Bounce Back</button>
+
+                        <button type="button" class="ease-btn" data-ease="smooth">Smooth Fluid</button>
+
+                        <button type="button" class="ease-btn" data-ease="linear">Linear Pop</button>
+
+                        <button type="button" class="ease-btn" data-ease="custom" id="easeCustomBtn">Custom</button>
+
+                      </div>
+
+                    </div>
+
+                    <div class="ease-live-preview-widget">
+
+                      <span class="ease-preview-label">Live Preview</span>
+
+                      <div class="ease-preview-stage">
+
+                        <span id="easeLivePreviewWord" class="ease-live-preview-pill">VIRAL</span>
+
+                      </div>
+
+                      <span id="easeCoordsReadout" class="ease-coords-sub">0.34, 1.56 | 0.64, 1.00</span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Colors: Primary Text & Highlight -->
+
+              <div class="grid-col">
+
+                <label class="comic-label" for="primaryColor">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+
+                  <span data-i18n="ctrl_textcolor">Main Text Color</span>
+
+                </label>
+
+                <div class="comic-color-picker-wrap">
+
+                  <button type="button" class="color-swatch-trigger" id="primaryColorBtn" title="Click to pick color">
+
+                    <span class="color-disc" id="primaryColorDisc" style="background: #FFFFFF;"></span>
+
+                    <span id="primaryColorText" class="color-hex-tag">#FFFFFF</span>
+
+                    <input type="color" id="primaryColor" value="#FFFFFF" class="color-native-hidden">
+
+                  </button>
+
+                  <div class="quick-swatches">
+
+                    <span class="swatch-dot" data-target="primary" data-color="#FFFFFF" style="background: #FFFFFF;" title="White"></span>
+
+                    <span class="swatch-dot" data-target="primary" data-color="#F4EBD9" style="background: #F4EBD9;" title="Cream"></span>
+
+                    <span class="swatch-dot" data-target="primary" data-color="#111111" style="background: #111111;" title="Dark"></span>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+
+              <div class="grid-col">
+
+                <label class="comic-label" for="highlightColor">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+
+                  <span data-i18n="ctrl_highlight">Active Word Highlight</span>
+
+                </label>
+
+                <div class="comic-color-picker-wrap">
+
+                  <button type="button" class="color-swatch-trigger" id="highlightColorBtn" title="Click to pick color">
+
+                    <span class="color-disc" id="highlightColorDisc" style="background: #FFE600;"></span>
+
+                    <span id="highlightColorText" class="color-hex-tag">#FFE600</span>
+
+                    <input type="color" id="highlightColor" value="#FFE600" class="color-native-hidden">
+
+                  </button>
+
+                  <div class="quick-swatches">
+
+                    <span class="swatch-dot" data-target="highlight" data-color="#FFE600" style="background: #FFE600;" title="Gold"></span>
+
+                    <span class="swatch-dot" data-target="highlight" data-color="#00F0FF" style="background: #00F0FF;" title="Cyan"></span>
+
+                    <span class="swatch-dot" data-target="highlight" data-color="#FF3366" style="background: #FF3366;" title="Coral"></span>
+
+                    <span class="swatch-dot" data-target="highlight" data-color="#00FF66" style="background: #00FF66;" title="Lime"></span>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Words Per Line & Aspect Ratio -->
+
+              <div class="grid-col">
+
+                <label class="comic-label" for="wordsPerLine">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="14" y2="12"></line><line x1="4" y1="18" x2="18" y2="18"></line></svg>
+
+                  <span data-i18n="ctrl_words">Words Per Line</span>
+
+                </label>
+
+                <select id="wordsPerLine" class="comic-select">
+
+                  <option value="2" data-i18n="opt_words_2">2 Words (Fast Pacing)</option>
+
+                  <option value="3" data-i18n="opt_words_3">3 Words (Snappy)</option>
+
+                  <option value="4" selected data-i18n="opt_words_4">4 Words (Broadcast Pacing)</option>
+
+                  <option value="5" data-i18n="opt_words_5">5 Words</option>
+
+                </select>
+
+              </div>
+
+
+
+
+
+
+
+              <!-- Subtitle Background Box & Color -->
+
+              <div class="grid-col">
+
+                <label class="comic-label" for="subBoxStyle">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="5" width="18" height="14" rx="4"></rect></svg>
+
+                  <span data-i18n="ctrl_sub_box">Subtitle Box Background</span>
+
+                </label>
+
+                <select id="subBoxStyle" class="comic-select">
+
+                  <option value="none" selected data-i18n="opt_box_none">None (Clean Text Outline)</option>
+
+                  <option value="pill" data-i18n="opt_box_pill">Pill Badge (Rounded)</option>
+
+                  <option value="box" data-i18n="opt_box_block">Full Block Box</option>
+
+                  <option value="shadow" data-i18n="opt_box_shadow">Deep Drop Shadow</option>
+
+                </select>
+
+              </div>
+
+
+
+              <div class="grid-col" id="subBoxControls">
+
+                <div class="label-with-val">
+
+                  <label class="comic-label" for="subBoxColor">
+
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+
+                    <span data-i18n="ctrl_box_color">Box Color & Opacity</span>
+
+                  </label>
+
+                  <span id="subBoxAlphaVal" class="comic-tag">85%</span>
+
+                </div>
+
+                <div class="comic-box-config-row">
+
+                  <input type="color" id="subBoxColor" value="#000000" class="comic-color-input" title="Subtitle box color">
+
+                  <span id="subBoxColorText" class="color-hex-tag">#000000</span>
+
+                  <input type="range" id="subBoxAlpha" min="0.1" max="1.0" step="0.05" value="0.85" class="comic-slider" title="Box background opacity">
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Canvas Background & Custom Color -->
+
+              <div class="grid-col">
+
+                <label class="comic-label" for="backgroundMode">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+
+                  <span data-i18n="ctrl_bg">Background Canvas</span>
+
+                </label>
+
+                <select id="backgroundMode" class="comic-select">
+
+                  <option value="transparent" selected data-i18n="opt_bg_trans">Transparent Alpha (WebM - No Chroma Key!)</option>
+
+                  <option value="green_screen" data-i18n="opt_bg_green">Green Screen (Chroma Key)</option>
+
+                  <option value="black" data-i18n="opt_bg_black">Black Screen (Screen Blend)</option>
+
+                  <option value="blue" data-i18n="opt_bg_blue">Blue Screen</option>
+
+                  <option value="original_video" data-i18n="opt_bg_orig">Original Video (Burn-In)</option>
+
+                  <option value="custom" data-i18n="opt_bg_custom">Custom Color</option>
+
+                </select>
+
+              </div>
+
+
+
+              <div class="grid-col" id="customColorGroup" style="display: none;">
+
+                <label class="comic-label" for="customColorHex">
+
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+
+                  <span data-i18n="ctrl_customcolor">Custom Color</span>
+
+                </label>
+
+                <div class="comic-color-picker-wrap">
+
+                  <input type="color" id="customColorHex" value="#1a1a24" class="comic-color-input">
+
+                  <span id="customColorText" class="color-hex-tag">#1A1A24</span>
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Optional Gemini Key -->
+
+              <div class="grid-col-full">
+
+                <div class="collapsible-key-header" id="keyToggleHeader">
+
+                  <div class="key-label-wrap">
+
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+
+                    <span data-i18n="ctrl_apikey">Gemini API Key (Optional)</span>
+
+                  </div>
+
+                  <span class="comic-tag comic-tag-sm" data-i18n="tag_optional">Preconfigured on server</span>
+
+                </div>
+
+                <input type="password" id="apiKey" class="comic-input" placeholder="AIzaSy... (Leave empty to use server default key)">
+
+              </div>
+
+            </div>
+
+
+
+            <!-- Bottom Master CTA Button -->
+
+            <div class="cta-wrapper">
+
+              <button type="button" id="startBtn" class="comic-btn-master">
+
+                <div class="btn-icon-bubble">
+
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+
+                  </svg>
+
+                </div>
+
+                <span class="btn-title-text" data-i18n="btn_generate">GENERATE ANIMATED SUBTITLES</span>
+
+                <span class="btn-arrow-icon">
+
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+
+                    <polyline points="12 5 19 12 12 19"></polyline>
+
+                  </svg>
+
+                </span>
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+
+
+    <!-- Usage Guide Modal -->
+
+    <!-- Save Preset Modal -->
+
+    <div id="savePresetModal" class="comic-modal-backdrop hidden">
+
+      <div class="comic-modal-window preset-modal-window">
+
+        <div class="modal-top">
+
+          <div class="modal-title-wrap">
+
+            <svg class="modal-star" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+
+              <polyline points="7 3 7 8 15 8"></polyline>
+
+            </svg>
+
+            <h2 data-i18n="save_preset_title">Save Custom Preset</h2>
+
+          </div>
+
+          <button id="closeSavePresetBtn" class="comic-btn-square" aria-label="Close Modal">✕</button>
+
+        </div>
+
+
+
+        <div class="modal-scroll-content">
+
+          <p class="modal-desc-sub" data-i18n="save_preset_desc">Save your current font, colors, animation, and position for future videos with zero login needed.</p>
+
+          <div class="custom-preset-input-wrap">
+
+            <label class="comic-label" for="presetNameInput" data-i18n="preset_name_label">Preset Name</label>
+
+            <input type="text" id="presetNameInput" class="comic-input" placeholder="e.g. My TikTok Viral, Gaming Shorts" maxlength="28" autocomplete="off">
+
+          </div>
+
+          <div class="preset-summary-pills">
+
+            <span class="summary-pill" id="summaryFontPill">Lalezar (56px)</span>
+
+            <span class="summary-pill" id="summaryAnimPill">Hormozi Pop</span>
+
+            <span class="summary-pill color-preview-pill">
+
+              <span class="dot-preview" id="summaryPrimaryDot"></span>
+
+              <span class="dot-preview" id="summaryHighlightDot"></span>
+
+            </span>
+
+          </div>
+
+          <div class="modal-action-row">
+
+            <button type="button" id="cancelSavePresetBtn" class="comic-btn comic-btn-sm comic-btn-secondary" data-i18n="btn_cancel">Cancel</button>
+
+            <button type="button" id="confirmSavePresetBtn" class="comic-btn comic-btn-sm comic-btn-green" data-i18n="btn_save">Save Preset</button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div id="guideModal" class="comic-modal-backdrop hidden">
+
+      <div class="comic-modal-window">
+
+        <div class="modal-top">
+
+          <div class="modal-title-wrap">
+
+            <svg class="modal-star" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+
+              <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
+
+            </svg>
+
+            <h2 data-i18n="modal_guide_title">Video Editing & Safe-Zone Guide</h2>
+
+          </div>
+
+          <button id="closeGuideBtn" class="comic-btn-square" aria-label="Close Modal">✕</button>
+
+        </div>
+
+
+
+        <div class="modal-scroll-content">
+
+          <div class="guide-card">
+
+            <div class="guide-card-header">
+
+              <span class="guide-step-num">1</span>
+
+              <h4>CapCut (Mobile & Desktop)</h4>
+
+            </div>
+
+            <p data-i18n="guide_capcut">Add the generated subtitle video as an <strong>Overlay</strong> above your main video. Select <strong>Remove BG</strong> &gt; <strong>Chroma Key</strong>, click the green background with the color picker, and set Intensity to 15-20%.</p>
+
+          </div>
+
+
+
+          <div class="guide-card">
+
+            <div class="guide-card-header">
+
+              <span class="guide-step-num">2</span>
+
+              <h4>Adobe Premiere Pro</h4>
+
+            </div>
+
+            <p data-i18n="guide_premiere">Place the green-screen video on a track above your media. Search for the <strong>Ultra Key</strong> effect in Effects, apply it to the subtitle clip, and pick the green color using the Eyedropper tool.</p>
+
+          </div>
+
+
+
+          <div class="guide-card">
+
+            <div class="guide-card-header">
+
+              <span class="guide-step-num">3</span>
+
+              <h4>DaVinci Resolve</h4>
+
+            </div>
+
+            <p data-i18n="guide_davinci">In the Edit or Color page, use the <strong>3D Keyer</strong> or in Fusion use the <strong>Delta Keyer</strong> node to key out the green screen background instantly.</p>
+
+          </div>
+
+
+
+          <div class="guide-card">
+
+            <div class="guide-card-header">
+
+              <span class="guide-step-num">4</span>
+
+              <h4>Black Screen (Screen Blend Mode)</h4>
+
+            </div>
+
+            <p data-i18n="guide_black">If you select Black Screen, no chroma keying is needed! Simply change the video layer's <strong>Blending Mode</strong> to <strong>Screen</strong> in CapCut, Premiere, or Final Cut.</p>
+
+          </div>
+
+
+
+          <div class="guide-card">
+
+            <div class="guide-card-header">
+
+              <span class="guide-step-num">5</span>
+
+              <h4>TikTok, Reels & Shorts Safe Zones</h4>
+
+            </div>
+
+            <p data-i18n="guide_safezone">Always ensure subtitles are positioned at least 260px-320px from the bottom to prevent creator profile handles, follow buttons, captions, and the audio title from obscuring your text.</p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <script src="app.js?v=2.8.1"></script>
+
+</body>
+
+</html>
+

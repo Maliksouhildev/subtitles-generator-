@@ -64,7 +64,154 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Customization Form Controls
 
+  // Curated 20 Arabic & 20 Latin Viral Fonts Catalogs
+  const ARABIC_FONTS = [
+    { id: "Lalezar", name: "Lalezar (Ultra Bold & Viral Header)" },
+    { id: "Cairo", name: "Cairo (Punchy Modern Geometric)" },
+    { id: "Tajawal", name: "Tajawal (Clean Broadcast Sans)" },
+    { id: "Almarai", name: "Almarai (Crisp Premium UI)" },
+    { id: "Amiri", name: "Amiri (Classic Elegant Naskh)" },
+    { id: "Changa", name: "Changa (Heavy Tech Display)" },
+    { id: "El Messiri", name: "El Messiri (Graceful Modern Kufic)" },
+    { id: "Readex Pro", name: "Readex Pro (Ultra-Clean Geometric)" },
+    { id: "Rubik", name: "Rubik Arabic (Friendly Rounded Heavy)" },
+    { id: "IBM Plex Sans Arabic", name: "IBM Plex Sans (Corporate Sharp)" },
+    { id: "Reem Kufi", name: "Reem Kufi (Editorial Early Kufic)" },
+    { id: "Alexandria", name: "Alexandria (High-Impact Modern Sans)" },
+    { id: "Baloo Bhaijaan 2", name: "Baloo Bhaijaan 2 (Playful Bouncy)" },
+    { id: "Aref Ruqaa", name: "Aref Ruqaa (Artistic Calligraphic)" },
+    { id: "Marhey", name: "Marhey (Trendy Quirky Casual)" },
+    { id: "Noto Sans Arabic", name: "Noto Sans Arabic (Universal Legibility)" },
+    { id: "Noto Kufi Arabic", name: "Noto Kufi Arabic (Formal Modern Kufi)" },
+    { id: "Lemonada", name: "Lemonada (Dynamic Youthful Script)" },
+    { id: "Mada", name: "Mada (Compact Technical Sans)" },
+    { id: "Harmattan", name: "Harmattan (Clean West Saharan Naskh)" }
+  ];
+
+  const LATIN_FONTS = [
+    { id: "Montserrat", name: "Montserrat (Ultra Black Viral Pacing)" },
+    { id: "Anton", name: "Anton (Classic Hormozi Tall Punch)" },
+    { id: "Bebas Neue", name: "Bebas Neue (Bold Condensed Billboard)" },
+    { id: "Poppins", name: "Poppins (Punchy Geometric Sans)" },
+    { id: "Plus Jakarta Sans", name: "Plus Jakarta Sans (Modern Tech Premium)" },
+    { id: "Inter", name: "Inter (Ultra-Crisp Minimalist)" },
+    { id: "Oswald", name: "Oswald (Heavy Impact Condensed)" },
+    { id: "Rubik", name: "Rubik (Bold Friendly Rounded)" },
+    { id: "Archivo Black", name: "Archivo Black (Aggressive Heavy Slab)" },
+    { id: "Syne", name: "Syne (Creative Designer Display)" },
+    { id: "Bangers", name: "Bangers (High-Energy Comic Pop)" },
+    { id: "Outfit", name: "Outfit (Sharp Contemporary Sans)" },
+    { id: "Righteous", name: "Righteous (Retro Sci-Fi Display)" },
+    { id: "Kanit", name: "Kanit (Snappy Heavy Sans)" },
+    { id: "Urbanist", name: "Urbanist (Sleek Geometric Modern)" },
+    { id: "Lexend", name: "Lexend (High-Readability Pacing)" },
+    { id: "Epilogue", name: "Epilogue (Brutalist Punchy Grotesk)" },
+    { id: "Raleway", name: "Raleway (Luxury Cinematic Weight)" },
+    { id: "Work Sans", name: "Work Sans (Clean Social Pacing)" },
+    { id: "Titan One", name: "Titan One (Punchy Viral Cartoon)" },
+    { id: "Black Han Sans", name: "Black Han Sans (Ultra-Dense Solid Block)" }
+  ];
+
+  function updateAdaptiveFontList(script, keepFont) {
+    if (!fontName) return;
+    const isArabic = (script === "arabic");
+    const primaryFonts = isArabic ? ARABIC_FONTS : LATIN_FONTS;
+    const secondaryFonts = isArabic ? LATIN_FONTS : ARABIC_FONTS;
+
+    const currentVal = keepFont || fontName.value;
+    fontName.innerHTML = "";
+
+    const group1 = document.createElement("optgroup");
+    group1.label = isArabic ? "--- Recommended Arabic Fonts ---" : "--- Recommended Latin Fonts ---";
+    primaryFonts.forEach(f => {
+      const opt = document.createElement("option");
+      opt.value = f.id;
+      opt.innerText = f.name;
+      group1.appendChild(opt);
+    });
+    fontName.appendChild(group1);
+
+    const group2 = document.createElement("optgroup");
+    group2.label = isArabic ? "--- Other Available Fonts (Latin) ---" : "--- Other Available Fonts (Arabic) ---";
+    secondaryFonts.forEach(f => {
+      const opt = document.createElement("option");
+      opt.value = f.id;
+      opt.innerText = f.name;
+      group2.appendChild(opt);
+    });
+    fontName.appendChild(group2);
+
+    const fontExists = Array.from(fontName.options).some(o => o.value === currentVal);
+    if (fontExists && (keepFont || primaryFonts.some(f => f.id === currentVal))) {
+      fontName.value = currentVal;
+    } else {
+      fontName.value = isArabic ? "Lalezar" : "Montserrat";
+    }
+
+    const wrap = document.querySelector('.comic-enhanced-select[data-select-id="fontName"]');
+    if (wrap) {
+      const panel = wrap.querySelector(".custom-dropdown-panel");
+      const labelSpan = wrap.querySelector(".trigger-label");
+      if (panel) {
+        panel.innerHTML = "";
+        let lastGroup = null;
+        Array.from(fontName.options).forEach(opt => {
+          if (opt.parentElement && opt.parentElement.tagName === "OPTGROUP" && opt.parentElement !== lastGroup) {
+            lastGroup = opt.parentElement;
+            const groupHeader = document.createElement("div");
+            groupHeader.className = "dropdown-optgroup-header";
+            groupHeader.innerText = lastGroup.label;
+            panel.appendChild(groupHeader);
+          }
+          const optRow = document.createElement("div");
+          optRow.className = `comic-dropdown-option ${opt.value === fontName.value ? "active" : ""}`;
+          optRow.dataset.value = opt.value;
+          const textSpan = document.createElement("span");
+          textSpan.innerText = opt.innerText;
+          textSpan.style.fontFamily = opt.value + ", sans-serif";
+          textSpan.style.fontSize = "12px";
+          textSpan.style.letterSpacing = "0.5px";
+          optRow.appendChild(textSpan);
+
+          optRow.addEventListener("click", (e) => {
+            e.stopPropagation();
+            fontName.value = opt.value;
+            panel.querySelectorAll(".comic-dropdown-option").forEach(r => r.classList.remove("active"));
+            optRow.classList.add("active");
+            if (labelSpan) {
+              labelSpan.innerText = opt.innerText;
+              labelSpan.style.fontFamily = opt.value + ", sans-serif";
+            }
+            panel.classList.add("hidden");
+            const chevron = wrap.querySelector(".trigger-chevron");
+            if (chevron) chevron.style.transform = "rotate(0deg)";
+            updateLiveSubtitlePreview();
+            autoSaveSettings();
+          });
+          panel.appendChild(optRow);
+        });
+      }
+      if (labelSpan) {
+        const activeOpt = fontName.options[fontName.selectedIndex];
+        if (activeOpt) {
+          labelSpan.innerText = activeOpt.innerText;
+          labelSpan.style.fontFamily = activeOpt.value + ", sans-serif";
+        }
+      }
+    }
+
+    updateLiveSubtitlePreview();
+  }
+
   const dialectHint = document.getElementById("dialectHint");
+  if (dialectHint) {
+    dialectHint.addEventListener("change", () => {
+      const val = dialectHint.value;
+      const isArabic = (val === "General Algerian" || val === "Modern Standard Arabic" || (!val.includes("Latin") && !val.includes("French") && !val.includes("English")));
+      updateAdaptiveFontList(isArabic ? "arabic" : "latin");
+    });
+  }
+
 
   const alignment = document.getElementById("alignment");
 
@@ -1344,7 +1491,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.alignment && alignment) alignment.value = s.alignment;
 
-    if (s.dialect && dialectHint) dialectHint.value = s.dialect;
+    if (s.dialect && dialectHint) {
+      dialectHint.value = s.dialect;
+      const isArabic = (s.dialect === "General Algerian" || s.dialect === "Modern Standard Arabic" || (!s.dialect.includes("Latin") && !s.dialect.includes("French") && !s.dialect.includes("English")));
+      updateAdaptiveFontList(isArabic ? "arabic" : "latin", s.font);
+    }
 
     if (s.aspectRatio && aspectRatio) aspectRatio.value = s.aspectRatio;
 
@@ -2828,8 +2979,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+      let lastGroup = null;
       Array.from(el.options).forEach(opt => {
-
+        if (opt.parentElement && opt.parentElement.tagName === "OPTGROUP" && opt.parentElement !== lastGroup) {
+          lastGroup = opt.parentElement;
+          const groupHeader = document.createElement("div");
+          groupHeader.className = "dropdown-optgroup-header";
+          groupHeader.innerText = lastGroup.label;
+          panel.appendChild(groupHeader);
+        }
         const optRow = document.createElement("div");
 
         optRow.className = `comic-dropdown-option ${opt.selected ? 'active' : ''}`;
@@ -4445,7 +4603,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // INITIAL SETUP CALLS
 
   enhanceSelectsToComicDropdowns();
-
+  const initIsArabic = !dialectHint || (dialectHint.value === "General Algerian" || dialectHint.value === "Modern Standard Arabic" || (!dialectHint.value.includes("Latin") && !dialectHint.value.includes("French") && !dialectHint.value.includes("English")));
+  updateAdaptiveFontList(initIsArabic ? "arabic" : "latin");
   applyLanguage(currentLang);
 
   applyTheme(currentTheme);
