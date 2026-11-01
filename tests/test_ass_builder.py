@@ -57,7 +57,34 @@ def test_ass_builder_karaoke_pop():
     assert "[Events]" in ass_text
     assert "Dialogue: 0," in ass_text
     assert "سلام" in ass_text
-    assert "\\fscx115\\fscy115" in ass_text
+    assert "\\t(" in ass_text
+    assert "\\fscx125" in ass_text
+
+
+def test_ass_builder_speed_scaling():
+    data = {
+        "segments": [
+            {
+                "start": 0.0,
+                "end": 1.0,
+                "text": "صحا خويا",
+                "words": [
+                    {"word": "صحا", "start": 0.0, "end": 0.5},
+                    {"word": "خويا", "start": 0.5, "end": 1.0}
+                ]
+            }
+        ]
+    }
+
+    builder_fast = ASSSubtitleBuilder(animation_speed=2.0, animation_style="karaoke_pop")
+    ass_fast = builder_fast.generate_ass(data)
+
+    builder_slow = ASSSubtitleBuilder(animation_speed=0.5, animation_style="karaoke_pop")
+    ass_slow = builder_slow.generate_ass(data)
+
+    # Fast animation has smaller transform timing than slow animation
+    assert "\\t(0," in ass_fast
+    assert "\\t(0," in ass_slow
 
 
 def test_ass_builder_all_styles():

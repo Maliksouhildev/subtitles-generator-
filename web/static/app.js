@@ -38,6 +38,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const fontSizeVal = document.getElementById("fontSizeVal");
   const wordsPerLine = document.getElementById("wordsPerLine");
   const animationStyle = document.getElementById("animationStyle");
+  const animSpeed = document.getElementById("animSpeed");
+  const animSpeedVal = document.getElementById("animSpeedVal");
+  const speedChips = document.querySelectorAll(".speed-chip");
   const primaryColor = document.getElementById("primaryColor");
   const primaryColorText = document.getElementById("primaryColorText");
   const highlightColor = document.getElementById("highlightColor");
@@ -142,6 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctrl_font: "Font Family",
       ctrl_fontsize: "Font Size",
       ctrl_anim: "Animation Style",
+      ctrl_animspeed: "Animation Speed",
       ctrl_textcolor: "Main Text Color",
       ctrl_highlight: "Active Word Highlight",
       ctrl_words: "Words Per Line",
@@ -242,6 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctrl_font: "Police d'écriture",
       ctrl_fontsize: "Taille de police",
       ctrl_anim: "Style d'animation",
+      ctrl_animspeed: "Vitesse d'animation",
       ctrl_textcolor: "Couleur du texte",
       ctrl_highlight: "Couleur du mot actif",
       ctrl_words: "Mots par ligne",
@@ -342,6 +347,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctrl_font: "نوع الخط",
       ctrl_fontsize: "حجم الخط",
       ctrl_anim: "نمط الأنيميشن (الحركة)",
+      ctrl_animspeed: "سرعة ونعومة الأنيميشن",
       ctrl_textcolor: "لون النص الرئيسي",
       ctrl_highlight: "لون الكلمة النشطة",
       ctrl_words: "عدد الكلمات في السطر",
@@ -711,15 +717,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const activeAnim = animationStyle.value || "karaoke_pop";
     const words = [subWord1, subWord2, subWord3];
 
+    // Ensure CSS highlight preview color is kept in sync
+    document.documentElement.style.setProperty("--highlight-preview", highlightColor.value);
+
     words.forEach((w, idx) => {
       if (!w) return;
       if (idx === previewActiveIdx) {
+        // Trigger reflow to restart CSS animation from frame 0 for clean opening ease
+        w.style.animation = "none";
+        void w.offsetWidth;
+        w.style.animation = "";
+
         w.className = `sub-word active anim-${activeAnim}`;
         if (activeAnim === "box_highlight") {
           w.style.background = highlightColor.value;
           w.style.color = "#000000";
-          w.style.padding = "1px 4px";
-          w.style.borderRadius = "3px";
+          w.style.padding = "1px 6px";
+          w.style.borderRadius = "4px";
         } else {
           w.style.background = "none";
           w.style.color = highlightColor.value;
@@ -745,15 +759,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Preview cycle timer: rhythmic word-by-word karaoke progression on the phone screen
+  // Fluid preview cycle timer: rhythmic word-by-word karaoke progression on the phone screen
+  function restartPreviewCycle() {
+    if (previewCycleTimer) clearInterval(previewCycleTimer);
+    const speed = parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0;
+    const intervalMs = Math.max(450, Math.round(1150 / speed));
+    previewCycleTimer = setInterval(stepPreviewCycle, intervalMs);
+  }
+
   function stepPreviewCycle() {
     previewActiveIdx = (previewActiveIdx + 1) % 3;
     updateLiveSubtitlePreview();
   }
 
-  if (!previewCycleTimer) {
-    previewCycleTimer = setInterval(stepPreviewCycle, 1300);
-  }
+  restartPreviewCycle();
 
   // DRAGGABLE SUBTITLES ON PHONE SIMULATION (Direct mouse / touch dragging!)
   let isDraggingSubtitle = false;
@@ -1081,8 +1100,50 @@ document.addEventListener("DOMContentLoaded", () => {
     requestAnimationFrame(updateLiveSubtitlePreview);
   });
 
+  // ANIMATION SPEED & FLUIDITY CONTROLS
+  function updateAnimationSpeed(speedVal) {
+    const val = parseFloat(speedVal) || 1.0;
+    document.documentElement.style.setProperty("--anim-speed", val);
+    document.documentElement.style.setProperty("--highlight-preview", highlightColor.value);
+
+    let speedLabel = "Balanced";
+    if (val <= 0.75) speedLabel = "Smooth";
+    else if (val <= 1.15) speedLabel = "Snappy";
+    else if (val <= 1.55) speedLabel = "Viral";
+    else speedLabel = "Rapid";
+
+    if (animSpeedVal) {
+      animSpeedVal.innerText = `${val.toFixed(1)}x (${speedLabel})`;
+    }
+
+    speedChips.forEach(chip => {
+      const chipSpeed = parseFloat(chip.dataset.speed);
+      chip.classList.toggle("active", Math.abs(chipSpeed - val) < 0.15);
+    });
+
+    restartPreviewCycle();
+  }
+
+  if (animSpeed) {
+    animSpeed.addEventListener("input", (e) => {
+      updateAnimationSpeed(e.target.value);
+    });
+  }
+
+  speedChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      if (animSpeed) {
+        animSpeed.value = chip.dataset.speed;
+        updateAnimationSpeed(chip.dataset.speed);
+      }
+    });
+  });
+
   fontName.addEventListener("change", updateLiveSubtitlePreview);
-  animationStyle.addEventListener("change", updateLiveSubtitlePreview);
+  animationStyle.addEventListener("change", () => {
+    updateLiveSubtitlePreview();
+    restartPreviewCycle();
+  });
 
   primaryColor.addEventListener("input", (e) => {
     primaryColorText.innerText = e.target.value.toUpperCase();
@@ -1523,6 +1584,7 @@ document.addEventListener("DOMContentLoaded", () => {
       margin_v: parseInt(marginV.value) || 420,
       words_per_line: parseInt(wordsPerLine.value) || 3,
       animation_style: animationStyle.value || "karaoke_pop",
+      animation_speed: parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0,
       background_mode: backgroundMode.value || "transparent",
       custom_color_hex: customColorHex.value,
       aspect_ratio: aspectRatio.value || "9:16"

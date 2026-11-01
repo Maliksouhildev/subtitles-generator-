@@ -67,6 +67,7 @@ class RenderRequest(BaseModel):
     pos_y: Optional[int] = None
     words_per_line: int = 3
     animation_style: str = "karaoke_pop"
+    animation_speed: float = 1.0
     background_mode: str = "green_screen"
     custom_color_hex: Optional[str] = None
     aspect_ratio: str = "9:16"
@@ -219,6 +220,7 @@ async def render_subtitles(req: RenderRequest):
             pos_y=req.pos_y,
             words_per_line=req.words_per_line,
             animation_style=req.animation_style,
+            animation_speed=req.animation_speed,
             video_width=w,
             video_height=h
         )

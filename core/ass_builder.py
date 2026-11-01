@@ -71,7 +71,8 @@ class ASSSubtitleBuilder:
         animation_style: str = "karaoke_pop",  # "karaoke_pop", "bouncy_spring", "neon_glow", "color_flash", "box_highlight", "word_reveal", "classic_line"
         video_width: int = 1080,
         video_height: int = 1920,
-        pos_y: Optional[int] = None
+        pos_y: Optional[int] = None,
+        animation_speed: float = 1.0
     ):
         self.font_name = font_name
         self.font_size = font_size
@@ -91,6 +92,7 @@ class ASSSubtitleBuilder:
         self.animation_style = animation_style
         self.video_width = video_width
         self.video_height = video_height
+        self.animation_speed = max(0.3, min(3.0, float(animation_speed)))
 
     def generate_header(self) -> str:
         """Generates the ASS script header and style block."""
@@ -138,13 +140,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def build_karaoke_pop_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
         """
-        Builds word-by-word pop and highlight events.
+        Builds word-by-word pop and highlight events with dynamic easing.
         For Arabic / RTL text, words are arranged visually in RTL order (first spoken word on the right).
         """
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
-        pop_scale = "\\fscx115\\fscy115"
+        spd = self.animation_speed
         norm_scale = "\\fscx100\\fscy100"
 
         for chunk in chunks:
@@ -163,10 +165,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if w_end <= w_start:
                     w_end = w_start + 0.25
 
+                dur_ms = max(100, int((w_end - w_start) * 1000))
+                # Dynamic ease in and settle timings
+                t_pop = max(35, min(int(dur_ms * 0.45), int(120 / spd)))
+                t_settle = max(t_pop + 30, min(int(dur_ms * 0.8), int(220 / spd)))
+
+                # Dynamic spring ease with accel=0.6 (fast expansion) and accel=1.4 (smooth settlement)
+                active_pop_transform = (
+                    f"\\fscx100\\fscy100"
+                    f"\\t(0,{t_pop},0.6,\\fscx125\\fscy125)"
+                    f"\\t({t_pop},{t_settle},1.4,\\fscx112\\fscy112)"
+                )
+
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                # For Arabic (RTL), reverse word order in ASS line so Word 0 is rendered on the RIGHT
                 display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
 
                 formatted_words = []
@@ -174,7 +187,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     w = chunk[j]
                     word_text = w.get("word", "")
                     if j == i:
-                        formatted_words.append(f"{{{hl_tag}{pop_scale}}}{word_text}{{{pri_tag}{norm_scale}}}")
+                        formatted_words.append(f"{{{hl_tag}{active_pop_transform}}}{word_text}{{{pri_tag}{norm_scale}}}")
                     else:
                         formatted_words.append(f"{{{pri_tag}{norm_scale}}}{word_text}")
 
@@ -184,10 +197,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return events
 
     def build_word_reveal_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
-        """Builds progressive word reveal events where words appear one by one."""
+        """Builds progressive word reveal events with smooth opacity fade-in and scale pop."""
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
+        spd = self.animation_speed
 
         for chunk in chunks:
             if not chunk:
@@ -204,17 +218,27 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if w_end <= w_start:
                     w_end = w_start + 0.25
 
+                dur_ms = max(100, int((w_end - w_start) * 1000))
+                t1 = max(35, min(int(dur_ms * 0.45), int(110 / spd)))
+                t2 = max(t1 + 30, min(int(dur_ms * 0.85), int(220 / spd)))
+
+                reveal_tag = (
+                    f"\\alpha&HFF&\\fscx95\\fscy95"
+                    f"\\t(0,{t1},0.6,\\alpha&H00&\\fscx115\\fscy115)"
+                    f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
+                )
+
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                # Words revealed so far (0..i)
                 revealed_indices = list(reversed(range(i + 1))) if chunk_is_rtl else list(range(i + 1))
 
                 revealed = []
                 for j in revealed_indices:
                     w_text = chunk[j].get("word", "")
                     if j == i:
-                        revealed.append(f"{{{hl_tag}\\fscx112\\fscy112}}{w_text}{{{pri_tag}\\fscx100\\fscy100}}")
+                        formatted = f"{{{hl_tag}{reveal_tag}}}{w_text}{{{pri_tag}\\fscx100\\fscy100}}"
+                        revealed.append(formatted)
                     else:
                         revealed.append(f"{{{pri_tag}}}{w_text}")
 
@@ -224,13 +248,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return events
 
     def build_classic_line_events(self, segments: List[Dict[str, Any]]) -> List[str]:
-        """Builds classic subtitle lines with smooth fade in/out transitions."""
+        """Builds classic subtitle lines with smooth dynamic fade in/out transitions."""
         events = []
+        spd = self.animation_speed
         for seg in segments:
             start = seg.get("start", 0.0)
             end = seg.get("end", start + 2.0)
             dur_ms = max(50, int((end - start) * 1000))
-            fade_ms = min(120, max(20, int(dur_ms * 0.15)))
+            fade_ms = max(20, min(160, int((dur_ms * 0.15) / spd)))
             fade_tag = f"{{\\fad({fade_ms},{fade_ms})}}"
             start_str = format_ass_time(start)
             end_str = format_ass_time(end)
@@ -239,12 +264,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return events
 
     def build_box_highlight_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
-        """Builds box highlight style with extra border and accent color."""
+        """Builds box highlight style with fluid border expansion and accent badge."""
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
-        box_tag = f"\\bord{self.outline_width + 2}\\3c{hex_to_ass_color(self.highlight_color)}"
-        reset_box = f"\\bord{self.outline_width}\\3c{hex_to_ass_color(self.outline_color)}"
+        spd = self.animation_speed
+        hl_ass = hex_to_ass_color(self.highlight_color)
+        out_ass = hex_to_ass_color(self.outline_color)
 
         for chunk in chunks:
             if not chunk:
@@ -257,6 +283,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
                 if w_end <= w_start:
                     w_end = w_start + 0.25
+
+                dur_ms = max(100, int((w_end - w_start) * 1000))
+                t1 = max(30, min(int(dur_ms * 0.4), int(100 / spd)))
+                t2 = max(t1 + 30, min(int(dur_ms * 0.8), int(200 / spd)))
+
+                box_tag = (
+                    f"\\bord{self.outline_width}\\3c{out_ass}\\fscx100\\fscy100"
+                    f"\\t(0,{t1},0.6,\\bord{self.outline_width + 2.5}\\3c{hl_ass}\\fscx112\\fscy112)"
+                    f"\\t({t1},{t2},1.3,\\bord{self.outline_width + 2}\\3c{hl_ass}\\fscx106\\fscy106)"
+                )
+                reset_box = f"\\bord{self.outline_width}\\3c{out_ass}\\fscx100\\fscy100"
 
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
@@ -270,7 +307,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     if j == i:
                         formatted_words.append(f"{{{hl_tag}{box_tag}}}{word_text}{{{pri_tag}{reset_box}}}")
                     else:
-                        formatted_words.append(f"{{{pri_tag}}}{word_text}")
+                        formatted_words.append(f"{{{pri_tag}{reset_box}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
@@ -278,13 +315,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return events
 
     def build_bouncy_spring_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
-        """Builds energetic bouncy spring animation with vertical bounce on active word."""
+        """Builds energetic bouncy spring animation with fluid elastic bounce physics."""
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
-        # Elastic bounce scale transform
-        bounce_tag = "\\t(0,110,\\fscy130\\fscx108)\\t(110,220,\\fscy100\\fscx100)"
-        norm_tag = "\\fscx100\\fscy100"
+        spd = self.animation_speed
+        norm_tag = "\\fscx100\\fscy100\\frz0"
 
         for chunk in chunks:
             if not chunk:
@@ -297,6 +333,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
                 if w_end <= w_start:
                     w_end = w_start + 0.25
+
+                dur_ms = max(120, int((w_end - w_start) * 1000))
+                t1 = max(30, min(int(dur_ms * 0.3), int(90 / spd)))
+                t2 = max(t1 + 30, min(int(dur_ms * 0.6), int(180 / spd)))
+                t3 = max(t2 + 30, min(int(dur_ms * 0.9), int(270 / spd)))
+
+                bounce_tag = (
+                    f"\\fscx100\\fscy100\\frz0"
+                    f"\\t(0,{t1},0.5,\\fscy132\\fscx110\\frz-2)"
+                    f"\\t({t1},{t2},1.5,\\fscy96\\fscx104\\frz1)"
+                    f"\\t({t2},{t3},0.8,\\fscy104\\fscx102\\frz0)"
+                )
 
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
@@ -318,13 +366,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return events
 
     def build_neon_glow_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
-        """Builds intense luminous neon halo outline around the active word."""
+        """Builds intense luminous neon halo outline with smooth opening and closing glow ease."""
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
         hl_ass = hex_to_ass_color(self.highlight_color)
-        neon_tag = f"\\bord{self.outline_width + 3}\\3c{hl_ass}\\blur3\\fscx112\\fscy112"
-        norm_tag = f"\\bord{self.outline_width}\\3c{hex_to_ass_color(self.outline_color)}\\blur0\\fscx100\\fscy100"
+        out_ass = hex_to_ass_color(self.outline_color)
+        spd = self.animation_speed
 
         for chunk in chunks:
             if not chunk:
@@ -338,6 +386,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if w_end <= w_start:
                     w_end = w_start + 0.25
 
+                dur_ms = max(100, int((w_end - w_start) * 1000))
+                t1 = max(35, min(int(dur_ms * 0.4), int(120 / spd)))
+                t2 = max(t1 + 35, min(int(dur_ms * 0.8), int(240 / spd)))
+
+                neon_tag = (
+                    f"\\bord{self.outline_width}\\3c{out_ass}\\blur0\\fscx100\\fscy100"
+                    f"\\t(0,{t1},0.6,\\bord{self.outline_width + 4}\\3c{hl_ass}\\blur4\\fscx114\\fscy114)"
+                    f"\\t({t1},{t2},1.3,\\bord{self.outline_width + 2.5}\\3c{hl_ass}\\blur2.5\\fscx108\\fscy108)"
+                )
+                reset_neon = f"\\bord{self.outline_width}\\3c{out_ass}\\blur0\\fscx100\\fscy100"
+
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
@@ -348,9 +407,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     w = chunk[j]
                     word_text = w.get("word", "")
                     if j == i:
-                        formatted_words.append(f"{{{hl_tag}{neon_tag}}}{word_text}{{{pri_tag}{norm_tag}}}")
+                        formatted_words.append(f"{{{hl_tag}{neon_tag}}}{word_text}{{{pri_tag}{reset_neon}}}")
                     else:
-                        formatted_words.append(f"{{{pri_tag}{norm_tag}}}{word_text}")
+                        formatted_words.append(f"{{{pri_tag}{reset_neon}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
@@ -358,11 +417,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return events
 
     def build_color_flash_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
-        """Builds high-contrast dual-color flashing effect (alternates yellow & cyan)."""
+        """Builds high-contrast dynamic color flash with fluid chromatic pulse."""
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_ass = hex_to_ass_color(self.highlight_color)
-        flash_tag = f"\\c{hl_ass}\\t(0,140,\\c&H00FFFF00&)\\t(140,280,\\c{hl_ass})\\fscx115\\fscy115"
+        spd = self.animation_speed
         norm_tag = f"{pri_tag}\\fscx100\\fscy100"
 
         for chunk in chunks:
@@ -376,6 +435,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
                 if w_end <= w_start:
                     w_end = w_start + 0.25
+
+                dur_ms = max(100, int((w_end - w_start) * 1000))
+                t1 = max(30, min(int(dur_ms * 0.35), int(100 / spd)))
+                t2 = max(t1 + 30, min(int(dur_ms * 0.75), int(200 / spd)))
+
+                flash_tag = (
+                    f"\\c{hl_ass}\\fscx100\\fscy100"
+                    f"\\t(0,{t1},0.6,\\c&H00FFFF00&\\fscx120\\fscy120)"
+                    f"\\t({t1},{t2},1.4,\\c{hl_ass}\\fscx108\\fscy108)"
+                )
 
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
