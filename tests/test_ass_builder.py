@@ -110,7 +110,7 @@ def test_ass_builder_sub_box_styles():
     # 2. None style -> BorderStyle=1
     builder_none = ASSSubtitleBuilder(sub_box_style="none")
     ass_none = builder_none.generate_ass(data)
-    assert ",1,3.5,2.0," in ass_none
+    assert ",1,2.4,2.2," in ass_none
 
     # 3. Deep shadow style -> BorderStyle=1 with shadow 5.0
     builder_shadow = ASSSubtitleBuilder(sub_box_style="shadow", sub_box_color="#000000")
@@ -163,12 +163,39 @@ def test_ass_builder_rtl_ordering():
         ]
     }
     ass_text = builder.generate_ass(data)
-    # Words must be in authentic natural logical order (first spoken word first in string)
-    # so FriBidi in libass typesets them right-to-left correctly (first word at right margin)
+    # In libass, override-tagged chunks are laid out strictly left-to-right across the screen.
+    # To place the first spoken Arabic word ("سلام") on the far right (X = max),
+    # the words are placed in visual LTR file order: [خاوتنا, عليكم, سلام].
     event_lines = [l for l in ass_text.splitlines() if l.startswith("Dialogue: 0,0:00:00.00")]
     assert len(event_lines) == 1
     ev = event_lines[0]
-    assert ev.index("سلام") < ev.index("عليكم") < ev.index("خاوتنا")
+    assert ev.index("خاوتنا") < ev.index("عليكم") < ev.index("سلام")
+
+
+def test_resolve_visual_word_order_mixed_bidi():
+    from core.ass_builder import resolve_visual_word_order
+
+    # 1. Pure Arabic 2 words: ['المستوى', 'الافريقي']
+    chunk1 = [{"word": "المستوى"}, {"word": "الافريقي"}]
+    assert resolve_visual_word_order(chunk1, in_rtl_context=True) == [1, 0]
+
+    # 2. Pure Arabic 4 words: ['ما', 'كاين', 'حتى', 'إشكال']
+    chunk2 = [{"word": "ما"}, {"word": "كاين"}, {"word": "حتى"}, {"word": "إشكال"}]
+    assert resolve_visual_word_order(chunk2, in_rtl_context=True) == [3, 2, 1, 0]
+
+    # 3. Arabic then French: ['بهذا', 'le', 'premier', 'test']
+    # French loanwords preserve internal LTR order [le, premier, test] = indices [1, 2, 3]
+    # In RTL screen layout, Arabic word 0 ('بهذا') is on the far right, so French run comes first in visual LTR order.
+    chunk3 = [{"word": "بهذا"}, {"word": "le"}, {"word": "premier"}, {"word": "test"}]
+    assert resolve_visual_word_order(chunk3, in_rtl_context=True) == [1, 2, 3, 0]
+
+    # 4. French then Arabic: ['le', 'premier', 'test', 'بهذا']
+    # Arabic word 3 is on the far right, so French run [0, 1, 2] is placed on the left in visual LTR order.
+    chunk4 = [{"word": "le"}, {"word": "premier"}, {"word": "test"}, {"word": "بهذا"}]
+    assert resolve_visual_word_order(chunk4, in_rtl_context=True) == [3, 0, 1, 2]
+
+    # 5. Non-RTL context (English/French speech): strictly chronological
+    assert resolve_visual_word_order(chunk3, in_rtl_context=False) == [0, 1, 2, 3]
 
 
 def test_ass_builder_bidi_loanword_isolation():

@@ -508,12 +508,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // STYLE PRESETS
   const PRESETS = {
-    gold: { primary: "#FFFFFF", highlight: "#FFE600", font: "Cairo", anim: "karaoke_pop", align: "2", margin: 280 },
-    cyan: { primary: "#FFFFFF", highlight: "#00F0FF", font: "Tajawal", anim: "karaoke_pop", align: "2", margin: 280 },
-    coral: { primary: "#FFFFFF", highlight: "#FF3366", font: "Cairo", anim: "karaoke_pop", align: "2", margin: 280 },
-    lime: { primary: "#FFFFFF", highlight: "#00FF66", font: "Almarai", anim: "word_reveal", align: "2", margin: 280 },
-    comic: { primary: "#F4EBD9", highlight: "#EAA838", font: "Plus Jakarta Sans", anim: "box_highlight", align: "2", margin: 280 },
-    white: { primary: "#F5F5F5", highlight: "#FACC15", font: "Cairo", anim: "classic_line", align: "2", margin: 280 }
+    gold: { primary: "#FFFFFF", highlight: "#FFE600", font: "Lalezar", anim: "karaoke_pop", align: "2", margin: 420 },
+    cyan: { primary: "#FFFFFF", highlight: "#00F0FF", font: "Tajawal", anim: "karaoke_pop", align: "2", margin: 420 },
+    coral: { primary: "#FFFFFF", highlight: "#FF8A00", font: "Lalezar", anim: "bouncy_spring", align: "2", margin: 420 },
+    lime: { primary: "#FFFFFF", highlight: "#00FF9D", font: "Almarai", anim: "karaoke_pop", align: "2", margin: 420 },
+    comic: { primary: "#FFFFFF", highlight: "#FFE600", font: "Lalezar", anim: "box_highlight", align: "2", margin: 420 },
+    white: { primary: "#FFFFFF", highlight: "#FFE600", font: "Cairo", anim: "classic_line", align: "2", margin: 420 }
   };
 
   presetButtons.forEach(btn => {
@@ -1711,11 +1711,12 @@ document.addEventListener("DOMContentLoaded", () => {
       highlight_color: highlightColor.value,
       outline_color: "#000000",
       shadow_color: "#000000",
-      outline_width: 3.5,
-      shadow_depth: 2.0,
+      outline_width: 2.4,
+      shadow_depth: 2.2,
       alignment: parseInt(alignment.value) || 2,
       margin_v: parseInt(marginV.value) || 420,
-      words_per_line: parseInt(wordsPerLine.value) || 3,
+      pos_y: Math.max(30, 1920 - (parseInt(marginV.value) || 420)),
+      words_per_line: parseInt(wordsPerLine.value) || 4,
       animation_style: animationStyle.value || "karaoke_pop",
       animation_speed: parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0,
       sub_box_style: subBoxStyle ? subBoxStyle.value : "none",

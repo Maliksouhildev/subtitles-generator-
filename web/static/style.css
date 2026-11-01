@@ -1381,31 +1381,38 @@ html, body {
   filter: drop-shadow(3px 3px 0px var(--sub-box-color, #000000));
 }
 
+.live-subtitle-box.is-rtl {
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
 .live-subtitle-box.is-ltr {
   direction: ltr;
   unicode-bidi: normal;
 }
 
 .sub-word {
-  font-family: 'Cairo', 'Lalezar', sans-serif;
+  font-family: 'Lalezar', 'Cairo', sans-serif;
   font-weight: 900;
   font-size: 11px;
   color: #FFFFFF;
-  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  -webkit-text-stroke: 1.2px #000;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
   transition: transform 0.15s ease, color 0.15s ease;
   display: inline-block;
 }
 
-.sub-word.active {
-  color: var(--amber);
-  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
+.sub-word.bidi-isolate {
+  direction: ltr;
+  unicode-bidi: isolate;
+  margin: 0 2px;
 }
 
-.pos-snap-btn.active {
-  background: var(--amber);
-  color: var(--pitch-black);
-  box-shadow: 2px 2px 0 var(--pitch-black);
-  font-weight: 900;
+.sub-word.active {
+  color: var(--amber);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
 /* SUB-COLUMN 2: Controls & Form Grid */

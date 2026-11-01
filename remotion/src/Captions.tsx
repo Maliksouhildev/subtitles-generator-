@@ -101,9 +101,9 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
   const primaryColor = style.primary_color || "#FFFFFF";
   const highlightColor = style.highlight_color || "#FFE600";
   const outlineColor = style.outline_color || "#000000";
-  const outlineWidth = style.outline_width ?? 3.5;
+  const outlineWidth = style.outline_width ?? 2.4;
   const marginV = style.margin_v ?? 420;
-  const wordsPerLine = style.words_per_line ?? 3;
+  const wordsPerLine = style.words_per_line ?? 4;
   const subBoxStyle = style.sub_box_style || "none";
   const subBoxColor = style.sub_box_color || "#000000";
   const subBoxAlpha = style.sub_box_alpha ?? 0.85;
@@ -154,7 +154,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
       const chunk = chunks[i];
       const nextChunkStart = i + 1 < chunks.length ? chunks[i + 1].start : null;
       const naturalEnd = chunk.end;
-      const minHold = chunk.start + 0.65;
+      const minHold = chunk.start + 0.85;
       const effectiveEnd = nextChunkStart
         ? Math.min(nextChunkStart - 0.05, Math.max(naturalEnd, minHold))
         : Math.max(naturalEnd, minHold);
@@ -242,70 +242,104 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
             maxWidth: "92%",
           }}
         >
-          {activeChunkInfo.words.map((w, idx) => {
-            const isSpoken = currentTime >= w.start && currentTime <= w.end;
-            const isLatin = LATIN_REGEX.test(w.word);
+          {(() => {
+            // Group continuous words into runs of Latin vs Arabic
+            const runs: Array<{ isLatin: boolean; words: WordToken[] }> = [];
+            let currentRun: WordToken[] = [];
+            let currentIsLatin: boolean | null = null;
 
-            // Remotion Spring Physics (stiffness: 180, damping: 10, mass: 0.8)
-            const wordStartFrame = Math.round(w.start * fps);
-            const springProgress = spring({
-              fps,
-              frame: Math.max(0, frame - wordStartFrame),
-              config: { stiffness: 180, damping: 10, mass: 0.8 },
-            });
+            for (const w of activeChunkInfo.words) {
+              const isLatin = LATIN_REGEX.test(w.word);
+              if (currentIsLatin === null || isLatin === currentIsLatin) {
+                currentRun.push(w);
+                currentIsLatin = isLatin;
+              } else {
+                runs.push({ isLatin: currentIsLatin, words: currentRun });
+                currentRun = [w];
+                currentIsLatin = isLatin;
+              }
+            }
+            if (currentRun.length > 0 && currentIsLatin !== null) {
+              runs.push({ isLatin: currentIsLatin, words: currentRun });
+            }
 
-            // Scale progression: Overshoot 1.30 -> Recoil -> Resting 1.10
-            const activeScale = interpolate(springProgress, [0, 0.4, 0.8, 1], [1.0, 1.30, 1.07, 1.12]);
-            const scale = isSpoken ? activeScale : 1.0;
-            const color = isSpoken ? highlightColor : primaryColor;
+            return runs.map((run, rIdx) => {
+              const renderWord = (w: WordToken, wIdx: number) => {
+                const isSpoken = currentTime >= w.start && currentTime <= w.end;
+                const isLatin = LATIN_REGEX.test(w.word);
 
-            const textStroke = `${outlineWidth}px ${outlineColor}`;
-            const textShadow = `
-              -${outlineWidth}px -${outlineWidth}px 0 ${outlineColor},
-               ${outlineWidth}px -${outlineWidth}px 0 ${outlineColor},
-              -${outlineWidth}px  ${outlineWidth}px 0 ${outlineColor},
-               ${outlineWidth}px  ${outlineWidth}px 0 ${outlineColor},
-               0px 4px 10px rgba(0, 0, 0, 0.75)
-            `;
+                // Remotion Spring Physics (stiffness: 180, damping: 10, mass: 0.8)
+                const wordStartFrame = Math.round(w.start * fps);
+                const springProgress = spring({
+                  fps,
+                  frame: Math.max(0, frame - wordStartFrame),
+                  config: { stiffness: 180, damping: 10, mass: 0.8 },
+                });
 
-            return (
-              <span
-                key={idx}
-                style={{
-                  display: "inline-block",
-                  transform: `scale(${scale})`,
-                  transformOrigin: "center bottom",
-                  color,
-                  fontSize: `${fontSize}px`,
-                  fontWeight: 900,
-                  textShadow,
-                  WebkitTextStroke: textStroke,
-                  letterSpacing: isLatin ? "1px" : "0.5px",
-                  lineHeight: 1.15,
-                  transition: "color 0.08s ease",
-                  userSelect: "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {isLatin ? (
-                  /* BiDi Isolation Container: Prevents French/English loanwords from jumbling adjacent Arabic */
+                // Scale progression: Overshoot 1.30 -> Recoil -> Resting 1.10
+                const activeScale = interpolate(springProgress, [0, 0.4, 0.8, 1], [1.0, 1.30, 1.07, 1.12]);
+                const scale = isSpoken ? activeScale : 1.0;
+                const color = isSpoken ? highlightColor : primaryColor;
+
+                const textStroke = `${outlineWidth}px ${outlineColor}`;
+                const textShadow = `
+                  -${outlineWidth}px -${outlineWidth}px 0 ${outlineColor},
+                   ${outlineWidth}px -${outlineWidth}px 0 ${outlineColor},
+                  -${outlineWidth}px  ${outlineWidth}px 0 ${outlineColor},
+                   ${outlineWidth}px  ${outlineWidth}px 0 ${outlineColor},
+                   0px 4px 10px rgba(0, 0, 0, 0.75)
+                `;
+
+                return (
                   <span
-                    dir="ltr"
+                    key={wIdx}
                     style={{
                       display: "inline-block",
-                      direction: "ltr",
-                      unicodeBidi: "isolate",
-                      margin: "0 4px",
+                      transform: `scale(${scale})`,
+                      transformOrigin: "center bottom",
+                      color,
+                      fontSize: `${fontSize}px`,
+                      fontWeight: 900,
+                      textShadow,
+                      WebkitTextStroke: textStroke,
+                      letterSpacing: isLatin ? "1px" : "0.5px",
+                      lineHeight: 1.15,
+                      transition: "color 0.08s ease",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {w.word}
                   </span>
-                ) : (
-                  w.word
-                )}
-              </span>
-            );
-          })}
+                );
+              };
+
+              if (run.isLatin) {
+                return (
+                  <span
+                    key={rIdx}
+                    dir="ltr"
+                    style={{
+                      display: "inline-flex",
+                      direction: "ltr",
+                      unicodeBidi: "isolate",
+                      alignItems: "center",
+                      gap: "8px",
+                      margin: "0 4px",
+                    }}
+                  >
+                    {run.words.map((w, wIdx) => renderWord(w, wIdx))}
+                  </span>
+                );
+              }
+
+              return (
+                <React.Fragment key={rIdx}>
+                  {run.words.map((w, wIdx) => renderWord(w, wIdx))}
+                </React.Fragment>
+              );
+            });
+          })()}
         </div>
       )}
     </div>
