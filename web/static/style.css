@@ -439,7 +439,7 @@ html, body {
 }
 
 /* Custom Neo-Brutalist Comic Scrollbars (Universal - Replaces all native white OS scrollbars) */
-*,
+html, body, :root, *,
 *::before,
 *::after {
   scrollbar-width: thin;
@@ -448,8 +448,9 @@ html, body {
 
 ::-webkit-scrollbar,
 *::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
+  background-color: var(--bg-card-inner);
 }
 
 ::-webkit-scrollbar-track,
@@ -840,15 +841,14 @@ html, body {
 .comic-video-player-box {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
+  gap: 7px;
+  flex-shrink: 0;
+  width: 100%;
 }
 
 .video-frame {
-  flex: 1;
-  min-height: 150px;
-  max-height: 240px;
+  height: 180px;
+  max-height: 200px;
   border: var(--border-thick);
   border-radius: var(--radius-sm);
   background: #000;
@@ -857,6 +857,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .video-frame video {
@@ -865,13 +866,22 @@ html, body {
   object-fit: contain;
 }
 
+/* Balanced 2-Row Download Grid (5 buttons perfectly distributed across 6 units) */
 .download-action-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+  width: 100%;
+  flex-shrink: 0;
 }
 
-/* Word & Timing Editor Drawer */
+.download-action-grid #downloadVideoBtn { grid-column: span 3; }
+.download-action-grid #downloadAssBtn { grid-column: span 3; }
+.download-action-grid #downloadSrtBtn { grid-column: span 2; }
+.download-action-grid #downloadJsonBtn { grid-column: span 2; }
+.download-action-grid #downloadRemotionBtn { grid-column: span 2; }
+
+/* Word & Timing Editor Drawer (Clean, non-collapsing, strictly beneath video player) */
 .comic-editor-drawer {
   background: var(--bg-card-inner);
   border: var(--border-thick);
@@ -881,8 +891,12 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  max-height: 140px;
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 110px;
+  max-height: 165px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
 }
 
 .editor-top-bar {
@@ -890,7 +904,8 @@ html, body {
   align-items: center;
   justify-content: space-between;
   border-bottom: 2px solid var(--pitch-black);
-  padding-bottom: 3px;
+  padding-bottom: 4px;
+  flex-shrink: 0;
 }
 
 .editor-heading {
@@ -899,6 +914,7 @@ html, body {
   gap: 5px;
   font-size: 11.5px;
   font-weight: 800;
+  color: var(--text-main);
 }
 
 .comic-segments-list {
@@ -906,7 +922,9 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  max-height: 95px;
+  flex: 1;
+  min-height: 60px;
+  max-height: 110px;
   padding-right: 3px;
 }
 
@@ -955,9 +973,9 @@ html, body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 226px 1fr;
+  grid-template-columns: 218px 1fr;
   gap: 10px;
-  padding: 6px 10px 8px;
+  padding: 4px 8px 6px;
   align-items: stretch;
   overflow-y: auto;
 }
@@ -1056,8 +1074,8 @@ html, body {
 
 /* Simulated Phone Device (Exact Modern 19.5:9 Smartphone Screen) */
 .phone-device {
-  width: 196px;
-  height: 406px;
+  width: 188px;
+  height: 390px;
   background: var(--phone-bg);
   border: 2.5px solid var(--pitch-black);
   border-radius: 22px;
@@ -1450,7 +1468,7 @@ html, body {
 .subcol-controls {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3.5px;
 }
 
 /* Presets Box */
@@ -1526,7 +1544,7 @@ html, body {
 .controls-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3px 8px;
+  gap: 2.5px 8px;
 }
 
 .grid-col {
@@ -1928,7 +1946,6 @@ html, body {
   100% {
     transform: translateY(0) scale(1.10, 1.0);
     color: var(--highlight-preview, #FFE600);
-  }
   }
 }
 
