@@ -1,248 +1,670 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr" class="theme-dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DZ Subtitles AI - مولّد الترجمة الجزائرية المتحركة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DZ Subtitles AI - Viral Animated Subtitles Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Cairo:wght@600;700;900&family=Tajawal:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Top Header -->
-    <header class="header">
-      <div class="brand">
-        <div class="brand-icon">🎙️</div>
-        <div class="brand-text">
-          <h1>DZ Subtitles AI <span class="badge">الدارجة الجزائرية</span></h1>
-          <p>مولّد الترجمة المتحركة للدارجة الجزائرية بتقنية Gemini AI مع كروما خضراء وبلاك سكرين</p>
+  <div class="comic-app-shell">
+    <!-- Top Comic Navigation Bar -->
+    <header class="comic-header">
+      <div class="header-left">
+        <div class="brand-badge">
+          <svg class="brand-star" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
+          </svg>
+          <span class="brand-title">DZ SUBTITLES <span class="brand-accent">AI</span></span>
+          <span class="comic-pill" data-i18n="header_badge">STUDIO</span>
         </div>
+        <p class="brand-tagline" data-i18n="brand_tagline">Auto Animated Subtitles & Safe-Zone Phone Simulation</p>
       </div>
-      <div class="header-actions">
-        <button id="guideBtn" class="btn btn-secondary">📖 دليل الاستخدام</button>
-        <a href="https://github.com/Maliksouhildev/subtitles-generator-" target="_blank" class="btn btn-secondary">⭐ GitHub</a>
+
+      <div class="header-right">
+        <!-- Language Switcher -->
+        <div class="lang-switch-group" role="group" aria-label="Language Selector">
+          <span class="lang-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </span>
+          <button type="button" class="lang-btn active" data-lang="en">EN</button>
+          <button type="button" class="lang-btn" data-lang="fr">FR</button>
+          <button type="button" class="lang-btn" data-lang="ar">عربي</button>
+        </div>
+
+        <!-- Dark / Light Mode Switch -->
+        <button type="button" id="themeToggleBtn" class="comic-btn comic-btn-sm comic-btn-neutral" title="Toggle Theme" aria-label="Toggle Theme">
+          <span class="theme-icon sun-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </span>
+          <span class="theme-icon moon-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </span>
+          <span class="btn-text" id="themeLabel">Dark</span>
+        </button>
+
+        <!-- Guide Modal Button -->
+        <button type="button" id="guideBtn" class="comic-btn comic-btn-sm comic-btn-terracotta">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span data-i18n="btn_guide">Guide</span>
+        </button>
+
+        <!-- GitHub Button -->
+        <a href="https://github.com/Maliksouhildev/subtitles-generator-" target="_blank" class="comic-btn comic-btn-sm comic-btn-amber" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
       </div>
     </header>
 
-    <!-- Main Grid -->
-    <main class="main-grid">
-      <!-- Left Column: Controls & Configuration -->
-      <section class="card controls-panel" dir="ltr">
-        <h2 class="card-title">⚙️ Subtitle & Video Settings</h2>
+    <!-- Main Workspace (Single Screen No-Scroll Fit) -->
+    <main class="comic-workspace">
+      <!-- LEFT PANEL: Studio, Loading Text, Results & Subtitle Editor -->
+      <section class="comic-card left-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <span class="comic-chip comic-chip-terracotta">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+            </span>
+            <h2 class="panel-title" data-i18n="studio_title">Studio & Output Preview</h2>
+          </div>
+          <span class="comic-stamp" data-i18n="studio_subtitle">GENERATOR</span>
+        </div>
 
         <!-- File Upload Zone -->
-        <div class="upload-zone" id="dropZone">
+        <div class="comic-dropzone" id="dropZone">
           <input type="file" id="fileInput" accept="audio/*,video/*" hidden>
-          <div class="upload-content">
-            <div class="upload-icon">📁</div>
-            <p class="upload-title">Drag & drop Audio / Video here</p>
-            <p class="upload-subtitle">Supports MP3, WAV, AAC, MP4, MOV, MKV, WebM</p>
-            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()">Browse File</button>
-          </div>
-          <div id="fileInfo" class="file-info hidden">
-            <span id="fileIcon">🎵</span>
-            <span id="fileName">sample.mp3</span>
-            <span id="fileSize" class="tag">0 MB</span>
-            <button type="button" class="btn-icon" id="removeFileBtn" title="Remove file">✕</button>
-          </div>
-        </div>
-
-        <!-- Presets Row -->
-        <div class="control-group">
-          <label class="control-label">⚡ Style Presets (Viral Shorts & Reels)</label>
-          <div class="preset-buttons">
-            <button type="button" class="btn-preset active" data-preset="gold">🌟 TikTok Gold</button>
-            <button type="button" class="btn-preset" data-preset="cyan">⚡ Cyber Cyan</button>
-            <button type="button" class="btn-preset" data-preset="coral">🔥 Hot Coral</button>
-            <button type="button" class="btn-preset" data-preset="lime">🍏 Lime Punch</button>
-            <button type="button" class="btn-preset" data-preset="white">⚪ Classic</button>
-          </div>
-        </div>
-
-        <!-- Canvas & Background Mode -->
-        <div class="grid-2">
-          <div class="control-group">
-            <label class="control-label" for="backgroundMode">Background Mode</label>
-            <select id="backgroundMode" class="form-select">
-              <option value="green_screen" selected>🟩 Green Screen (Chroma Key)</option>
-              <option value="black">⬛ Black Screen (Screen Blend)</option>
-              <option value="blue">🟦 Blue Screen</option>
-              <option value="original_video">🎬 Original Video (Burn In)</option>
-              <option value="transparent">🔲 Transparent Alpha (WebM/MOV)</option>
-              <option value="custom">🎯 Custom Hex Color</option>
-            </select>
-          </div>
-          <div class="control-group" id="customColorGroup" style="display: none;">
-            <label class="control-label" for="customColorHex">Custom Color</label>
-            <input type="color" id="customColorHex" value="#1a1a24" class="form-color">
-          </div>
-          <div class="control-group">
-            <label class="control-label" for="aspectRatio">Aspect Ratio</label>
-            <select id="aspectRatio" class="form-select">
-              <option value="9:16" selected>📱 9:16 (Shorts / Reels / TikTok)</option>
-              <option value="16:9">💻 16:9 (Landscape / YouTube)</option>
-              <option value="1:1">⏹️ 1:1 (Square)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Font & Pacing -->
-        <div class="grid-2">
-          <div class="control-group">
-            <label class="control-label" for="fontName">Arabic Font</label>
-            <select id="fontName" class="form-select">
-              <option value="Cairo" selected>Cairo (Bold & Modern)</option>
-              <option value="Tajawal">Tajawal (Clean & Minimal)</option>
-              <option value="Almarai">Almarai (Crisp UI)</option>
-              <option value="Amiri">Amiri (Classical Naskh)</option>
-            </select>
-          </div>
-          <div class="control-group">
-            <label class="control-label" for="fontSize">Font Size (<span id="fontSizeVal">56</span>px)</label>
-            <input type="range" id="fontSize" min="28" max="96" value="56" class="form-range">
-          </div>
-        </div>
-
-        <!-- Colors Pickers -->
-        <div class="grid-2">
-          <div class="control-group">
-            <label class="control-label" for="primaryColor">Main Text Color</label>
-            <div class="color-input-wrapper">
-              <input type="color" id="primaryColor" value="#FFFFFF" class="form-color">
-              <span id="primaryColorText">#FFFFFF</span>
+          <div class="dropzone-body">
+            <div class="dropzone-icon-box">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
             </div>
-          </div>
-          <div class="control-group">
-            <label class="control-label" for="highlightColor">Active Word Highlight</label>
-            <div class="color-input-wrapper">
-              <input type="color" id="highlightColor" value="#FFE600" class="form-color">
-              <span id="highlightColorText">#FFE600</span>
+            <div class="dropzone-texts">
+              <p class="dropzone-title" data-i18n="dropzone_title">Drag & drop Audio or Video here</p>
+              <p class="dropzone-sub" data-i18n="dropzone_formats">Supports MP3, WAV, AAC, MP4, MOV, MKV, WebM</p>
             </div>
+            <button type="button" class="comic-btn comic-btn-sm comic-btn-amber" onclick="document.getElementById('fileInput').click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                <polyline points="13 2 13 9 20 9"></polyline>
+              </svg>
+              <span data-i18n="btn_browse">Browse Media</span>
+            </button>
+          </div>
+
+          <!-- Selected File Strip -->
+          <div id="fileInfo" class="selected-file-strip hidden">
+            <div class="file-badge">
+              <span id="fileIconSymbol">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+              </span>
+            </div>
+            <div class="file-meta">
+              <span id="fileName" class="file-name">sample_voice.mp3</span>
+              <span id="fileSize" class="comic-tag">0.0 MB</span>
+            </div>
+            <button type="button" id="removeFileBtn" class="comic-btn-square" title="Remove File" aria-label="Remove File">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
 
-        <!-- Animation Style & Position -->
-        <div class="grid-2">
-          <div class="control-group">
-            <label class="control-label" for="animationStyle">Animation Style</label>
-            <select id="animationStyle" class="form-select">
-              <option value="karaoke_pop" selected>🚀 Karaoke Pop & Scale (TikTok)</option>
-              <option value="word_reveal">🌊 Progressive Word Reveal</option>
-              <option value="box_highlight">🔲 Box Badge Highlight</option>
-              <option value="classic_line">🎬 Classic Subtitle Line (Fade)</option>
-            </select>
+        <!-- Loading Text & Progress Tracker (As requested: "left side display the loading text as it is") -->
+        <div id="progressContainer" class="comic-progress-card hidden">
+          <div class="progress-header">
+            <div class="progress-title-wrap">
+              <span class="spinner-dot"></span>
+              <span id="progressStepBadge" class="comic-tag comic-tag-amber">Step 1/4</span>
+            </div>
+            <span id="progressPercentage" class="progress-num">0%</span>
           </div>
-          <div class="control-group">
-            <label class="control-label" for="wordsPerLine">Words Per Line</label>
-            <select id="wordsPerLine" class="form-select">
-              <option value="2">2 Words (Fast Pacing)</option>
-              <option value="3" selected>3 Words (Optimal Pacing)</option>
-              <option value="4">4 Words</option>
-              <option value="5">5 Words</option>
-            </select>
+          <div class="comic-progress-track">
+            <div id="progressBar" class="comic-progress-fill"></div>
+          </div>
+          <p id="progressStatus" class="progress-status-text" data-i18n="progress_idle">Ready for processing...</p>
+        </div>
+
+        <!-- Result Video Player Container -->
+        <div id="videoContainer" class="comic-video-player-box hidden">
+          <div class="video-frame">
+            <video id="resultVideo" controls playsinline></video>
+          </div>
+          <div class="download-action-grid">
+            <a id="downloadVideoBtn" class="comic-btn comic-btn-sm comic-btn-green" download>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span data-i18n="dl_video">Video (MP4)</span>
+            </a>
+            <a id="downloadAssBtn" class="comic-btn comic-btn-sm comic-btn-cyan" download>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <span data-i18n="dl_ass">ASS Animated</span>
+            </a>
+            <a id="downloadSrtBtn" class="comic-btn comic-btn-sm comic-btn-amber" download>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span data-i18n="dl_srt">SRT File</span>
+            </a>
+            <a id="downloadJsonBtn" class="comic-btn comic-btn-sm comic-btn-terracotta" download>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+              <span data-i18n="dl_json">JSON Timings</span>
+            </a>
           </div>
         </div>
 
-        <div class="grid-2">
-          <div class="control-group">
-            <label class="control-label" for="alignment">Subtitle Position</label>
-            <select id="alignment" class="form-select">
-              <option value="2" selected>Bottom (Center)</option>
-              <option value="5">Middle (Center)</option>
-              <option value="8">Top (Center)</option>
-            </select>
+        <!-- Empty State Preview Box -->
+        <div id="emptyState" class="comic-empty-state">
+          <div class="empty-graphic">
+            <svg class="empty-star" width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
+            </svg>
+            <div class="empty-dots-pattern"></div>
           </div>
-          <div class="control-group">
-            <label class="control-label" for="dialectHint">🇩🇿 Darija Dialect Focus</label>
-            <select id="dialectHint" class="form-select">
-              <option value="General Algerian" selected>General Algerian (الجزائر العامة)</option>
-              <option value="Algiers (Centre)">Algiers / Centre (العاصمة وضواحيها)</option>
-              <option value="Oran (West)">Oran / West (وهران والغرب)</option>
-              <option value="Constantine (East)">Constantine / East (قسنطينة والشرق)</option>
-            </select>
+          <h3 class="empty-title" data-i18n="empty_title">Ready to Generate Viral Captions</h3>
+          <p class="empty-desc" data-i18n="empty_desc">Upload an audio or video file. AI transcribes speech with exact millisecond word timestamps and burns viral animated subtitles in your chosen style.</p>
+          <div class="comic-badges-row">
+            <span class="comic-pill comic-pill-sm">⚡ 100% Synced</span>
+            <span class="comic-pill comic-pill-sm">📱 Shorts & Reels</span>
+            <span class="comic-pill comic-pill-sm">🎨 Neo-Comic Style</span>
           </div>
         </div>
 
-        <!-- Gemini API Key (Optional Override) -->
-        <div class="control-group">
-          <label class="control-label" for="apiKey">
-            Gemini API Key <span class="tag tag-sm">Optional (Preconfigured on server)</span>
-          </label>
-          <input type="password" id="apiKey" class="form-input" placeholder="AIzaSy... (Leave empty to use server default key)">
+        <!-- Interactive Subtitle & Word Timing Editor -->
+        <div id="editorContainer" class="comic-editor-drawer hidden">
+          <div class="editor-top-bar">
+            <div class="editor-heading">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span data-i18n="editor_title">Word & Timing Editor</span>
+            </div>
+            <button id="reRenderBtn" class="comic-btn comic-btn-sm comic-btn-amber">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span data-i18n="btn_rerender">Re-render Edits</span>
+            </button>
+          </div>
+          <div id="segmentsList" class="comic-segments-list"></div>
         </div>
-
-        <!-- Action CTA -->
-        <button type="button" id="startBtn" class="btn btn-accent btn-lg w-full">
-          🚀 Start Generate Subtitles (ابدأ الآن)
-        </button>
       </section>
 
-      <!-- Right Column: Results & Interactive Subtitle Editor -->
-      <section class="card results-panel" dir="rtl">
-        <h2 class="card-title">🎬 النتيجة ومحرر الترجمة التفاعلي</h2>
-
-        <!-- Progress Tracker -->
-        <div id="progressContainer" class="progress-container hidden">
-          <div class="progress-bar-wrapper">
-            <div id="progressBar" class="progress-bar"></div>
+      <!-- RIGHT PANEL: Customization & Interactive Phone Simulation -->
+      <section class="comic-card right-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <span class="comic-chip comic-chip-amber">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+              </svg>
+            </span>
+            <h2 class="panel-title" data-i18n="customization_title">Subtitle & Video Customization</h2>
           </div>
-          <p id="progressStatus" class="progress-status">جاري المعالجة...</p>
+          <span class="comic-stamp" data-i18n="customization_badge">CONTROLS</span>
         </div>
 
-        <!-- Video Player Showcase -->
-        <div id="videoContainer" class="video-container hidden">
-          <video id="resultVideo" controls playsinline></video>
-          <div class="download-row">
-            <a id="downloadVideoBtn" class="btn btn-success" download>🎬 تحميل الفيديو (MP4)</a>
-            <a id="downloadAssBtn" class="btn btn-secondary" download>📝 ملف ASS المتحرك</a>
-            <a id="downloadSrtBtn" class="btn btn-secondary" download>📄 ملف SRT</a>
-            <a id="downloadJsonBtn" class="btn btn-secondary" download>📊 بيانات التوقيت (JSON)</a>
-          </div>
-        </div>
+        <div class="customization-scroll-area">
+          <!-- PHONE SIMULATION (Reels, TikTok, YouTube Shorts with Safe-Zone overlay) -->
+          <div class="phone-simulation-section">
+            <div class="sim-header">
+              <div class="sim-label-wrap">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                  <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                </svg>
+                <span class="sim-title" data-i18n="sim_heading">Phone Simulation (Safe-Zone Preview)</span>
+              </div>
+              <!-- Platform Switch Tabs -->
+              <div class="platform-tabs" role="tablist">
+                <button type="button" class="platform-tab active" data-platform="tiktok">
+                  <span>TikTok</span>
+                </button>
+                <button type="button" class="platform-tab" data-platform="reels">
+                  <span>Reels</span>
+                </button>
+                <button type="button" class="platform-tab" data-platform="shorts">
+                  <span>Shorts</span>
+                </button>
+              </div>
+            </div>
 
-        <!-- Empty State PlaceHolder -->
-        <div id="emptyState" class="empty-state">
-          <div class="empty-icon">✨</div>
-          <h3>قم برفع ملف صوتي أو فيديو للبدء</h3>
-          <p>سيقوم الذكاء الاصطناعي (Gemini) بتفريغ الصوت بالدارجة الجزائرية بدقة وتوليد ملف ترجمة متحرك متزامن مع كل كلمة بالملي ثانية.</p>
-        </div>
+            <!-- Phone Frame -->
+            <div class="phone-frame-wrapper">
+              <div class="phone-device" id="phoneDevice">
+                <!-- Top Notch & Status Bar -->
+                <div class="phone-status-bar">
+                  <span class="phone-time">9:41</span>
+                  <div class="phone-notch"></div>
+                  <div class="phone-status-icons">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.79-1.79C9.28 20.26 10.58 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+                    <svg width="14" height="10" viewBox="0 0 24 14" fill="currentColor"><rect x="0" y="0" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2" y="2" width="13" height="10" fill="currentColor"/><path d="M22 4v6" stroke="currentColor" stroke-width="2"/></svg>
+                  </div>
+                </div>
 
-        <!-- Interactive Subtitle Editor & Review Table -->
-        <div id="editorContainer" class="editor-container hidden">
-          <div class="editor-header">
-            <h3>📝 مراجعة وتعديل الترجمة (بالدارجة الجزائرية)</h3>
-            <button id="reRenderBtn" class="btn btn-primary btn-sm">⚡ إعادة رندر الفيديو بالتعديلات</button>
+                <!-- Platform Top Navigation Bar -->
+                <div class="platform-top-bar" id="platformTopBar">
+                  <div class="nav-content tiktok-top-nav">
+                    <span class="top-nav-link">Live</span>
+                    <span class="top-nav-link">Following</span>
+                    <span class="top-nav-link active">For You</span>
+                    <svg class="top-nav-search" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  </div>
+                </div>
+
+                <!-- Right Side Interaction Sidebar -->
+                <div class="phone-sidebar">
+                  <div class="side-item avatar-wrap">
+                    <div class="side-avatar"></div>
+                    <div class="follow-badge">+</div>
+                  </div>
+                  <div class="side-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff2e56"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <span>142K</span>
+                  </div>
+                  <div class="side-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    <span>2.3K</span>
+                  </div>
+                  <div class="side-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                    <span>9.8K</span>
+                  </div>
+                  <div class="side-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                    <span>18K</span>
+                  </div>
+                  <div class="side-item disc-wrap">
+                    <div class="rotating-disc"></div>
+                  </div>
+                </div>
+
+                <!-- Bottom Safe Zone Info (Username, Subscribe, Description, Sound) -->
+                <div class="phone-bottom-overlay">
+                  <div class="creator-row">
+                    <span class="creator-tag">@creator_pro</span>
+                    <button type="button" class="btn-sub-badge" data-i18n="sim_subscribe">Follow</button>
+                  </div>
+                  <p class="creator-desc" data-i18n="sim_caption">Keep captions safely above this section so UI never covers them! 🚀</p>
+                  <div class="creator-sound">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                    <span>Trending AI Voice • Original Audio</span>
+                  </div>
+                  <div class="phone-seekbar"></div>
+                </div>
+
+                <!-- Safe-Zone Visual Boundary Guide (Dashed line) -->
+                <div class="safe-zone-guide-line" id="safeZoneGuide" title="Safe Subtitle Zone Boundary">
+                  <span class="safe-zone-label" data-i18n="sim_safe_zone">SAFE SUBTITLE ZONE</span>
+                </div>
+
+                <!-- Live Subtitle Display Box (Animated and Synced!) -->
+                <div class="live-subtitle-container" id="liveSubtitleContainer">
+                  <div class="live-subtitle-box" id="liveSubtitleBox">
+                    <span class="sub-word" id="subWord1">VIRAL</span>
+                    <span class="sub-word active" id="subWord2">ANIMATED</span>
+                    <span class="sub-word" id="subWord3">CAPTIONS</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Snap Position Pills -->
+              <div class="quick-position-controls">
+                <span class="position-label" data-i18n="pos_quick">Position Snap:</span>
+                <button type="button" class="pos-snap-btn" data-pos="8" data-i18n="pos_top">Top</button>
+                <button type="button" class="pos-snap-btn" data-pos="5" data-i18n="pos_middle">Middle</button>
+                <button type="button" class="pos-snap-btn active" data-pos="2" data-i18n="pos_safe_bottom">Safe Bottom</button>
+              </div>
+            </div>
           </div>
-          <div id="segmentsList" class="segments-list"></div>
+
+          <!-- Quick Style Presets -->
+          <div class="comic-control-box">
+            <div class="control-box-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span data-i18n="presets_title">Viral Style Presets</span>
+            </div>
+            <div class="preset-pill-grid">
+              <button type="button" class="comic-preset-btn active" data-preset="gold">
+                <span class="preset-dot dot-gold"></span>
+                <span>TikTok Gold</span>
+              </button>
+              <button type="button" class="comic-preset-btn" data-preset="cyan">
+                <span class="preset-dot dot-cyan"></span>
+                <span>Cyber Cyan</span>
+              </button>
+              <button type="button" class="comic-preset-btn" data-preset="coral">
+                <span class="preset-dot dot-coral"></span>
+                <span>Hot Coral</span>
+              </button>
+              <button type="button" class="comic-preset-btn" data-preset="lime">
+                <span class="preset-dot dot-lime"></span>
+                <span>Lime Punch</span>
+              </button>
+              <button type="button" class="comic-preset-btn" data-preset="comic">
+                <span class="preset-dot dot-terracotta"></span>
+                <span>Comic Pop</span>
+              </button>
+              <button type="button" class="comic-preset-btn" data-preset="white">
+                <span class="preset-dot dot-white"></span>
+                <span>Classic White</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Configuration Controls Form -->
+          <div class="controls-form-grid">
+            <!-- Row 1: Speech Language & Subtitle Position -->
+            <div class="grid-col">
+              <label class="comic-label" for="dialectHint">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <span data-i18n="ctrl_lang">Speech Language</span>
+              </label>
+              <select id="dialectHint" class="comic-select">
+                <option value="General Algerian" selected>🇩🇿 Algerian Darija (الدارجة الجزائرية)</option>
+                <option value="Modern Standard Arabic">🇸🇦 Modern Standard Arabic (العربية الفصحى)</option>
+                <option value="French">🇫🇷 French (Français)</option>
+                <option value="English">🇬🇧 English (English)</option>
+              </select>
+            </div>
+
+            <div class="grid-col">
+              <label class="comic-label" for="alignment">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                <span data-i18n="ctrl_pos">Subtitle Position</span>
+              </label>
+              <select id="alignment" class="comic-select">
+                <option value="2" selected>Bottom (Safe Zone above UI)</option>
+                <option value="5">Center (Middle)</option>
+                <option value="8">Top (Header)</option>
+              </select>
+            </div>
+
+            <!-- Row 2: Vertical Margin Fine-Tune & Font Name -->
+            <div class="grid-col">
+              <div class="label-with-val">
+                <label class="comic-label" for="marginV">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                  <span data-i18n="ctrl_margin">Vertical Margin</span>
+                </label>
+                <span id="marginVVal" class="comic-tag">280px</span>
+              </div>
+              <input type="range" id="marginV" min="40" max="500" value="280" class="comic-slider">
+            </div>
+
+            <div class="grid-col">
+              <label class="comic-label" for="fontName">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                <span data-i18n="ctrl_font">Font Family</span>
+              </label>
+              <select id="fontName" class="comic-select">
+                <option value="Cairo" selected>Cairo (Bold & Viral)</option>
+                <option value="Tajawal">Tajawal (Clean Modern)</option>
+                <option value="Almarai">Almarai (Crisp UI)</option>
+                <option value="Amiri">Amiri (Naskh Classic)</option>
+                <option value="Plus Jakarta Sans">Plus Jakarta Sans (Latin Punch)</option>
+              </select>
+            </div>
+
+            <!-- Row 3: Font Size & Animation Style -->
+            <div class="grid-col">
+              <div class="label-with-val">
+                <label class="comic-label" for="fontSize">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                  <span data-i18n="ctrl_fontsize">Font Size</span>
+                </label>
+                <span id="fontSizeVal" class="comic-tag">56px</span>
+              </div>
+              <input type="range" id="fontSize" min="28" max="96" value="56" class="comic-slider">
+            </div>
+
+            <div class="grid-col">
+              <label class="comic-label" for="animationStyle">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span data-i18n="ctrl_anim">Animation Style</span>
+              </label>
+              <select id="animationStyle" class="comic-select">
+                <option value="karaoke_pop" selected>🚀 Karaoke Pop & Scale (TikTok)</option>
+                <option value="word_reveal">🌊 Progressive Word Reveal</option>
+                <option value="box_highlight">🔲 Box Badge Highlight</option>
+                <option value="classic_line">🎬 Classic Subtitle Line (Fade)</option>
+              </select>
+            </div>
+
+            <!-- Row 4: Colors -->
+            <div class="grid-col">
+              <label class="comic-label" for="primaryColor">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+                <span data-i18n="ctrl_textcolor">Main Text Color</span>
+              </label>
+              <div class="comic-color-picker-wrap">
+                <input type="color" id="primaryColor" value="#FFFFFF" class="comic-color-input">
+                <span id="primaryColorText" class="color-hex-tag">#FFFFFF</span>
+                <div class="quick-swatches">
+                  <span class="swatch-dot" data-target="primary" data-color="#FFFFFF" style="background: #FFFFFF;"></span>
+                  <span class="swatch-dot" data-target="primary" data-color="#F5EEDB" style="background: #F5EEDB;"></span>
+                  <span class="swatch-dot" data-target="primary" data-color="#111111" style="background: #111111;"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-col">
+              <label class="comic-label" for="highlightColor">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                <span data-i18n="ctrl_highlight">Active Word Highlight</span>
+              </label>
+              <div class="comic-color-picker-wrap">
+                <input type="color" id="highlightColor" value="#FFE600" class="comic-color-input">
+                <span id="highlightColorText" class="color-hex-tag">#FFE600</span>
+                <div class="quick-swatches">
+                  <span class="swatch-dot" data-target="highlight" data-color="#FFE600" style="background: #FFE600;"></span>
+                  <span class="swatch-dot" data-target="highlight" data-color="#00F0FF" style="background: #00F0FF;"></span>
+                  <span class="swatch-dot" data-target="highlight" data-color="#FF3366" style="background: #FF3366;"></span>
+                  <span class="swatch-dot" data-target="highlight" data-color="#00FF66" style="background: #00FF66;"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 5: Words Per Line & Aspect Ratio -->
+            <div class="grid-col">
+              <label class="comic-label" for="wordsPerLine">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="14" y2="12"></line><line x1="4" y1="18" x2="18" y2="18"></line></svg>
+                <span data-i18n="ctrl_words">Words Per Line</span>
+              </label>
+              <select id="wordsPerLine" class="comic-select">
+                <option value="2">2 Words (Fast Viral Pacing)</option>
+                <option value="3" selected>3 Words (Optimal Pacing)</option>
+                <option value="4">4 Words</option>
+                <option value="5">5 Words</option>
+              </select>
+            </div>
+
+            <div class="grid-col">
+              <label class="comic-label" for="aspectRatio">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect></svg>
+                <span data-i18n="ctrl_aspect">Aspect Ratio</span>
+              </label>
+              <select id="aspectRatio" class="comic-select">
+                <option value="9:16" selected>📱 9:16 (Shorts / Reels / TikTok)</option>
+                <option value="16:9">💻 16:9 (Landscape / YouTube)</option>
+                <option value="1:1">⏹️ 1:1 (Square)</option>
+              </select>
+            </div>
+
+            <!-- Row 6: Canvas Background & Custom Color -->
+            <div class="grid-col">
+              <label class="comic-label" for="backgroundMode">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <span data-i18n="ctrl_bg">Background Canvas</span>
+              </label>
+              <select id="backgroundMode" class="comic-select">
+                <option value="green_screen" selected>🟩 Green Screen (Chroma Key)</option>
+                <option value="black">⬛ Black Screen (Screen Blend)</option>
+                <option value="blue">🟦 Blue Screen</option>
+                <option value="original_video">🎬 Original Video (Burn-In)</option>
+                <option value="transparent">🔲 Transparent Alpha (WebM)</option>
+                <option value="custom">🎯 Custom Hex Color</option>
+              </select>
+            </div>
+
+            <div class="grid-col" id="customColorGroup" style="display: none;">
+              <label class="comic-label" for="customColorHex">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+                <span data-i18n="ctrl_customcolor">Custom Color</span>
+              </label>
+              <div class="comic-color-picker-wrap">
+                <input type="color" id="customColorHex" value="#1a1a24" class="comic-color-input">
+                <span id="customColorText" class="color-hex-tag">#1A1A24</span>
+              </div>
+            </div>
+
+            <!-- Optional Gemini Key -->
+            <div class="grid-col-full">
+              <div class="collapsible-key-header" id="keyToggleHeader">
+                <div class="key-label-wrap">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <span data-i18n="ctrl_apikey">Gemini API Key (Optional Override)</span>
+                </div>
+                <span class="comic-tag comic-tag-sm" data-i18n="tag_optional">Preconfigured on server</span>
+              </div>
+              <input type="password" id="apiKey" class="comic-input" placeholder="AIzaSy... (Leave empty to use server default key)">
+            </div>
+          </div>
+
+          <!-- Bottom Master CTA Button -->
+          <div class="cta-wrapper">
+            <button type="button" id="startBtn" class="comic-btn-master">
+              <div class="btn-icon-bubble">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+              <span class="btn-title-text" data-i18n="btn_generate">GENERATE ANIMATED SUBTITLES</span>
+              <span class="btn-arrow-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </span>
+            </button>
+          </div>
         </div>
       </section>
     </main>
 
     <!-- Usage Guide Modal -->
-    <div id="guideModal" class="modal hidden">
-      <div class="modal-card" dir="rtl">
-        <div class="modal-header">
-          <h2>📖 كيفية استخدام الكروما الخضراء في برامج المونتاج</h2>
-          <button id="closeGuideBtn" class="btn-icon">✕</button>
+    <div id="guideModal" class="comic-modal-backdrop hidden">
+      <div class="comic-modal-window">
+        <div class="modal-top">
+          <div class="modal-title-wrap">
+            <svg class="modal-star" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0L14.7 9.3L24 12L14.7 14.7L12 24L9.3 14.7L0 12L9.3 9.3L12 0Z"/>
+            </svg>
+            <h2 data-i18n="modal_guide_title">Video Editing & Safe-Zone Guide</h2>
+          </div>
+          <button id="closeGuideBtn" class="comic-btn-square" aria-label="Close Modal">✕</button>
         </div>
-        <div class="modal-body">
-          <div class="guide-step">
-            <h4>1. في CapCut (الهاتف أو الكمبيوتر):</h4>
-            <p>أضف فيديو الترجمة كطبقة علوية (Overlay) فوق الفيديو الخاص بك. اذهب إلى <strong>Remove BG</strong> واختر <strong>Chroma Key</strong>، ثم حدد اللون الأخضر بالقطّارة وضع الشدة (Intensity) على 15-20%.</p>
+
+        <div class="modal-scroll-content">
+          <div class="guide-card">
+            <div class="guide-card-header">
+              <span class="guide-step-num">1</span>
+              <h4>CapCut (Mobile & Desktop)</h4>
+            </div>
+            <p data-i18n="guide_capcut">Add the generated subtitle video as an <strong>Overlay</strong> above your main video. Select <strong>Remove BG</strong> &gt; <strong>Chroma Key</strong>, click the green background with the color picker, and set Intensity to 15-20%.</p>
           </div>
-          <div class="guide-step">
-            <h4>2. في Adobe Premiere Pro:</h4>
-            <p>ضع فيديو الكروما الخضراء فوق الفيديو في الـ Timeline. في قائمة Effects ابحث عن تأثير <strong>Ultra Key</strong> وقم بتطبيقه على طبقة الترجمة، ثم اختر اللون الأخضر بأداة القطارة.</p>
+
+          <div class="guide-card">
+            <div class="guide-card-header">
+              <span class="guide-step-num">2</span>
+              <h4>Adobe Premiere Pro</h4>
+            </div>
+            <p data-i18n="guide_premiere">Place the green-screen video on a track above your media. Search for the <strong>Ultra Key</strong> effect in Effects, apply it to the subtitle clip, and pick the green color using the Eyedropper tool.</p>
           </div>
-          <div class="guide-step">
-            <h4>3. في DaVinci Resolve:</h4>
-            <p>في صفحة Edit أو Color، استخدم أداة <strong>3D Keyer</strong> أو <strong>Delta Keyer</strong> في Fusion لإزالة اللون الأخضر بنقرة واحدة.</p>
+
+          <div class="guide-card">
+            <div class="guide-card-header">
+              <span class="guide-step-num">3</span>
+              <h4>DaVinci Resolve</h4>
+            </div>
+            <p data-i18n="guide_davinci">In the Edit or Color page, use the <strong>3D Keyer</strong> or in Fusion use the <strong>Delta Keyer</strong> node to key out the green screen background instantly.</p>
           </div>
-          <div class="guide-step">
-            <h4>4. وضع الشاشة السوداء (Black Screen):</h4>
-            <p>إذا اخترت Black Screen، ما عليك سوى تغيير الـ <strong>Blending Mode</strong> للطبقة إلى <strong>Screen</strong> في أي برنامج مونتاج بدون الحاجة لأي مفتاح كروما!</p>
+
+          <div class="guide-card">
+            <div class="guide-card-header">
+              <span class="guide-step-num">4</span>
+              <h4>Black Screen (Screen Blend Mode)</h4>
+            </div>
+            <p data-i18n="guide_black">If you select Black Screen, no chroma keying is needed! Simply change the video layer's <strong>Blending Mode</strong> to <strong>Screen</strong> in CapCut, Premiere, or Final Cut.</p>
+          </div>
+
+          <div class="guide-card">
+            <div class="guide-card-header">
+              <span class="guide-step-num">5</span>
+              <h4>TikTok, Reels & Shorts Safe Zones</h4>
+            </div>
+            <p data-i18n="guide_safezone">Always ensure subtitles are positioned at least 260px-320px from the bottom to prevent creator profile handles, follow buttons, captions, and the audio title from obscuring your text.</p>
           </div>
         </div>
       </div>

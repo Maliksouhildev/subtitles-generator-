@@ -72,3 +72,12 @@ def test_interpolate_word_timestamps_user_edit():
     assert words[1]["start"] == 0.9
     assert words[1]["end"] == 2.0
 
+
+def test_get_system_prompt_languages():
+    from core.transcriber import get_system_prompt, FRENCH_SYSTEM_PROMPT, ENGLISH_SYSTEM_PROMPT, ARABIC_STANDARD_SYSTEM_PROMPT, DARIJA_SYSTEM_PROMPT
+    assert get_system_prompt("French") == FRENCH_SYSTEM_PROMPT
+    assert get_system_prompt("English") == ENGLISH_SYSTEM_PROMPT
+    assert get_system_prompt("Modern Standard Arabic") == ARABIC_STANDARD_SYSTEM_PROMPT
+    assert "Algerian" in get_system_prompt("General Algerian")
+
+

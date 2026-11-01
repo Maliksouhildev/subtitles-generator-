@@ -31,6 +31,11 @@ def test_static_html(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "DZ Subtitles AI" in response.text
+    assert "phoneDevice" in response.text
+    assert "lang-switch-group" in response.text
+    assert "themeToggleBtn" in response.text
+    assert "safeZoneGuide" in response.text
+
 
 
 def test_render_api_mock(client, tmp_path):

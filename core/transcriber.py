@@ -65,6 +65,122 @@ Return ONLY valid JSON matching this schema with NO markdown code fences, NO exp
 }
 """
 
+FRENCH_SYSTEM_PROMPT = """
+You are an expert transcriber specialized in the French language.
+Your task is to listen to the provided audio and generate an accurate, word-by-word transcription in grammatically correct French.
+
+RULES:
+1. Write in correct standard French with proper accents, punctuation, and capitalization.
+2. Provide PRECISE TIMESTAMPS:
+   - Every segment must have 'start' and 'end' in seconds (float).
+   - Every word within a segment must have its exact spoken 'start' and 'end' timestamps in seconds.
+   - Timestamps must correspond to the exact moment the speaker pronounces the word.
+
+STRICT JSON OUTPUT FORMAT ONLY:
+Return ONLY valid JSON matching this schema with NO markdown code fences, NO explanation, NO introduction:
+{
+  "language": "fr",
+  "text": "Full transcript in French",
+  "segments": [
+    {
+      "id": 0,
+      "start": 0.00,
+      "end": 2.40,
+      "text": "Bonjour à tous bienvenue",
+      "words": [
+        {"word": "Bonjour", "start": 0.00, "end": 0.50},
+        {"word": "à", "start": 0.50, "end": 0.70},
+        {"word": "tous", "start": 0.70, "end": 1.20},
+        {"word": "bienvenue", "start": 1.20, "end": 2.40}
+      ]
+    }
+  ]
+}
+"""
+
+ENGLISH_SYSTEM_PROMPT = """
+You are an expert transcriber specialized in English.
+Your task is to listen to the provided audio and generate an accurate, word-by-word transcription in standard English.
+
+RULES:
+1. Write in correct English with proper punctuation and capitalization.
+2. Provide PRECISE TIMESTAMPS:
+   - Every segment must have 'start' and 'end' in seconds (float).
+   - Every word within a segment must have its exact spoken 'start' and 'end' timestamps in seconds.
+   - Timestamps must correspond to the exact moment the speaker pronounces the word.
+
+STRICT JSON OUTPUT FORMAT ONLY:
+Return ONLY valid JSON matching this schema with NO markdown code fences, NO explanation, NO introduction:
+{
+  "language": "en",
+  "text": "Full transcript in English",
+  "segments": [
+    {
+      "id": 0,
+      "start": 0.00,
+      "end": 2.40,
+      "text": "Hello everyone and welcome",
+      "words": [
+        {"word": "Hello", "start": 0.00, "end": 0.50},
+        {"word": "everyone", "start": 0.50, "end": 1.20},
+        {"word": "and", "start": 1.20, "end": 1.50},
+        {"word": "welcome", "start": 1.50, "end": 2.40}
+      ]
+    }
+  ]
+}
+"""
+
+ARABIC_STANDARD_SYSTEM_PROMPT = """
+You are an expert transcriber specialized in Modern Standard Arabic (الفصحى).
+Your task is to listen to the provided audio and generate an accurate, word-by-word transcription in clean Modern Standard Arabic script.
+
+RULES:
+1. Write in clean Arabic script with correct spelling.
+2. Provide PRECISE TIMESTAMPS:
+   - Every segment must have 'start' and 'end' in seconds (float).
+   - Every word within a segment must have its exact spoken 'start' and 'end' timestamps in seconds.
+   - Timestamps must correspond to the exact moment the speaker pronounces the word.
+
+STRICT JSON OUTPUT FORMAT ONLY:
+Return ONLY valid JSON matching this schema with NO markdown code fences, NO explanation, NO introduction:
+{
+  "language": "ar",
+  "text": "Full transcript in Modern Standard Arabic",
+  "segments": [
+    {
+      "id": 0,
+      "start": 0.00,
+      "end": 2.40,
+      "text": "أهلا وسهلا بكم جميعا",
+      "words": [
+        {"word": "أهلا", "start": 0.00, "end": 0.50},
+        {"word": "وسهلا", "start": 0.50, "end": 1.10},
+        {"word": "بكم", "start": 1.10, "end": 1.60},
+        {"word": "جميعا", "start": 1.60, "end": 2.40}
+      ]
+    }
+  ]
+}
+"""
+
+
+def get_system_prompt(dialect_hint: str = "General Algerian") -> str:
+    """Selects the optimal transcription prompt based on the chosen language/dialect."""
+    dh = (dialect_hint or "").strip().lower()
+    if dh.startswith("french") or dh.startswith("français") or dh == "fr":
+        return FRENCH_SYSTEM_PROMPT
+    elif dh.startswith("english") or dh == "en":
+        return ENGLISH_SYSTEM_PROMPT
+    elif dh.startswith("arabic") or dh.startswith("modern standard") or dh.startswith("العربية"):
+        return ARABIC_STANDARD_SYSTEM_PROMPT
+    else:
+        prompt = DARIJA_SYSTEM_PROMPT
+        if dialect_hint and dialect_hint not in ("General Algerian", "Algerian Darija"):
+            prompt += f"\nSpecific Regional Dialect Focus: {dialect_hint} (Algeria).\n"
+        return prompt
+
+
 
 def extract_audio(input_file: str, output_wav_or_mp3: Optional[str] = None) -> str:
     """
@@ -258,9 +374,7 @@ def transcribe_with_gemini(
     except Exception:
         pass
 
-    prompt = DARIJA_SYSTEM_PROMPT
-    if dialect_hint and dialect_hint != "General Algerian":
-        prompt += f"\nSpecific Regional Dialect Focus: {dialect_hint} (Algeria).\n"
+    prompt = get_system_prompt(dialect_hint)
 
     payload = {
         "contents": [
@@ -318,7 +432,7 @@ def transcribe_with_gemini(
     raise RuntimeError(f"All Gemini models failed. Last error: {last_error}")
 
 
-def transcribe_with_faster_whisper(audio_path: str) -> Dict[str, Any]:
+def transcribe_with_faster_whisper(audio_path: str, dialect_hint: str = "General Algerian") -> Dict[str, Any]:
     """
     Offline fallback using Faster-Whisper with word-level timestamps.
     Automatically used if Gemini is unavailable or offline.
@@ -328,7 +442,21 @@ def transcribe_with_faster_whisper(audio_path: str) -> Dict[str, Any]:
     except ImportError:
         raise RuntimeError("faster-whisper is not installed. Install it or use Gemini API.")
 
-    logger.info("Starting local Faster-Whisper transcription for Darija...")
+    dh = (dialect_hint or "").strip().lower()
+    if dh.startswith("french") or dh.startswith("français") or dh == "fr":
+        whisper_lang = "fr"
+        whisper_prompt = "Transcription en français avec horodatage précis par mot."
+    elif dh.startswith("english") or dh == "en":
+        whisper_lang = "en"
+        whisper_prompt = "English transcription with accurate word-level timestamps."
+    elif dh.startswith("arabic") or dh.startswith("modern standard") or dh.startswith("العربية"):
+        whisper_lang = "ar"
+        whisper_prompt = "اللغة العربية الفصحى: أهلا وسهلا بكم جميعا."
+    else:
+        whisper_lang = "ar"
+        whisper_prompt = "الدارجة الجزائرية: سلام خويا واش راك لاباس راني مليح يعطيك الصحة برك بزاف دير هاكا"
+
+    logger.info(f"Starting local Faster-Whisper transcription for {whisper_lang}...")
     processed_audio = extract_audio(audio_path)
     audio_duration = get_audio_duration(processed_audio)
 
@@ -336,8 +464,8 @@ def transcribe_with_faster_whisper(audio_path: str) -> Dict[str, Any]:
     model = WhisperModel("base", device="cpu", compute_type="int8")
     segments_gen, info = model.transcribe(
         processed_audio,
-        language="ar",
-        initial_prompt="الدارجة الجزائرية: سلام خويا واش راك لاباس راني مليح يعطيك الصحة برك بزاف دير هاكا",
+        language=whisper_lang,
+        initial_prompt=whisper_prompt,
         word_timestamps=True
     )
 
@@ -367,7 +495,7 @@ def transcribe_with_faster_whisper(audio_path: str) -> Dict[str, Any]:
     except Exception:
         pass
 
-    return normalize_transcription_data({"language": "ar-DZ", "segments": segments}, audio_duration)
+    return normalize_transcription_data({"language": whisper_lang, "segments": segments}, audio_duration)
 
 
 def transcribe(
@@ -381,13 +509,13 @@ def transcribe(
     Tries Gemini AI first, falls back to Faster-Whisper if requested or if Gemini fails.
     """
     if force_local:
-        return transcribe_with_faster_whisper(audio_path)
+        return transcribe_with_faster_whisper(audio_path, dialect_hint=dialect_hint)
 
     try:
         return transcribe_with_gemini(audio_path, api_key=api_key, dialect_hint=dialect_hint)
     except Exception as e:
         logger.warning(f"Gemini transcription failed ({e}), falling back to local Faster-Whisper...")
         try:
-            return transcribe_with_faster_whisper(audio_path)
+            return transcribe_with_faster_whisper(audio_path, dialect_hint=dialect_hint)
         except Exception as e2:
             raise RuntimeError(f"Both Gemini AI and local Whisper transcription failed: Gemini error: {e} | Whisper error: {e2}")
