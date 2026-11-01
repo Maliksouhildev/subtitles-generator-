@@ -22,6 +22,23 @@ def is_arabic_text(text: str) -> bool:
     return bool(ARABIC_REGEX.search(text))
 
 
+def classify_token_script(token: str, default: str = "arabic") -> str:
+    """
+    Classifies a word token into 'latin' (French/English) or 'arabic' (Darija/Arabic script).
+    Neutral tokens (numbers, punctuation) inherit the active script context.
+    """
+    has_latin = bool(LATIN_REGEX.search(token))
+    has_arabic = bool(ARABIC_REGEX.search(token))
+    if has_latin and not has_arabic:
+        return "latin"
+    elif has_arabic and not has_latin:
+        return "arabic"
+    elif has_arabic and has_latin:
+        return "arabic"
+    else:
+        return default
+
+
 def format_bidi_word(word: str, in_rtl_context: bool = True) -> str:
     """
     Wraps Latin/French loanwords in Unicode Left-to-Right Isolates to prevent BiDi collisions
@@ -237,13 +254,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def chunk_words(self, words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """
-        Splits words into balanced chunks based on `words_per_line` and significant pauses.
-        Anti-orphan balancing: Never leaves a solitary 1-word chunk isolated in the center.
+        Splits words into balanced, script-isolated chunks based on:
+        1. Natural speech pauses (> 0.9s).
+        2. Language script transitions (Arabic script vs Latin / French loanwords).
+           Ensures that French terms and Arabic phrases are NEVER mixed in the same subtitle card,
+           providing 100% pure reading direction and visual clarity.
+        3. Pacing control (`words_per_line`) with anti-orphan balancing.
         """
         if not words:
             return []
 
-        # Group words by natural speech pauses > 0.9s
+        # 1. Group words by natural speech pauses > 0.9s
         pause_blocks = []
         current_block = []
         for w in words:
@@ -257,13 +278,36 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if current_block:
             pause_blocks.append(current_block)
 
-        chunks = []
+        # 2. Partition each pause block into script-homogeneous runs (Arabic vs French/Latin)
+        script_runs = []
         for block in pause_blocks:
-            sizes = balance_chunk_sizes(len(block), self.words_per_line)
+            current_run = []
+            current_script = None
+
+            for w in block:
+                text = w.get("word", "")
+                script = classify_token_script(text, default=current_script or "arabic")
+                if current_script is None or script == current_script:
+                    current_run.append(w)
+                    current_script = script
+                else:
+                    if current_run:
+                        script_runs.append((current_script, current_run))
+                    current_run = [w]
+                    current_script = script
+
+            if current_run:
+                script_runs.append((current_script, current_run))
+
+        # 3. Within each script-homogeneous run, balance chunk sizes based on words_per_line
+        chunks = []
+        for script, run in script_runs:
+            sizes = balance_chunk_sizes(len(run), self.words_per_line)
             idx = 0
             for sz in sizes:
-                chunks.append(block[idx:idx + sz])
+                chunks.append(run[idx:idx + sz])
                 idx += sz
+
         return chunks
 
     def build_karaoke_pop_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:

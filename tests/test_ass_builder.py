@@ -259,3 +259,29 @@ def test_ass_builder_silence_isolation():
     assert any("0:00:00.00,0:00:01.00" in e for e in events)
     assert not any("0:00:00.00,0:00:30.00" in e for e in events)
 
+
+def test_ass_builder_script_separated_chunking():
+    builder = ASSSubtitleBuilder(words_per_line=4, animation_style="karaoke_pop")
+    words = [
+        {"word": "وكان", "start": 0.0, "end": 0.5},
+        {"word": "شرف", "start": 0.5, "end": 1.0},
+        {"word": "للشركة", "start": 1.0, "end": 1.8},
+        {"word": "Red", "start": 1.8, "end": 2.3},
+        {"word": "Field", "start": 2.3, "end": 3.0},
+        {"word": "أنها", "start": 3.0, "end": 3.5},
+        {"word": "تدير", "start": 3.5, "end": 4.1},
+        {"word": "test", "start": 4.1, "end": 4.8}
+    ]
+    chunks = builder.chunk_words(words)
+    # Must separate at language script transitions
+    assert len(chunks) == 4
+    # Chunk 1: Arabic
+    assert [w["word"] for w in chunks[0]] == ["وكان", "شرف", "للشركة"]
+    # Chunk 2: French
+    assert [w["word"] for w in chunks[1]] == ["Red", "Field"]
+    # Chunk 3: Arabic
+    assert [w["word"] for w in chunks[2]] == ["أنها", "تدير"]
+    # Chunk 4: French
+    assert [w["word"] for w in chunks[3]] == ["test"]
+
+

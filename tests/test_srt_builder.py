@@ -66,3 +66,30 @@ def test_srt_silence_isolation():
     assert "00:00:40,000 --> 00:00:42,000" in srt
     assert "00:00:00,000 --> 00:00:42,000" not in srt
 
+
+def test_srt_script_separation():
+    data = {
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 4.0,
+                "text": "درت test البارح",
+                "words": [
+                    {"word": "درت", "start": 0.0, "end": 1.0},
+                    {"word": "test", "start": 1.0, "end": 2.5},
+                    {"word": "البارح", "start": 2.5, "end": 4.0}
+                ]
+            }
+        ]
+    }
+    srt = generate_srt(data, words_per_chunk=3)
+    # The Arabic and French words must be in separate cues
+    assert "درت" in srt
+    assert "test" in srt
+    assert "البارح" in srt
+    lines = [l.strip() for l in srt.splitlines() if l.strip() and not l.strip().isdigit() and "-->" not in l]
+    # Each cue text must not mix Arabic and French
+    assert lines == ["درت", "test", "البارح"]
+
+

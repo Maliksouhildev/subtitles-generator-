@@ -1564,10 +1564,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Update phone preview with actual transcription sample words!
     const firstWords = transcription.segments[0].words;
-    if (firstWords && firstWords.length >= 3) {
-      subWord1.innerText = firstWords[0].word;
-      subWord2.innerText = firstWords[1].word;
-      subWord3.innerText = firstWords[2].word;
+    if (firstWords && firstWords.length > 0) {
+      subWord1.innerText = firstWords[0] ? firstWords[0].word : "";
+      subWord2.innerText = firstWords[1] ? firstWords[1].word : "";
+      subWord3.innerText = firstWords[2] ? firstWords[2].word : "";
+      subWord2.style.display = firstWords[1] ? "inline-block" : "none";
+      subWord3.style.display = firstWords[2] ? "inline-block" : "none";
+      updateLiveSubtitlePreview();
     }
 
     transcription.segments.forEach((seg, idx) => {

@@ -359,27 +359,102 @@ def interpolate_word_timestamps(segment: Dict[str, Any]) -> List[Dict[str, Any]]
     return result_words
 
 
+ARABIC_REGEX = re.compile(r"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]")
+LATIN_REGEX = re.compile(r"[a-zA-Z]")
+
+
+def classify_token_script(token: str, default: str = "arabic") -> str:
+    """
+    Classifies a word token into 'latin' (French/English) or 'arabic' (Darija/Arabic script).
+    Neutral tokens (numbers, punctuation) inherit the active script context.
+    """
+    has_latin = bool(LATIN_REGEX.search(token))
+    has_arabic = bool(ARABIC_REGEX.search(token))
+    if has_latin and not has_arabic:
+        return "latin"
+    elif has_arabic and not has_latin:
+        return "arabic"
+    elif has_arabic and has_latin:
+        return "arabic"
+    else:
+        return default
+
+
 def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0.0) -> Dict[str, Any]:
-    """Ensures consistent segments, IDs, and word-level timestamps."""
+    """
+    Ensures consistent segments, IDs, and word-level timestamps.
+    Partitions mixed-language segments by script boundary (Arabic script vs French/Latin loanwords)
+    so that French terms and Arabic phrases are NEVER mixed in the same subtitle segment.
+    """
     segments = data.get("segments", [])
     normalized_segments = []
+    seg_counter = 0
 
-    for i, seg in enumerate(segments):
-        start = float(seg.get("start", 0.0))
-        end = float(seg.get("end", start + 2.0))
-        text = seg.get("text", "").strip()
-
+    for seg in segments:
         words = interpolate_word_timestamps(seg)
-        if words and not text:
-            text = " ".join(w["word"] for w in words)
+        if not words:
+            start = float(seg.get("start", 0.0))
+            end = float(seg.get("end", start + 2.0))
+            text = seg.get("text", "").strip()
+            normalized_segments.append({
+                "id": seg_counter,
+                "start": round(start, 2),
+                "end": round(end, 2),
+                "text": text,
+                "words": []
+            })
+            seg_counter += 1
+            continue
 
-        normalized_segments.append({
-            "id": i,
-            "start": round(start, 2),
-            "end": round(end, 2),
-            "text": text,
-            "words": words
-        })
+        # Check if segment contains mixed scripts (Arabic vs French/Latin)
+        has_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in words)
+        has_arabic = any(bool(ARABIC_REGEX.search(w.get("word", ""))) for w in words)
+
+        if has_latin and has_arabic:
+            # Partition words into script-homogeneous runs
+            script_runs = []
+            current_run = []
+            current_script = None
+
+            for w in words:
+                token_text = w.get("word", "")
+                script = classify_token_script(token_text, default=current_script or "arabic")
+                if current_script is None or script == current_script:
+                    current_run.append(w)
+                    current_script = script
+                else:
+                    if current_run:
+                        script_runs.append(current_run)
+                    current_run = [w]
+                    current_script = script
+
+            if current_run:
+                script_runs.append(current_run)
+
+            for run in script_runs:
+                run_start = float(run[0]["start"])
+                run_end = float(run[-1]["end"])
+                run_text = " ".join(w["word"] for w in run)
+                normalized_segments.append({
+                    "id": seg_counter,
+                    "start": round(run_start, 2),
+                    "end": round(run_end, 2),
+                    "text": run_text,
+                    "words": run
+                })
+                seg_counter += 1
+        else:
+            start = float(words[0]["start"])
+            end = float(words[-1]["end"])
+            text = seg.get("text", "").strip() or " ".join(w["word"] for w in words)
+            normalized_segments.append({
+                "id": seg_counter,
+                "start": round(start, 2),
+                "end": round(end, 2),
+                "text": text,
+                "words": words
+            })
+            seg_counter += 1
 
     full_text = data.get("text", "")
     if not full_text and normalized_segments:

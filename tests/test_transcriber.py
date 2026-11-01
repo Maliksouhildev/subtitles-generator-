@@ -83,3 +83,47 @@ def test_get_system_prompt_languages():
     assert "Algerian" in get_system_prompt("General Algerian")
 
 
+def test_normalize_transcription_script_separation():
+    raw_mixed = {
+        "language": "ar-DZ",
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 6.0,
+                "text": "وكان شرف للشركة Red Field أنها تدير test",
+                "words": [
+                    {"word": "وكان", "start": 0.0, "end": 0.6},
+                    {"word": "شرف", "start": 0.6, "end": 1.2},
+                    {"word": "للشركة", "start": 1.2, "end": 2.0},
+                    {"word": "Red", "start": 2.0, "end": 2.6},
+                    {"word": "Field", "start": 2.6, "end": 3.4},
+                    {"word": "أنها", "start": 3.4, "end": 4.1},
+                    {"word": "تدير", "start": 4.1, "end": 4.9},
+                    {"word": "test", "start": 4.9, "end": 5.8}
+                ]
+            }
+        ]
+    }
+    normalized = normalize_transcription_data(raw_mixed)
+    segs = normalized["segments"]
+    assert len(segs) == 4
+    # Segment 1: Pure Arabic
+    assert segs[0]["text"] == "وكان شرف للشركة"
+    assert segs[0]["start"] == 0.0
+    assert segs[0]["end"] == 2.0
+    # Segment 2: Pure French loanwords
+    assert segs[1]["text"] == "Red Field"
+    assert segs[1]["start"] == 2.0
+    assert segs[1]["end"] == 3.4
+    # Segment 3: Pure Arabic
+    assert segs[2]["text"] == "أنها تدير"
+    assert segs[2]["start"] == 3.4
+    assert segs[2]["end"] == 4.9
+    # Segment 4: Pure French loanword
+    assert segs[3]["text"] == "test"
+    assert segs[3]["start"] == 4.9
+    assert segs[3]["end"] == 5.8
+
+
+

@@ -2,6 +2,7 @@
 Standard Subtitle Exporters: SRT, VTT, and JSON.
 """
 
+import re
 from typing import Dict, Any, List
 
 
@@ -24,10 +25,72 @@ def format_vtt_time(seconds: float) -> str:
     return srt_str.replace(",", ".")
 
 
+ARABIC_REGEX = re.compile(r"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]")
+LATIN_REGEX = re.compile(r"[a-zA-Z]")
+
+
+def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4) -> List[List[Dict[str, Any]]]:
+    """
+    Chunks words respecting speech pauses and language script boundaries (Arabic vs French/Latin),
+    guaranteeing that French terms and Arabic phrases are rendered as separate subtitle lines.
+    """
+    if not words:
+        return []
+
+    # 1. Group by natural pause > 0.9s
+    pause_blocks = []
+    current_block = []
+    for w in words:
+        if current_block:
+            prev = current_block[-1]
+            if w.get("start", 0.0) - prev.get("end", 0.0) > 0.9:
+                pause_blocks.append(current_block)
+                current_block = []
+        current_block.append(w)
+    if current_block:
+        pause_blocks.append(current_block)
+
+    # 2. Partition each pause block into script-homogeneous runs
+    script_runs = []
+    for block in pause_blocks:
+        current_run = []
+        current_script = None
+        for w in block:
+            text = w.get("word", "")
+            has_latin = bool(LATIN_REGEX.search(text))
+            has_arabic = bool(ARABIC_REGEX.search(text))
+            if has_latin and not has_arabic:
+                script = "latin"
+            elif has_arabic and not has_latin:
+                script = "arabic"
+            elif has_arabic and has_latin:
+                script = "arabic"
+            else:
+                script = current_script or "arabic"
+
+            if current_script is None or script == current_script:
+                current_run.append(w)
+                current_script = script
+            else:
+                if current_run:
+                    script_runs.append(current_run)
+                current_run = [w]
+                current_script = script
+        if current_run:
+            script_runs.append(current_run)
+
+    # 3. Chunk within each script-homogeneous run
+    chunks = []
+    for run in script_runs:
+        for i in range(0, len(run), words_per_chunk):
+            chunks.append(run[i:i + words_per_chunk])
+    return chunks
+
+
 def generate_srt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -> str:
     """
     Generates standard SubRip (.srt) subtitles.
-    Chunks words per segment to respect sentence boundaries and pauses.
+    Chunks words per segment respecting sentence boundaries, pauses, and script boundaries.
     """
     segments = transcription_data.get("segments", [])
     srt_lines = []
@@ -36,8 +99,8 @@ def generate_srt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -
     for seg in segments:
         words = seg.get("words", [])
         if words and len(words) > 1:
-            for i in range(0, len(words), words_per_chunk):
-                chunk = words[i:i + words_per_chunk]
+            chunks = chunk_words_by_script(words, words_per_chunk)
+            for chunk in chunks:
                 start_str = format_srt_time(chunk[0]["start"])
                 end_str = format_srt_time(chunk[-1]["end"])
                 text = " ".join(w.get("word", "") for w in chunk)
@@ -58,7 +121,7 @@ def generate_srt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -
 def generate_vtt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -> str:
     """
     Generates WebVTT (.vtt) format subtitle content.
-    Chunks words per segment to respect sentence boundaries and pauses.
+    Chunks words per segment respecting sentence boundaries, pauses, and script boundaries.
     """
     segments = transcription_data.get("segments", [])
     vtt_lines = ["WEBVTT\n"]
@@ -66,8 +129,8 @@ def generate_vtt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -
     for seg in segments:
         words = seg.get("words", [])
         if words and len(words) > 1:
-            for i in range(0, len(words), words_per_chunk):
-                chunk = words[i:i + words_per_chunk]
+            chunks = chunk_words_by_script(words, words_per_chunk)
+            for chunk in chunks:
                 start_str = format_vtt_time(chunk[0]["start"])
                 end_str = format_vtt_time(chunk[-1]["end"])
                 text = " ".join(w.get("word", "") for w in chunk)

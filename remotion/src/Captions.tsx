@@ -128,13 +128,40 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
     }
     if (currentBlock.length > 0) pauseBlocks.push(currentBlock);
 
-    // Apply balanced chunking per pause block
-    const result: Array<{ words: WordToken[]; start: number; end: number }> = [];
+    // Partition by script boundary (Arabic vs French/Latin loanwords)
+    const scriptRuns: WordToken[][] = [];
     for (const block of pauseBlocks) {
-      const sizes = balanceChunkSizes(block.length, wordsPerLine);
+      let currentRun: WordToken[] = [];
+      let currentScript: "latin" | "arabic" | null = null;
+
+      for (const w of block) {
+        const hasLatin = LATIN_REGEX.test(w.word);
+        const hasArabic = ARABIC_REGEX.test(w.word);
+        const script: "latin" | "arabic" = (hasLatin && !hasArabic)
+          ? "latin"
+          : (hasArabic && !hasLatin)
+          ? "arabic"
+          : (currentScript || "arabic");
+
+        if (currentScript === null || script === currentScript) {
+          currentRun.push(w);
+          currentScript = script;
+        } else {
+          if (currentRun.length > 0) scriptRuns.push(currentRun);
+          currentRun = [w];
+          currentScript = script;
+        }
+      }
+      if (currentRun.length > 0) scriptRuns.push(currentRun);
+    }
+
+    // Apply balanced chunking per script-homogeneous run
+    const result: Array<{ words: WordToken[]; start: number; end: number }> = [];
+    for (const run of scriptRuns) {
+      const sizes = balanceChunkSizes(run.length, wordsPerLine);
       let idx = 0;
       for (const sz of sizes) {
-        const slice = block.slice(idx, idx + sz);
+        const slice = run.slice(idx, idx + sz);
         if (slice.length > 0) {
           result.push({
             words: slice,
@@ -203,16 +230,18 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
         fontFamily: `'${fontName}', 'Cairo', 'Almarai', sans-serif`,
       }}
     >
-      {activeChunkInfo && (
-        <div
-          dir="rtl"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexWrap: "nowrap",
-            direction: "rtl",
-            unicodeBidi: "isolate",
+      {activeChunkInfo && (() => {
+        const isChunkRtl = activeChunkInfo.words.some((w) => ARABIC_REGEX.test(w.word));
+        return (
+          <div
+            dir={isChunkRtl ? "rtl" : "ltr"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexWrap: "nowrap",
+              direction: isChunkRtl ? "rtl" : "ltr",
+              unicodeBidi: "isolate",
             gap: "14px",
             padding: subBoxStyle === "pill"
               ? "10px 28px"
@@ -341,7 +370,8 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
             });
           })()}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
