@@ -14,11 +14,49 @@ import re
 from typing import List, Dict, Any, Optional
 
 ARABIC_REGEX = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]')
+LATIN_REGEX = re.compile(r'[a-zA-Z]')
 
 
 def is_arabic_text(text: str) -> bool:
     """Checks if text contains Arabic characters."""
     return bool(ARABIC_REGEX.search(text))
+
+
+def format_bidi_word(word: str, in_rtl_context: bool = True) -> str:
+    """
+    Wraps Latin/French loanwords in Unicode Left-to-Right Isolates to prevent BiDi collisions
+    with adjacent Arabic text in FriBidi / libass.
+    """
+    if in_rtl_context and LATIN_REGEX.search(word):
+        # \u200E (Left-to-Right Mark) forces FriBidi to treat the Latin token as an atomic LTR unit
+        return f"\u200E{word}\u200E"
+    return word
+
+
+def balance_chunk_sizes(total_words: int, target_size: int) -> List[int]:
+    """
+    Calculates balanced chunk sizes preventing awkward 1-word orphan lines.
+    For example: 4 words with target=3 splits into [2, 2], not [3, 1].
+    """
+    if total_words <= target_size:
+        return [total_words]
+    num_chunks = math.ceil(total_words / target_size)
+    if total_words % target_size == 1 and num_chunks > 1:
+        base_size = total_words // num_chunks
+        remainder = total_words % num_chunks
+        return [base_size + (1 if k < remainder else 0) for k in range(num_chunks)]
+    sizes = []
+    remaining = total_words
+    while remaining > 0:
+        if remaining == target_size + 1:
+            half = remaining // 2
+            sizes.append(remaining - half)
+            sizes.append(half)
+            break
+        take = min(target_size, remaining)
+        sizes.append(take)
+        remaining -= take
+    return sizes
 
 
 def hex_to_ass_color(hex_str: str, alpha: int = 0) -> str:
@@ -146,28 +184,40 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return header
 
     def chunk_words(self, words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
-        """Splits words into chunks of `words_per_line`, breaking on significant pauses."""
+        """
+        Splits words into balanced chunks based on `words_per_line` and significant pauses.
+        Anti-orphan balancing: Never leaves a solitary 1-word chunk isolated in the center.
+        """
         if not words:
             return []
-        chunks = []
-        current_chunk = []
+
+        # Group words by natural speech pauses > 0.9s
+        pause_blocks = []
+        current_block = []
         for w in words:
-            if current_chunk:
-                prev_w = current_chunk[-1]
-                # Break chunk if pause between words > 1.2s or chunk reaches words_per_line
+            if current_block:
+                prev_w = current_block[-1]
                 pause_gap = w.get("start", 0.0) - prev_w.get("end", 0.0)
-                if pause_gap > 1.2 or len(current_chunk) >= self.words_per_line:
-                    chunks.append(current_chunk)
-                    current_chunk = []
-            current_chunk.append(w)
-        if current_chunk:
-            chunks.append(current_chunk)
+                if pause_gap > 0.9:
+                    pause_blocks.append(current_block)
+                    current_block = []
+            current_block.append(w)
+        if current_block:
+            pause_blocks.append(current_block)
+
+        chunks = []
+        for block in pause_blocks:
+            sizes = balance_chunk_sizes(len(block), self.words_per_line)
+            idx = 0
+            for sz in sizes:
+                chunks.append(block[idx:idx + sz])
+                idx += sz
         return chunks
 
     def build_karaoke_pop_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
         """
-        Builds word-by-word pop and highlight events with dynamic easing.
-        For Arabic / RTL text, words are arranged visually in RTL order (first spoken word on the right).
+        Builds word-by-word pop and highlight events with Remotion-calibrated 4-stage spring physics.
+        Preserves natural logical word order ([0, 1, 2...]) so FriBidi/HarfBuzz renders authentic RTL.
         """
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
@@ -175,43 +225,52 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         spd = self.animation_speed
         norm_scale = "\\fscx100\\fscy100"
 
-        for chunk in chunks:
+        for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
                 continue
 
             chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    w_end = active_word["end"]
+                    # Hold the completed phrase on screen for minimum 0.65s so viewer can absorb sentence context
+                    natural_end = active_word["end"]
+                    min_hold = w_start + 0.65
+                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
 
                 if w_end <= w_start:
-                    w_end = w_start + 0.25
+                    w_end = w_start + 0.30
 
-                dur_ms = max(100, int((w_end - w_start) * 1000))
-                # Dynamic ease in and settle timings
-                t_pop = max(35, min(int(dur_ms * 0.45), int(120 / spd)))
-                t_settle = max(t_pop + 30, min(int(dur_ms * 0.8), int(220 / spd)))
+                dur_ms = max(120, int((w_end - w_start) * 1000))
 
-                # Dynamic spring ease with accel=0.6 (fast expansion) and accel=1.4 (smooth settlement)
+                # Remotion-calibrated 4-stage harmonic spring: overshoot -> recoil -> micro-bounce -> settle
+                t1 = max(35, min(int(dur_ms * 0.32), int(95 / spd)))
+                t2 = max(t1 + 25, min(int(dur_ms * 0.62), int(185 / spd)))
+                t3 = max(t2 + 25, min(int(dur_ms * 0.85), int(260 / spd)))
+                t4 = max(t3 + 20, min(dur_ms, int(330 / spd)))
+
                 active_pop_transform = (
                     f"\\fscx100\\fscy100"
-                    f"\\t(0,{t_pop},0.6,\\fscx125\\fscy125)"
-                    f"\\t({t_pop},{t_settle},1.4,\\fscx112\\fscy112)"
+                    f"\\t(0,{t1},0.45,\\fscx130\\fscy130)"
+                    f"\\t({t1},{t2},1.6,\\fscx107\\fscy107)"
+                    f"\\t({t2},{t3},0.8,\\fscx115\\fscy115)"
+                    f"\\t({t3},{t4},1.3,\\fscx110\\fscy110)"
                 )
 
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+                # Keep natural logical ordering: FriBidi / libass handles RTL typesetting automatically!
+                display_indices = list(range(len(chunk)))
 
                 formatted_words = []
                 for j in display_indices:
                     w = chunk[j]
-                    word_text = w.get("word", "")
+                    word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
                     if j == i:
                         formatted_words.append(f"{{{hl_tag}{active_pop_transform}}}{word_text}{{{pri_tag}{norm_scale}}}")
                     else:
@@ -229,20 +288,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
         spd = self.animation_speed
 
-        for chunk in chunks:
+        for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
                 continue
 
             chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    w_end = active_word["end"]
+                    natural_end = active_word["end"]
+                    min_hold = w_start + 0.65
+                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+
                 if w_end <= w_start:
-                    w_end = w_start + 0.25
+                    w_end = w_start + 0.30
 
                 dur_ms = max(100, int((w_end - w_start) * 1000))
                 t1 = max(35, min(int(dur_ms * 0.45), int(110 / spd)))
@@ -257,11 +320,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                revealed_indices = list(reversed(range(i + 1))) if chunk_is_rtl else list(range(i + 1))
+                # Keep natural logical ordering
+                revealed_indices = list(range(i + 1))
 
                 revealed = []
                 for j in revealed_indices:
-                    w_text = chunk[j].get("word", "")
+                    w_text = format_bidi_word(chunk[j].get("word", ""), in_rtl_context=chunk_is_rtl)
                     if j == i:
                         formatted = f"{{{hl_tag}{reveal_tag}}}{w_text}{{{pri_tag}\\fscx100\\fscy100}}"
                         revealed.append(formatted)
@@ -285,8 +349,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             fade_tag = f"{{\\fad({fade_ms},{fade_ms})}}"
             start_str = format_ass_time(start)
             end_str = format_ass_time(end)
-            text = seg.get("text", "").strip()
-            events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{fade_tag}{text}")
+            raw_text = seg.get("text", "").strip()
+            # Wrap any Latin loanword inside Arabic text with LRM
+            tokens = raw_text.split()
+            has_arabic = any(is_arabic_text(t) for t in tokens)
+            formatted_tokens = [format_bidi_word(t, in_rtl_context=has_arabic) for t in tokens]
+            line_text = " ".join(formatted_tokens)
+            events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{fade_tag}{line_text}")
         return events
 
     def build_box_highlight_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
@@ -298,17 +367,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         hl_ass = hex_to_ass_color(self.highlight_color)
         out_ass = hex_to_ass_color(self.outline_color)
 
-        for chunk in chunks:
+        for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
                 continue
 
             chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
-                w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
+                if i + 1 < len(chunk):
+                    w_end = chunk[i + 1]["start"]
+                else:
+                    natural_end = active_word["end"]
+                    min_hold = w_start + 0.65
+                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+
                 if w_end <= w_start:
-                    w_end = w_start + 0.25
+                    w_end = w_start + 0.30
 
                 dur_ms = max(100, int((w_end - w_start) * 1000))
                 t1 = max(30, min(int(dur_ms * 0.4), int(100 / spd)))
@@ -324,12 +400,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+                display_indices = list(range(len(chunk)))
 
                 formatted_words = []
                 for j in display_indices:
                     w = chunk[j]
-                    word_text = w.get("word", "")
+                    word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
                     if j == i:
                         formatted_words.append(f"{{{hl_tag}{box_tag}}}{word_text}{{{pri_tag}{reset_box}}}")
                     else:
@@ -348,39 +424,48 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         spd = self.animation_speed
         norm_tag = "\\fscx100\\fscy100\\frz0"
 
-        for chunk in chunks:
+        for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
                 continue
 
             chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
-                w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
+                if i + 1 < len(chunk):
+                    w_end = chunk[i + 1]["start"]
+                else:
+                    natural_end = active_word["end"]
+                    min_hold = w_start + 0.65
+                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+
                 if w_end <= w_start:
-                    w_end = w_start + 0.25
+                    w_end = w_start + 0.30
 
                 dur_ms = max(120, int((w_end - w_start) * 1000))
                 t1 = max(30, min(int(dur_ms * 0.3), int(90 / spd)))
-                t2 = max(t1 + 30, min(int(dur_ms * 0.6), int(180 / spd)))
-                t3 = max(t2 + 30, min(int(dur_ms * 0.9), int(270 / spd)))
+                t2 = max(t1 + 25, min(int(dur_ms * 0.6), int(180 / spd)))
+                t3 = max(t2 + 25, min(int(dur_ms * 0.85), int(260 / spd)))
+                t4 = max(t3 + 20, min(dur_ms, int(330 / spd)))
 
                 bounce_tag = (
                     f"\\fscx100\\fscy100\\frz0"
-                    f"\\t(0,{t1},0.5,\\fscy132\\fscx110\\frz-2)"
-                    f"\\t({t1},{t2},1.5,\\fscy96\\fscx104\\frz1)"
-                    f"\\t({t2},{t3},0.8,\\fscy104\\fscx102\\frz0)"
+                    f"\\t(0,{t1},0.45,\\fscy134\\fscx112\\frz-2.5)"
+                    f"\\t({t1},{t2},1.6,\\fscy94\\fscx105\\frz1.5)"
+                    f"\\t({t2},{t3},0.8,\\fscy108\\fscx102\\frz-0.8)"
+                    f"\\t({t3},{t4},1.3,\\fscy102\\fscx100\\frz0)"
                 )
 
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+                display_indices = list(range(len(chunk)))
 
                 formatted_words = []
                 for j in display_indices:
                     w = chunk[j]
-                    word_text = w.get("word", "")
+                    word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
                     if j == i:
                         formatted_words.append(f"{{{hl_tag}{bounce_tag}}}{word_text}{{{pri_tag}{norm_tag}}}")
                     else:
@@ -400,17 +485,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         out_ass = hex_to_ass_color(self.outline_color)
         spd = self.animation_speed
 
-        for chunk in chunks:
+        for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
                 continue
 
             chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
-                w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
+                if i + 1 < len(chunk):
+                    w_end = chunk[i + 1]["start"]
+                else:
+                    natural_end = active_word["end"]
+                    min_hold = w_start + 0.65
+                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+
                 if w_end <= w_start:
-                    w_end = w_start + 0.25
+                    w_end = w_start + 0.30
 
                 dur_ms = max(100, int((w_end - w_start) * 1000))
                 t1 = max(35, min(int(dur_ms * 0.4), int(120 / spd)))
@@ -426,12 +518,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+                display_indices = list(range(len(chunk)))
 
                 formatted_words = []
                 for j in display_indices:
                     w = chunk[j]
-                    word_text = w.get("word", "")
+                    word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
                     if j == i:
                         formatted_words.append(f"{{{hl_tag}{neon_tag}}}{word_text}{{{pri_tag}{reset_neon}}}")
                     else:
@@ -450,17 +542,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         spd = self.animation_speed
         norm_tag = f"{pri_tag}\\fscx100\\fscy100"
 
-        for chunk in chunks:
+        for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
                 continue
 
             chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
-                w_end = chunk[i + 1]["start"] if (i + 1 < len(chunk)) else active_word["end"]
+                if i + 1 < len(chunk):
+                    w_end = chunk[i + 1]["start"]
+                else:
+                    natural_end = active_word["end"]
+                    min_hold = w_start + 0.65
+                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+
                 if w_end <= w_start:
-                    w_end = w_start + 0.25
+                    w_end = w_start + 0.30
 
                 dur_ms = max(100, int((w_end - w_start) * 1000))
                 t1 = max(30, min(int(dur_ms * 0.35), int(100 / spd)))
@@ -475,12 +574,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
-                display_indices = list(reversed(range(len(chunk)))) if chunk_is_rtl else list(range(len(chunk)))
+                display_indices = list(range(len(chunk)))
 
                 formatted_words = []
                 for j in display_indices:
                     w = chunk[j]
-                    word_text = w.get("word", "")
+                    word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
                     if j == i:
                         formatted_words.append(f"{{{flash_tag}}}{word_text}{{{norm_tag}}}")
                     else:

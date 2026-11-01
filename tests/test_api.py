@@ -128,6 +128,14 @@ def test_render_api_mock(client, tmp_path):
         assert "video_url" in res_data
         assert "ass_url" in res_data
         assert "srt_url" in res_data
+        assert "remotion_url" in res_data
+
+        # Check Remotion props file download
+        remotion_res = client.get(res_data["remotion_url"])
+        assert remotion_res.status_code == 200
+        remotion_data = remotion_res.json()
+        assert "transcription" in remotion_data
+        assert remotion_data["style"]["animation_style"] == "karaoke_pop"
 
         # Check file download endpoint
         dl_res = client.get(res_data["srt_url"])

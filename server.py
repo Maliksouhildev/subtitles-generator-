@@ -244,7 +244,32 @@ async def render_subtitles(req: RenderRequest):
         with open(task_folder / "subtitles.vtt", "w", encoding="utf-8") as f:
             f.write(vtt_content)
 
-        # 3. Render Output Video
+        # 3. Generate Remotion Props JSON
+        remotion_props = {
+            "transcription": transcription,
+            "style": {
+                "font_name": req.font_name,
+                "font_size": req.font_size,
+                "primary_color": req.primary_color,
+                "highlight_color": req.highlight_color,
+                "outline_color": req.outline_color,
+                "shadow_color": req.shadow_color,
+                "outline_width": req.outline_width,
+                "margin_v": req.margin_v,
+                "words_per_line": req.words_per_line,
+                "animation_style": req.animation_style,
+                "animation_speed": req.animation_speed,
+                "sub_box_style": req.sub_box_style,
+                "sub_box_color": req.sub_box_color,
+                "sub_box_alpha": req.sub_box_alpha,
+            },
+            "backgroundMode": req.background_mode,
+            "customColorHex": req.custom_color_hex
+        }
+        with open(task_folder / "remotion_props.json", "w", encoding="utf-8") as f:
+            json.dump(remotion_props, f, ensure_ascii=False, indent=2)
+
+        # 4. Render Output Video
         output_video_ext = ".webm" if req.background_mode == "transparent" else ".mp4"
         output_video_path = task_folder / f"result{output_video_ext}"
 
@@ -265,7 +290,8 @@ async def render_subtitles(req: RenderRequest):
             "srt_url": f"/api/download/{task_id}/subtitles.srt",
             "ass_url": f"/api/download/{task_id}/subtitles.ass",
             "vtt_url": f"/api/download/{task_id}/subtitles.vtt",
-            "json_url": f"/api/download/{task_id}/transcript.json"
+            "json_url": f"/api/download/{task_id}/transcript.json",
+            "remotion_url": f"/api/download/{task_id}/remotion_props.json"
         }
 
     except Exception as e:

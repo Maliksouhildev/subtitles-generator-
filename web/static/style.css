@@ -308,6 +308,12 @@ html, body {
 }
 .comic-btn-green:hover { background: var(--green-hover); }
 
+.comic-btn-purple {
+  background: #8b5cf6;
+  color: #fff;
+}
+.comic-btn-purple:hover { background: #7c3aed; }
+
 .comic-btn-square {
   width: 26px;
   height: 26px;
@@ -433,39 +439,48 @@ html, body {
 }
 
 /* Custom Neo-Brutalist Comic Scrollbars (Universal - Replaces all native white OS scrollbars) */
-* {
+*,
+*::before,
+*::after {
   scrollbar-width: thin;
   scrollbar-color: var(--amber) var(--bg-card-inner);
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
 }
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
   background: var(--bg-card-inner);
   border-left: 1.5px solid var(--pitch-black);
+  border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
   background: var(--amber);
   border: 1.5px solid var(--pitch-black);
   border-radius: 4px;
   box-shadow: 1px 1px 0 var(--pitch-black);
 }
 
-::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
   background: var(--amber-hover);
 }
 
-::-webkit-scrollbar-button {
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-::-webkit-scrollbar-corner {
+::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
   background: transparent;
 }
 
@@ -1817,25 +1832,40 @@ html, body {
   --anim-ease-smooth: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-/* 1. Karaoke Pop & Scale: Dynamic opening overshoot & smooth settlement */
+/* BiDi Loanword Isolation: locks French/Latin loanwords so they never scramble adjacent Arabic */
+.bidi-isolate {
+  unicode-bidi: isolate !important;
+  display: inline-block !important;
+  direction: ltr !important;
+  margin: 0 4px !important;
+  vertical-align: baseline !important;
+}
+
+/* 1. Karaoke Pop & Scale: Dynamic Remotion 4-stage spring physics (overshoot 1.30 -> recoil -> settle) */
 @keyframes animPopScale {
   0% {
     transform: scale(1);
     filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
   }
-  30% {
-    transform: scale(1.28);
+  24% {
+    transform: scale(1.30);
     color: var(--highlight-preview, #FFE600);
-    filter: drop-shadow(0 0 10px rgba(255, 230, 0, 0.8));
+    filter: drop-shadow(0 0 12px rgba(255, 230, 0, 0.85));
   }
-  60% {
-    transform: scale(1.12);
+  50% {
+    transform: scale(1.07);
     color: var(--highlight-preview, #FFE600);
     filter: drop-shadow(0 0 6px rgba(255, 230, 0, 0.5));
   }
+  74% {
+    transform: scale(1.15);
+    color: var(--highlight-preview, #FFE600);
+    filter: drop-shadow(0 0 8px rgba(255, 230, 0, 0.65));
+  }
   100% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+    transform: scale(1.10);
+    color: var(--highlight-preview, #FFE600);
+    filter: drop-shadow(0 0 5px rgba(255, 230, 0, 0.4));
   }
 }
 
@@ -1844,20 +1874,23 @@ html, body {
   0% {
     transform: translateY(0) scale(1, 1);
   }
-  25% {
-    transform: translateY(-9px) scale(1.2, 0.92);
+  24% {
+    transform: translateY(-11px) scale(1.30, 0.90);
     color: var(--highlight-preview, #FFE600);
-    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.45));
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.55));
   }
   50% {
-    transform: translateY(2.5px) scale(0.96, 1.06);
+    transform: translateY(3px) scale(1.07, 1.08);
     color: var(--highlight-preview, #FFE600);
   }
-  75% {
-    transform: translateY(-2px) scale(1.03, 0.98);
+  74% {
+    transform: translateY(-3px) scale(1.15, 0.98);
+    color: var(--highlight-preview, #FFE600);
   }
   100% {
-    transform: translateY(0) scale(1, 1);
+    transform: translateY(0) scale(1.10, 1.0);
+    color: var(--highlight-preview, #FFE600);
+  }
   }
 }
 

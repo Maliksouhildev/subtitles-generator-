@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadAssBtn = document.getElementById("downloadAssBtn");
   const downloadSrtBtn = document.getElementById("downloadSrtBtn");
   const downloadJsonBtn = document.getElementById("downloadJsonBtn");
+  const downloadRemotionBtn = document.getElementById("downloadRemotionBtn");
 
   // Customization Form Controls
   const dialectHint = document.getElementById("dialectHint");
@@ -130,6 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_ass: "ASS Animated",
       dl_srt: "SRT File",
       dl_json: "JSON Timings",
+      dl_remotion: "Remotion (React)",
       empty_title: "Ready to Generate Viral Captions",
       empty_desc: "Upload an audio or video file. AI transcribes speech with exact millisecond word timestamps and burns viral animated subtitles in your chosen style.",
       editor_title: "Word & Timing Editor",
@@ -238,6 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_ass: "ASS Animé",
       dl_srt: "Fichier SRT",
       dl_json: "Horodatage JSON",
+      dl_remotion: "Remotion (React)",
       empty_title: "Prêt à créer des sous-titres viraux",
       empty_desc: "Importez un fichier audio ou vidéo. L'IA transcrit la parole avec horodatage mot par mot et applique des sous-titres animés selon votre style.",
       editor_title: "Éditeur de mots & minutage",
@@ -346,6 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_ass: "ملف ASS المتحرك",
       dl_srt: "ملف SRT",
       dl_json: "توقيتات JSON",
+      dl_remotion: "ريموشن (React)",
       empty_title: "جاهز لتوليد ترجمات متحركة احترافية",
       empty_desc: "قم برفع ملف صوتي أو فيديو. سيقوم الذكاء الاصطناعي بتوليد الترجمة المتزامنة مع كل كلمة وتطبيق الأنيميشن مع كروما خضراء أو دمج مباشر.",
       editor_title: "محرر ومراجعة الكلمات والتوقيت",
@@ -773,13 +777,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     words.forEach((w, idx) => {
       if (!w) return;
+
+      // BiDi Loanword Isolation: In an RTL context, wrap or flag Latin tokens with dir="ltr" and .bidi-isolate
+      const wordText = w.innerText || "";
+      const isLatin = /[a-zA-Z]/.test(wordText);
+      const bidiClass = (isArabic && isLatin) ? " bidi-isolate" : "";
+      if (isArabic && isLatin) {
+        w.setAttribute("dir", "ltr");
+        w.style.unicodeBidi = "isolate";
+      } else {
+        w.removeAttribute("dir");
+        w.style.unicodeBidi = "";
+      }
+
       if (idx === previewActiveIdx) {
         // Trigger reflow to restart CSS animation from frame 0 for clean opening ease
         w.style.animation = "none";
         void w.offsetWidth;
         w.style.animation = "";
 
-        w.className = `sub-word active anim-${activeAnim}`;
+        w.className = `sub-word active anim-${activeAnim}${bidiClass}`;
         if (activeAnim === "box_highlight") {
           w.style.background = highlightColor.value;
           w.style.color = "#000000";
@@ -791,7 +808,7 @@ document.addEventListener("DOMContentLoaded", () => {
           w.style.padding = "0";
         }
       } else {
-        w.className = "sub-word";
+        w.className = `sub-word${bidiClass}`;
         w.style.background = "none";
         w.style.color = primaryColor.value;
         w.style.padding = "0";
@@ -1394,6 +1411,9 @@ document.addEventListener("DOMContentLoaded", () => {
           downloadAssBtn.href = item.result.ass_url;
           downloadSrtBtn.href = item.result.srt_url;
           downloadJsonBtn.href = item.result.json_url;
+          if (downloadRemotionBtn) {
+            downloadRemotionBtn.href = item.result.remotion_url || `/api/download/${item.task_id}/remotion_props.json`;
+          }
           videoContainer.classList.remove("hidden");
           emptyState.classList.add("hidden");
           if (item.transcription) renderEditor(item.transcription);
@@ -1535,6 +1555,7 @@ document.addEventListener("DOMContentLoaded", () => {
       input.className = "comic-seg-input";
       input.type = "text";
       input.value = seg.text;
+      input.setAttribute("dir", "auto");
       input.dataset.index = idx;
 
       input.addEventListener("input", (e) => {
@@ -1642,15 +1663,19 @@ document.addEventListener("DOMContentLoaded", () => {
     isProcessingBatch = true;
 
     try {
-      for (const item of batchQueue) {
-        if (item.status === "done") continue;
-        try {
-          await processFileItem(item);
-        } catch (itemErr) {
-          console.error("Item processing failed", itemErr);
-          item.status = "error";
-          renderQueueList();
+      let idx = 0;
+      while (idx < batchQueue.length) {
+        const item = batchQueue[idx];
+        if (item.status !== "done") {
+          try {
+            await processFileItem(item);
+          } catch (itemErr) {
+            console.error("Item processing failed", itemErr);
+            item.status = "error";
+            renderQueueList();
+          }
         }
+        idx++;
       }
     } finally {
       startBtn.disabled = false;
@@ -1729,6 +1754,9 @@ document.addEventListener("DOMContentLoaded", () => {
     downloadAssBtn.href = data.ass_url;
     downloadSrtBtn.href = data.srt_url;
     downloadJsonBtn.href = data.json_url || `/api/download/${currentTaskId}/transcript.json`;
+    if (downloadRemotionBtn) {
+      downloadRemotionBtn.href = data.remotion_url || `/api/download/${currentTaskId}/remotion_props.json`;
+    }
 
     videoContainer.classList.remove("hidden");
     resultVideo.load();

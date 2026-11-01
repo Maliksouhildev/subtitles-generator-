@@ -58,7 +58,7 @@ def test_ass_builder_karaoke_pop():
     assert "Dialogue: 0," in ass_text
     assert "سلام" in ass_text
     assert "\\t(" in ass_text
-    assert "\\fscx125" in ass_text
+    assert "\\fscx130" in ass_text
 
 
 def test_ass_builder_speed_scaling():
@@ -163,13 +163,26 @@ def test_ass_builder_rtl_ordering():
         ]
     }
     ass_text = builder.generate_ass(data)
-    # The first event (when 'سلام' is spoken at 0.0) should render 'خاوتنا' first and 'سلام' last
-    # so that libass LTR layout places 'خاوتنا' on the left and 'سلام' on the right
+    # Words must be in authentic natural logical order (first spoken word first in string)
+    # so FriBidi in libass typesets them right-to-left correctly (first word at right margin)
     event_lines = [l for l in ass_text.splitlines() if l.startswith("Dialogue: 0,0:00:00.00")]
     assert len(event_lines) == 1
     ev = event_lines[0]
-    # Word 'خاوتنا' appears before 'سلام' in the ASS line text for correct visual RTL
-    assert ev.index("خاوتنا") < ev.index("سلام")
+    assert ev.index("سلام") < ev.index("عليكم") < ev.index("خاوتنا")
+
+
+def test_ass_builder_bidi_loanword_isolation():
+    from core.ass_builder import format_bidi_word, balance_chunk_sizes
+    # French loanwords inside Arabic context must be isolated with \u200E (LRM)
+    assert format_bidi_word("test", in_rtl_context=True) == "\u200Etest\u200E"
+    assert format_bidi_word("premier", in_rtl_context=True) == "\u200Epremier\u200E"
+    # Arabic words are not altered
+    assert format_bidi_word("يبدا", in_rtl_context=True) == "يبدا"
+
+    # Balanced chunking prevents awkward 1-word orphan lines
+    assert balance_chunk_sizes(4, 3) == [2, 2]
+    assert balance_chunk_sizes(5, 3) == [3, 2]
+    assert balance_chunk_sizes(7, 3) == [3, 2, 2]
 
 
 def test_ass_builder_ltr_ordering_preserved():

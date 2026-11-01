@@ -126,7 +126,7 @@ def render_video(
                 "-i", os.path.basename(staged_media),
                 "-vf", "ass=filename=subtitles.ass:fontsdir=fonts",
                 "-c:v", "libx264",
-                "-preset", "veryfast",
+                "-preset", "ultrafast",
                 "-crf", "19",
                 "-pix_fmt", "yuv420p",
                 "-c:a", "aac",
