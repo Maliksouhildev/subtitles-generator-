@@ -709,19 +709,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         header = self.generate_header()
         events = []
 
-        if self.animation_style == "karaoke_pop":
+        anim = (self.animation_style or "karaoke_pop").lower().replace("-", "_")
+
+        if anim in ("karaoke_pop", "hormozi_pop"):
             events = self.build_karaoke_pop_events(chunks)
-        elif self.animation_style == "bouncy_spring":
+        elif anim in ("bouncy_spring", "comic_bounce"):
             events = self.build_bouncy_spring_events(chunks)
-        elif self.animation_style == "neon_glow":
+        elif anim in ("neon_glow", "cyber_glitch", "cyber_pulse"):
             events = self.build_neon_glow_events(chunks)
-        elif self.animation_style == "color_flash":
-            events = self.build_color_flash_events(chunks)
-        elif self.animation_style == "word_reveal":
+        elif anim in ("minimal_slide", "smooth_slide"):
             events = self.build_word_reveal_events(chunks)
-        elif self.animation_style == "box_highlight":
+        elif anim in ("viral_punch", "typewriter_pop"):
+            events = self.build_karaoke_pop_events(chunks)
+        elif anim in ("box_highlight", "badge_invert"):
             events = self.build_box_highlight_events(chunks)
-        elif self.animation_style == "classic_line" or self.animation_style == "classic_fade":
+        elif anim == "color_flash":
+            events = self.build_color_flash_events(chunks)
+        elif anim == "word_reveal":
+            events = self.build_word_reveal_events(chunks)
+        elif anim in ("classic_line", "classic_fade", "fade_editorial", "fade_highlight"):
             events = self.build_classic_line_events(segments)
         else:
             events = self.build_karaoke_pop_events(chunks)

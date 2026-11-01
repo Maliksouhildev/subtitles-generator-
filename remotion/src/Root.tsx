@@ -21,6 +21,7 @@ const defaultSampleProps: CaptionsCompositionProps = {
       { word: "الهيكل", start: 5.9, end: 6.4 },
     ],
   },
+  template_id: "hormozi-pop",
   style: {
     font_name: "Lalezar",
     font_size: 62,

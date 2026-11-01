@@ -192,7 +192,13 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_pos_bottom: "Bottom (Safe Zone above UI)",
       opt_pos_center: "Center (Middle)",
       opt_pos_top: "Top (Header)",
-      opt_anim_karaoke: "Karaoke Pop & Scale",
+      opt_anim_karaoke: "Hormozi Viral Pop",
+      opt_anim_minimal: "Minimal Smooth Slide",
+      opt_anim_cyber: "Cyberpunk Neon Jitter",
+      opt_anim_comic: "Comic Bounce & Tilt",
+      opt_anim_punch: "Viral Punch Snap",
+      opt_anim_editorial: "Cinematic Smooth Fade",
+      opt_anim_badge: "Badge Invert Pill",
       opt_anim_bouncy: "Bouncy Spring",
       opt_anim_neon: "Neon Glow Pulse",
       opt_anim_flash: "Color Flash Cycle",
@@ -302,6 +308,12 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_pos_center: "Centre (Milieu)",
       opt_pos_top: "Haut (En-tête)",
       opt_anim_karaoke: "Karaoké Pop & Échelle",
+      opt_anim_minimal: "Glissement fluide minimal",
+      opt_anim_cyber: "Neon Cyberpunk vibrant",
+      opt_anim_comic: "Rebond BD dynamique",
+      opt_anim_punch: "Impact viral percutant",
+      opt_anim_editorial: "Fondu fluide editorial",
+      opt_anim_badge: "Badge inverse neon",
       opt_anim_bouncy: "Rebond Élastique",
       opt_anim_neon: "Halo Néon Brillant",
       opt_anim_flash: "Flash de Couleurs Alternées",
@@ -411,6 +423,12 @@ document.addEventListener("DOMContentLoaded", () => {
       opt_pos_center: "الوسط (المنتصف)",
       opt_pos_top: "أعلى (الترويسة)",
       opt_anim_karaoke: "كاراوكي بوب وتكبير",
+      opt_anim_minimal: "Glissement fluide minimal",
+      opt_anim_cyber: "Neon Cyberpunk vibrant",
+      opt_anim_comic: "Rebond BD dynamique",
+      opt_anim_punch: "Impact viral percutant",
+      opt_anim_editorial: "Fondu fluide editorial",
+      opt_anim_badge: "Badge inverse neon",
       opt_anim_bouncy: "قفز مرن نطاط",
       opt_anim_neon: "توهج نيون مضيء",
       opt_anim_flash: "وميض ألوان متبادلة",
@@ -795,7 +813,7 @@ document.addEventListener("DOMContentLoaded", () => {
         w.style.animation = "";
 
         w.className = `sub-word active anim-${activeAnim}${bidiClass}`;
-        if (activeAnim === "box_highlight") {
+        if (activeAnim === "box_highlight" || activeAnim === "badge_invert") {
           w.style.background = highlightColor.value;
           w.style.color = "#000000";
           w.style.padding = "1px 6px";
@@ -1747,6 +1765,7 @@ document.addEventListener("DOMContentLoaded", () => {
       margin_v: parseInt(marginV.value) || 420,
       pos_y: Math.max(30, 1920 - (parseInt(marginV.value) || 420)),
       words_per_line: parseInt(wordsPerLine.value) || 4,
+      template_id: animationStyle.value || "karaoke_pop",
       animation_style: animationStyle.value || "karaoke_pop",
       animation_speed: parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0,
       sub_box_style: subBoxStyle ? subBoxStyle.value : "none",

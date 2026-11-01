@@ -1,28 +1,13 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig, interpolate, spring } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  WordToken,
+  CaptionsStyleProps,
+  getTemplateComponent,
+  DEFAULT_TEMPLATE_ID,
+} from "./TemplateMapper";
 
-export interface WordToken {
-  word: string;
-  start: number; // in seconds
-  end: number;
-}
-
-export interface CaptionsStyleProps {
-  font_name?: string;
-  font_size?: number;
-  primary_color?: string;
-  highlight_color?: string;
-  outline_color?: string;
-  shadow_color?: string;
-  outline_width?: number;
-  shadow_depth?: number;
-  margin_v?: number; // Distance in pixels from bottom (out of 1920)
-  words_per_line?: number;
-  animation_style?: string;
-  sub_box_style?: "none" | "pill" | "box" | "shadow";
-  sub_box_color?: string;
-  sub_box_alpha?: number;
-}
+export type { WordToken, CaptionsStyleProps };
 
 export interface CaptionsCompositionProps {
   transcription: {
@@ -35,6 +20,7 @@ export interface CaptionsCompositionProps {
     }>;
     words?: WordToken[];
   };
+  template_id?: string;
   style?: CaptionsStyleProps;
   backgroundMode?: "transparent" | "green_screen" | "black" | "blue" | "custom";
   customColorHex?: string;
@@ -70,6 +56,7 @@ function balanceChunkSizes(totalWords: number, targetSize: number): number[] {
 
 export const Captions: React.FC<CaptionsCompositionProps> = ({
   transcription,
+  template_id,
   style = {},
   backgroundMode = "transparent",
   customColorHex = "#1a1a24",
@@ -232,6 +219,9 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
     >
       {activeChunkInfo && (() => {
         const isChunkRtl = activeChunkInfo.words.some((w) => ARABIC_REGEX.test(w.word));
+        const activeTemplateId = template_id || style.animation_style || DEFAULT_TEMPLATE_ID;
+        const TemplateComponent = getTemplateComponent(activeTemplateId);
+
         return (
           <div
             dir={isChunkRtl ? "rtl" : "ltr"}
@@ -242,134 +232,44 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
               flexWrap: "nowrap",
               direction: isChunkRtl ? "rtl" : "ltr",
               unicodeBidi: "isolate",
-            gap: "14px",
-            padding: subBoxStyle === "pill"
-              ? "10px 28px"
-              : subBoxStyle === "box"
-              ? "12px 24px"
-              : "6px 12px",
-            backgroundColor:
-              subBoxStyle !== "none"
-                ? hexToRgba(subBoxColor, subBoxAlpha)
-                : "transparent",
-            borderRadius:
-              subBoxStyle === "pill"
-                ? "9999px"
+              gap: "14px",
+              padding: subBoxStyle === "pill"
+                ? "10px 28px"
                 : subBoxStyle === "box"
-                ? "14px"
-                : "0",
-            border:
-              subBoxStyle !== "none"
-                ? `3.5px solid ${outlineColor}`
-                : "none",
-            boxShadow:
-              subBoxStyle === "shadow"
-                ? "0 10px 30px rgba(0,0,0,0.85)"
-                : subBoxStyle !== "none"
-                ? "0 6px 16px rgba(0,0,0,0.6)"
-                : "none",
-            maxWidth: "92%",
-          }}
-        >
-          {(() => {
-            // Group continuous words into runs of Latin vs Arabic
-            const runs: Array<{ isLatin: boolean; words: WordToken[] }> = [];
-            let currentRun: WordToken[] = [];
-            let currentIsLatin: boolean | null = null;
-
-            for (const w of activeChunkInfo.words) {
-              const isLatin = LATIN_REGEX.test(w.word);
-              if (currentIsLatin === null || isLatin === currentIsLatin) {
-                currentRun.push(w);
-                currentIsLatin = isLatin;
-              } else {
-                runs.push({ isLatin: currentIsLatin, words: currentRun });
-                currentRun = [w];
-                currentIsLatin = isLatin;
-              }
-            }
-            if (currentRun.length > 0 && currentIsLatin !== null) {
-              runs.push({ isLatin: currentIsLatin, words: currentRun });
-            }
-
-            return runs.map((run, rIdx) => {
-              const renderWord = (w: WordToken, wIdx: number) => {
-                const isSpoken = currentTime >= w.start && currentTime <= w.end;
-                const isLatin = LATIN_REGEX.test(w.word);
-
-                // Remotion Spring Physics (stiffness: 180, damping: 10, mass: 0.8)
-                const wordStartFrame = Math.round(w.start * fps);
-                const springProgress = spring({
-                  fps,
-                  frame: Math.max(0, frame - wordStartFrame),
-                  config: { stiffness: 180, damping: 10, mass: 0.8 },
-                });
-
-                // Scale progression: Overshoot 1.30 -> Recoil -> Resting 1.10
-                const activeScale = interpolate(springProgress, [0, 0.4, 0.8, 1], [1.0, 1.30, 1.07, 1.12]);
-                const scale = isSpoken ? activeScale : 1.0;
-                const color = isSpoken ? highlightColor : primaryColor;
-
-                const textStroke = `${outlineWidth}px ${outlineColor}`;
-                const textShadow = `
-                  -${outlineWidth}px -${outlineWidth}px 0 ${outlineColor},
-                   ${outlineWidth}px -${outlineWidth}px 0 ${outlineColor},
-                  -${outlineWidth}px  ${outlineWidth}px 0 ${outlineColor},
-                   ${outlineWidth}px  ${outlineWidth}px 0 ${outlineColor},
-                   0px 4px 10px rgba(0, 0, 0, 0.75)
-                `;
-
-                return (
-                  <span
-                    key={wIdx}
-                    style={{
-                      display: "inline-block",
-                      transform: `scale(${scale})`,
-                      transformOrigin: "center bottom",
-                      color,
-                      fontSize: `${fontSize}px`,
-                      fontWeight: 900,
-                      textShadow,
-                      WebkitTextStroke: textStroke,
-                      letterSpacing: isLatin ? "1px" : "0.5px",
-                      lineHeight: 1.15,
-                      transition: "color 0.08s ease",
-                      userSelect: "none",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {w.word}
-                  </span>
-                );
-              };
-
-              if (run.isLatin) {
-                return (
-                  <span
-                    key={rIdx}
-                    dir="ltr"
-                    style={{
-                      display: "inline-flex",
-                      direction: "ltr",
-                      unicodeBidi: "isolate",
-                      alignItems: "center",
-                      gap: "8px",
-                      margin: "0 4px",
-                    }}
-                  >
-                    {run.words.map((w, wIdx) => renderWord(w, wIdx))}
-                  </span>
-                );
-              }
-
-              return (
-                <React.Fragment key={rIdx}>
-                  {run.words.map((w, wIdx) => renderWord(w, wIdx))}
-                </React.Fragment>
-              );
-            });
-          })()}
-        </div>
+                ? "12px 24px"
+                : "6px 12px",
+              backgroundColor:
+                subBoxStyle !== "none"
+                  ? hexToRgba(subBoxColor, subBoxAlpha)
+                  : "transparent",
+              borderRadius:
+                subBoxStyle === "pill"
+                  ? "9999px"
+                  : subBoxStyle === "box"
+                  ? "14px"
+                  : "0",
+              border:
+                subBoxStyle !== "none"
+                  ? `3.5px solid ${outlineColor}`
+                  : "none",
+              boxShadow:
+                subBoxStyle === "shadow"
+                  ? "0 10px 30px rgba(0,0,0,0.85)"
+                  : subBoxStyle !== "none"
+                  ? "0 6px 16px rgba(0,0,0,0.6)"
+                  : "none",
+              maxWidth: "92%",
+            }}
+          >
+            <TemplateComponent
+              chunk={activeChunkInfo}
+              currentTime={currentTime}
+              frame={frame}
+              fps={fps}
+              style={style}
+              isChunkRtl={isChunkRtl}
+            />
+          </div>
         );
       })()}
     </div>

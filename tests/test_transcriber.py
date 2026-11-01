@@ -126,4 +126,59 @@ def test_normalize_transcription_script_separation():
     assert segs[3]["end"] == 5.8
 
 
+def test_calibrate_transcription_to_vad_timing_drift():
+    from core.transcriber import calibrate_transcription_to_vad
+    
+    # Simulate the exact bug: AI compressed 18.88s of speech into 14.0s
+    data = {
+        "language": "ar-DZ",
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 7.0,
+                "text": "وكان شرف للشركة",
+                "words": [
+                    {"word": "وكان", "start": 0.0, "end": 2.0},
+                    {"word": "شرف", "start": 2.0, "end": 4.5},
+                    {"word": "للشركة", "start": 4.5, "end": 7.0}
+                ]
+            },
+            {
+                "id": 1,
+                "start": 7.0,
+                "end": 14.0,
+                "text": "نهائيا",
+                "words": [
+                    {"word": "نهائيا", "start": 7.0, "end": 14.0}
+                ]
+            },
+            {
+                "id": 2,
+                "start": 23.8,
+                "end": 25.5,
+                "text": "نزيد نعاودلك؟",
+                "words": [
+                    {"word": "نزيد", "start": 23.8, "end": 24.5},
+                    {"word": "نعاودلك؟", "start": 24.5, "end": 25.5}
+                ]
+            }
+        ]
+    }
+    
+    speech_intervals = [(0.0, 18.88), (24.63, 25.44)]
+    calibrated = calibrate_transcription_to_vad(data, speech_intervals)
+    segs = calibrated["segments"]
+    
+    # The first cluster must now stretch all the way to 18.88s instead of cutting off at 14.0s
+    assert segs[1]["end"] == 18.88
+    assert segs[1]["words"][0]["end"] == 18.88
+    
+    # The second cluster must align with the second speech interval 24.63s - 25.44s
+    assert segs[2]["start"] == 24.63
+    assert segs[2]["end"] == 25.44
+    assert segs[2]["words"][0]["start"] == 24.63
+    assert segs[2]["words"][1]["end"] == 25.44
+
+
 

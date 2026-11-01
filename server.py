@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from core.transcriber import transcribe, get_audio_duration, normalize_transcription_data
+from core.transcriber import transcribe, get_audio_duration, normalize_transcription_data, calibrate_transcription_to_vad
 from core.ass_builder import ASSSubtitleBuilder
 from core.srt_builder import generate_srt, generate_vtt
 from core.video_engine import render_video, is_video_file, get_video_dimensions
@@ -64,6 +64,7 @@ tasks_db: Dict[str, Dict[str, Any]] = {}
 
 class RenderRequest(BaseModel):
     task_id: str
+    template_id: Optional[str] = None
     transcription_data: Optional[Dict[str, Any]] = None
     font_name: str = "Cairo"
     font_size: int = 56
@@ -206,10 +207,14 @@ async def render_subtitles(req: RenderRequest):
 
     # Re-normalize to ensure any user-edited segment text is synchronized into word timestamps
     transcription = normalize_transcription_data(transcription)
+    if "speech_intervals" in transcription and transcription["speech_intervals"]:
+        transcription = calibrate_transcription_to_vad(transcription, transcription["speech_intervals"])
 
     # Save synchronized transcript to task folder
     with open(task_folder / "transcript.json", "w", encoding="utf-8") as f:
         json.dump(transcription, f, ensure_ascii=False, indent=2)
+
+    active_style = req.template_id or req.animation_style
 
     try:
         # Determine canvas resolution based on media type and background mode
@@ -233,7 +238,7 @@ async def render_subtitles(req: RenderRequest):
             margin_v=req.margin_v,
             pos_y=req.pos_y,
             words_per_line=req.words_per_line,
-            animation_style=req.animation_style,
+            animation_style=active_style,
             animation_speed=req.animation_speed,
             sub_box_style=req.sub_box_style,
             sub_box_color=req.sub_box_color,
@@ -258,7 +263,9 @@ async def render_subtitles(req: RenderRequest):
         # 3. Generate Remotion Props JSON
         remotion_props = {
             "transcription": transcription,
+            "template_id": active_style,
             "style": {
+                "template_id": active_style,
                 "font_name": req.font_name,
                 "font_size": req.font_size,
                 "primary_color": req.primary_color,
@@ -268,7 +275,7 @@ async def render_subtitles(req: RenderRequest):
                 "outline_width": req.outline_width,
                 "margin_v": req.margin_v,
                 "words_per_line": req.words_per_line,
-                "animation_style": req.animation_style,
+                "animation_style": active_style,
                 "animation_speed": req.animation_speed,
                 "sub_box_style": req.sub_box_style,
                 "sub_box_color": req.sub_box_color,

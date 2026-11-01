@@ -285,3 +285,38 @@ def test_ass_builder_script_separated_chunking():
     assert [w["word"] for w in chunks[3]] == ["test"]
 
 
+def test_ass_builder_new_creative_templates():
+    transcription = {
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 2.0,
+                "text": "سلام عليكم",
+                "words": [
+                    {"word": "سلام", "start": 0.0, "end": 1.0},
+                    {"word": "عليكم", "start": 1.0, "end": 2.0}
+                ]
+            }
+        ]
+    }
+    
+    new_styles = [
+        "hormozi-pop",
+        "minimal-slide",
+        "cyber-glitch",
+        "comic-bounce",
+        "viral-punch",
+        "fade-editorial",
+        "badge-invert"
+    ]
+    
+    for style in new_styles:
+        builder = ASSSubtitleBuilder(words_per_line=3, animation_style=style)
+        ass_text = builder.generate_ass(transcription)
+        assert "[Events]" in ass_text
+        assert "Dialogue:" in ass_text
+        assert "سلام" in ass_text
+
+
+

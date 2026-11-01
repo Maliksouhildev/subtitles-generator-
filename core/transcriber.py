@@ -273,6 +273,115 @@ def get_audio_duration(file_path: str) -> float:
         return 10.0
 
 
+def detect_speech_intervals(audio_path: str, noise_thresh: str = "-28dB", min_silence: float = 0.65) -> Tuple[List[Tuple[float, float]], float]:
+    """
+    Detects active spoken intervals in audio using FFmpeg silencedetect.
+    Returns list of (start_seconds, end_seconds) tuples of voice activity, and total duration.
+    """
+    dur = get_audio_duration(audio_path)
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", audio_path,
+        "-af", f"silencedetect=noise={noise_thresh}:d={min_silence}",
+        "-f", "null", "-"
+    ]
+    try:
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="ignore")
+        silences = []
+        for line in res.stderr.splitlines():
+            if "silence_start:" in line:
+                m = re.search(r"silence_start:\s*([0-9.]+)", line)
+                if m:
+                    silences.append({"start": float(m.group(1))})
+            elif "silence_end:" in line:
+                m = re.search(r"silence_end:\s*([0-9.]+)", line)
+                if m and silences and "end" not in silences[-1]:
+                    silences[-1]["end"] = float(m.group(1))
+
+        if not silences:
+            return [(0.0, round(dur, 2))], dur
+
+        speech = []
+        curr = 0.0
+        for s in silences:
+            s_start = s["start"]
+            s_end = s.get("end", dur)
+            if s_start > curr + 0.2:
+                speech.append((round(curr, 2), round(s_start, 2)))
+            curr = s_end
+        if curr < dur - 0.2:
+            speech.append((round(curr, 2), round(dur, 2)))
+
+        if not speech:
+            speech = [(0.0, round(dur, 2))]
+
+        return speech, dur
+    except Exception as e:
+        logger.warning(f"Failed to detect speech intervals via FFmpeg ({e}), fallback to full duration")
+        return [(0.0, round(dur, 2))], dur
+
+
+def calibrate_transcription_to_vad(transcription: Dict[str, Any], speech_intervals: List[Tuple[float, float]]) -> Dict[str, Any]:
+    """
+    Aligns transcription word and segment timestamps to ground-truth acoustic voice activity intervals.
+    Prevents AI hallucination/drift where speech words compress or end early.
+    """
+    if not speech_intervals:
+        return transcription
+
+    segments = transcription.get("segments", [])
+    if not segments:
+        return transcription
+
+    # Cluster segments by pause gaps (> 1.2s pause indicates separate speech event)
+    clusters = []
+    current_cluster = []
+    for seg in segments:
+        if current_cluster:
+            prev_end = current_cluster[-1]["end"]
+            if seg["start"] - prev_end > 1.2:
+                clusters.append(current_cluster)
+                current_cluster = []
+        current_cluster.append(seg)
+    if current_cluster:
+        clusters.append(current_cluster)
+
+    for c_idx, cluster in enumerate(clusters):
+        c_start = float(cluster[0]["start"])
+        c_end = float(cluster[-1]["end"])
+        c_dur = max(0.1, c_end - c_start)
+
+        # Match to closest VAD interval by temporal overlap
+        best_vad = None
+        best_overlap = -1.0
+        for vad_start, vad_end in speech_intervals:
+            overlap = max(0.0, min(c_end, vad_end) - max(c_start, vad_start))
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_vad = (vad_start, vad_end)
+
+        # Fallback to index mapping if overlap is negligible
+        if (not best_vad or best_overlap <= 0.1) and c_idx < len(speech_intervals):
+            best_vad = speech_intervals[c_idx]
+
+        if best_vad:
+            vad_start, vad_end = best_vad
+            vad_dur = vad_end - vad_start
+
+            # Calibrate if there is drift > 0.35s
+            if abs(c_dur - vad_dur) > 0.35 or abs(c_start - vad_start) > 0.35:
+                scale = vad_dur / c_dur if c_dur > 0.1 else 1.0
+                logger.info(f"VAD Calibration applied to cluster {c_idx}: AI [{c_start:.2f}s - {c_end:.2f}s] -> VAD [{vad_start:.2f}s - {vad_end:.2f}s] (scale={scale:.3f})")
+                for seg in cluster:
+                    seg["start"] = round(vad_start + (seg["start"] - c_start) * scale, 2)
+                    seg["end"] = round(vad_start + (seg["end"] - c_start) * scale, 2)
+                    for w in seg.get("words", []):
+                        w["start"] = round(vad_start + (w["start"] - c_start) * scale, 2)
+                        w["end"] = round(vad_start + (w["end"] - c_start) * scale, 2)
+
+    return transcription
+
+
 def clean_gemini_json(raw_text: str) -> Dict[str, Any]:
     """Cleans up markdown ticks or extra formatting from Gemini JSON responses."""
     text = raw_text.strip()
@@ -460,11 +569,14 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
     if not full_text and normalized_segments:
         full_text = " ".join(s["text"] for s in normalized_segments)
 
-    return {
+    res = {
         "language": data.get("language", "ar-DZ"),
         "text": full_text,
         "segments": normalized_segments
     }
+    if "speech_intervals" in data:
+        res["speech_intervals"] = data["speech_intervals"]
+    return res
 
 
 def transcribe_with_gemini(
@@ -483,7 +595,7 @@ def transcribe_with_gemini(
 
     # 1. Downsample to 16kHz mono MP3
     processed_audio = extract_audio(audio_path)
-    audio_duration = get_audio_duration(processed_audio)
+    intervals, audio_duration = detect_speech_intervals(processed_audio, min_silence=0.65)
 
     with open(processed_audio, "rb") as f:
         audio_b64 = base64.b64encode(f.read()).decode("utf-8")
@@ -495,6 +607,12 @@ def transcribe_with_gemini(
         pass
 
     prompt = get_system_prompt(dialect_hint)
+    timing_hint = f"\nCRITICAL ACOUSTIC WAVEFORM TIMINGS:\n- Exact Total Duration: {audio_duration:.2f} seconds.\n"
+    if intervals:
+        int_strs = [f"[{start:.2f}s - {end:.2f}s]" for start, end in intervals]
+        timing_hint += f"- Ground-Truth Active Spoken Intervals: {', '.join(int_strs)}\n"
+        timing_hint += "You MUST map your transcribed words to accurately cover these spoken intervals without compressing or ending early.\n"
+    prompt += timing_hint
 
     payload = {
         "contents": [
@@ -539,8 +657,10 @@ def transcribe_with_gemini(
                         raw_text = parts[0].get("text", "")
                         parsed_data = clean_gemini_json(raw_text)
                         normalized = normalize_transcription_data(parsed_data, audio_duration)
-                        logger.info(f"Successfully transcribed audio with {model_name}: {len(normalized['segments'])} segments")
-                        return normalized
+                        calibrated = calibrate_transcription_to_vad(normalized, intervals)
+                        calibrated["speech_intervals"] = intervals
+                        logger.info(f"Successfully transcribed audio with {model_name}: {len(calibrated['segments'])} segments (VAD calibrated)")
+                        return calibrated
             else:
                 err_body = response.text[:200]
                 logger.warning(f"Model {model_name} returned HTTP {response.status_code}: {err_body}")
