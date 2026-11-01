@@ -427,6 +427,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 2. Re-render Phone Simulator elements in the selected language
     updatePhonePlatformUI();
+
+    // 3. Synchronize custom comic dropdown options and triggers
+    if (typeof syncAllCustomDropdowns === "function") {
+      syncAllCustomDropdowns();
+    }
   }
 
   // Language button listeners
@@ -486,6 +491,7 @@ document.addEventListener("DOMContentLoaded", () => {
         marginV.value = p.margin;
         marginVVal.innerText = p.margin + "px";
         updateLiveSubtitlePreview();
+        syncAllCustomDropdowns();
       }
     });
   });
@@ -651,25 +657,47 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // LIVE SUBTITLE PREVIEW IN PHONE SIMULATOR
+  // LIVE SUBTITLE PREVIEW IN PHONE SIMULATION
+  let previewActiveIdx = 1;
+  let previewCycleTimer = null;
+
   function updateLiveSubtitlePreview() {
     if (!liveSubtitleContainer || !liveSubtitleBox) return;
 
-    // Font styling (supports Lalezar, Cairo, Tajawal, etc.)
+    // Font styling (supports Lalezar, Cairo, Tajawal, Almarai, Amiri, etc.)
     liveSubtitleBox.style.fontFamily = fontName.value + ", sans-serif";
     const scaledSize = Math.max(9, Math.round(parseInt(fontSize.value) * 0.18));
     liveSubtitleBox.style.fontSize = scaledSize + "px";
 
-    subWord1.style.color = primaryColor.value;
-    subWord2.style.color = highlightColor.value;
-    subWord3.style.color = primaryColor.value;
+    // Set sample words adapted to selected dialect when no user media has been transcribed yet
+    if (!currentTranscription) {
+      if (dialectHint.value.includes("Latin")) {
+        subWord1.innerText = "es-sayara";
+        subWord2.innerText = "ta3i";
+        subWord3.innerText = "echekhsiya";
+      } else if (dialectHint.value === "French") {
+        subWord1.innerText = "SOUS-TITRES";
+        subWord2.innerText = "ANIMÉS";
+        subWord3.innerText = "VIRAUX";
+      } else if (dialectHint.value === "English") {
+        subWord1.innerText = "VIRAL";
+        subWord2.innerText = "ANIMATED";
+        subWord3.innerText = "CAPTIONS";
+      } else {
+        // Default Algerian Darija (Arabic script)
+        subWord1.innerText = "السيارة";
+        subWord2.innerText = "تاعي";
+        subWord3.innerText = "الشخصية";
+      }
+    }
 
     // RTL Detection: Ensure Arabic / Algerian Darija words are strictly RTL in the flex container
     const sampleText = (subWord1.innerText || "") + (subWord2.innerText || "") + (subWord3.innerText || "");
     const isArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(sampleText) || 
-                     dialectHint.value.includes("Algerian") || 
+                     (dialectHint.value.includes("Algerian") && !dialectHint.value.includes("Latin")) || 
                      dialectHint.value.includes("Arabic");
 
-    if (isArabic && !dialectHint.value.includes("Latin")) {
+    if (isArabic) {
       liveSubtitleBox.setAttribute("dir", "rtl");
       liveSubtitleBox.classList.remove("is-ltr");
       liveSubtitleBox.classList.add("is-rtl");
@@ -679,21 +707,31 @@ document.addEventListener("DOMContentLoaded", () => {
       liveSubtitleBox.classList.add("is-ltr");
     }
 
-    // Animation Style class binding on the active word
+    // Apply animation style & active word colors
     const activeAnim = animationStyle.value || "karaoke_pop";
-    subWord2.className = `sub-word active anim-${activeAnim}`;
+    const words = [subWord1, subWord2, subWord3];
 
-    // Specific style tweaks
-    if (activeAnim === "box_highlight") {
-      subWord2.style.background = highlightColor.value;
-      subWord2.style.color = "#000000";
-      subWord2.style.padding = "1px 4px";
-      subWord2.style.borderRadius = "3px";
-    } else {
-      subWord2.style.background = "none";
-      subWord2.style.color = highlightColor.value;
-      subWord2.style.padding = "0";
-    }
+    words.forEach((w, idx) => {
+      if (!w) return;
+      if (idx === previewActiveIdx) {
+        w.className = `sub-word active anim-${activeAnim}`;
+        if (activeAnim === "box_highlight") {
+          w.style.background = highlightColor.value;
+          w.style.color = "#000000";
+          w.style.padding = "1px 4px";
+          w.style.borderRadius = "3px";
+        } else {
+          w.style.background = "none";
+          w.style.color = highlightColor.value;
+          w.style.padding = "0";
+        }
+      } else {
+        w.className = "sub-word";
+        w.style.background = "none";
+        w.style.color = primaryColor.value;
+        w.style.padding = "0";
+      }
+    });
 
     // Position mapping inside simulated phone (based on marginV)
     const marginPixels = parseInt(marginV.value) || 420;
@@ -705,6 +743,16 @@ document.addEventListener("DOMContentLoaded", () => {
       liveSubtitleContainer.style.bottom = "auto";
       liveSubtitleContainer.style.transform = "translateX(-50%)";
     }
+  }
+
+  // Preview cycle timer: rhythmic word-by-word karaoke progression on the phone screen
+  function stepPreviewCycle() {
+    previewActiveIdx = (previewActiveIdx + 1) % 3;
+    updateLiveSubtitlePreview();
+  }
+
+  if (!previewCycleTimer) {
+    previewCycleTimer = setInterval(stepPreviewCycle, 1300);
   }
 
   // DRAGGABLE SUBTITLES ON PHONE SIMULATION (Direct mouse / touch dragging!)
@@ -806,6 +854,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (chevron) chevron.style.transform = "rotate(0deg)";
 
         updateLiveSubtitlePreview();
+        syncAllCustomDropdowns();
       });
     });
 
@@ -817,6 +866,210 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // UNIVERSAL CUSTOM RETRO-COMIC DROPDOWN ENGINE
+  function enhanceSelectsToComicDropdowns() {
+    const selectsToEnhance = [
+      { el: dialectHint, type: "lang" },
+      { el: fontName, type: "font" },
+      { el: wordsPerLine, type: "words" },
+      { el: aspectRatio, type: "aspect" },
+      { el: backgroundMode, type: "bg" }
+    ];
+
+    selectsToEnhance.forEach(({ el, type }) => {
+      if (!el || el.dataset.enhanced === "true") return;
+      el.dataset.enhanced = "true";
+      el.classList.add("visually-hidden");
+
+      const wrap = document.createElement("div");
+      wrap.className = "custom-select-wrap comic-enhanced-select";
+      wrap.dataset.selectId = el.id;
+
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "custom-select-trigger";
+      trigger.setAttribute("aria-haspopup", "listbox");
+
+      const left = document.createElement("div");
+      left.className = "trigger-left";
+      const labelSpan = document.createElement("span");
+      labelSpan.className = "trigger-label";
+      
+      const selectedOpt = el.options[el.selectedIndex] || el.options[0];
+      labelSpan.innerText = selectedOpt ? selectedOpt.innerText : "";
+      if (type === "font" && selectedOpt) {
+        labelSpan.style.fontFamily = selectedOpt.value + ", sans-serif";
+      }
+      left.appendChild(labelSpan);
+
+      const chevron = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      chevron.setAttribute("class", "trigger-chevron");
+      chevron.setAttribute("width", "14");
+      chevron.setAttribute("height", "14");
+      chevron.setAttribute("viewBox", "0 0 24 24");
+      chevron.setAttribute("fill", "none");
+      chevron.setAttribute("stroke", "currentColor");
+      chevron.setAttribute("stroke-width", "2.5");
+      chevron.innerHTML = '<polyline points="6 9 12 15 18 9"></polyline>';
+
+      trigger.appendChild(left);
+      trigger.appendChild(chevron);
+
+      const panel = document.createElement("div");
+      panel.className = "custom-dropdown-panel hidden";
+      panel.setAttribute("role", "listbox");
+
+      Array.from(el.options).forEach(opt => {
+        const optRow = document.createElement("div");
+        optRow.className = `comic-dropdown-option ${opt.selected ? 'active' : ''}`;
+        optRow.dataset.value = opt.value;
+        if (opt.getAttribute("data-i18n")) {
+          optRow.setAttribute("data-i18n", opt.getAttribute("data-i18n"));
+        }
+
+        const textSpan = document.createElement("span");
+        textSpan.innerText = opt.innerText;
+
+        if (type === "font") {
+          textSpan.style.fontFamily = opt.value + ", sans-serif";
+          textSpan.style.fontSize = "12px";
+          textSpan.style.letterSpacing = "0.5px";
+        }
+
+        optRow.appendChild(textSpan);
+
+        if (type === "bg") {
+          const badge = document.createElement("span");
+          badge.className = "opt-badge";
+          if (opt.value === "transparent") {
+            badge.innerText = "ALPHA";
+            badge.style.background = "var(--cyan)";
+            badge.style.color = "#000";
+          } else if (opt.value === "green_screen") {
+            badge.innerText = "CHROMA";
+            badge.style.background = "#00FF66";
+            badge.style.color = "#000";
+          } else if (opt.value === "black") {
+            badge.innerText = "BLEND";
+            badge.style.background = "#111";
+            badge.style.color = "#fff";
+          } else if (opt.value === "original_video") {
+            badge.innerText = "OVERLAY";
+            badge.style.background = "var(--terracotta)";
+            badge.style.color = "#fff";
+          } else if (opt.value === "custom") {
+            badge.innerText = "HEX";
+            badge.style.background = "var(--amber)";
+            badge.style.color = "#000";
+          }
+          optRow.appendChild(badge);
+        } else if (type === "lang") {
+          if (opt.value.includes("Algerian") && !opt.value.includes("Latin")) {
+            const badge = document.createElement("span");
+            badge.className = "opt-badge";
+            badge.innerText = "DEFAULT";
+            badge.style.background = "var(--amber)";
+            badge.style.color = "#000";
+            optRow.appendChild(badge);
+          } else if (opt.value.includes("Latin")) {
+            const badge = document.createElement("span");
+            badge.className = "opt-badge";
+            badge.innerText = "3, 7, 9";
+            badge.style.background = "var(--cyan)";
+            badge.style.color = "#000";
+            optRow.appendChild(badge);
+          }
+        }
+
+        optRow.addEventListener("click", (e) => {
+          e.stopPropagation();
+          el.value = opt.value;
+          panel.querySelectorAll(".comic-dropdown-option").forEach(r => r.classList.remove("active"));
+          optRow.classList.add("active");
+          labelSpan.innerText = opt.innerText;
+          if (type === "font") {
+            labelSpan.style.fontFamily = opt.value + ", sans-serif";
+          }
+          panel.classList.add("hidden");
+          chevron.style.transform = "rotate(0deg)";
+
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+
+        panel.appendChild(optRow);
+      });
+
+      trigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        document.querySelectorAll(".custom-dropdown-panel").forEach(p => {
+          if (p !== panel) p.classList.add("hidden");
+        });
+        document.querySelectorAll(".trigger-chevron").forEach(c => {
+          if (c !== chevron) c.style.transform = "rotate(0deg)";
+        });
+
+        panel.classList.toggle("hidden");
+        chevron.style.transform = panel.classList.contains("hidden") ? "rotate(0deg)" : "rotate(180deg)";
+      });
+
+      wrap.appendChild(trigger);
+      wrap.appendChild(panel);
+      el.parentNode.insertBefore(wrap, el.nextSibling);
+    });
+
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".custom-dropdown-panel").forEach(p => p.classList.add("hidden"));
+      document.querySelectorAll(".trigger-chevron").forEach(c => c.style.transform = "rotate(0deg)");
+    });
+  }
+
+  function syncAllCustomDropdowns() {
+    document.querySelectorAll(".comic-enhanced-select").forEach(wrap => {
+      const selectId = wrap.dataset.selectId;
+      const selectEl = document.getElementById(selectId);
+      if (!selectEl) return;
+
+      const label = wrap.querySelector(".trigger-label");
+      const activeOpt = selectEl.options[selectEl.selectedIndex];
+      if (label && activeOpt) {
+        label.innerText = activeOpt.innerText;
+        if (selectId === "fontName") {
+          label.style.fontFamily = activeOpt.value + ", sans-serif";
+        }
+      }
+
+      wrap.querySelectorAll(".comic-dropdown-option").forEach(optRow => {
+        const val = optRow.dataset.value;
+        const matchingOpt = Array.from(selectEl.options).find(o => o.value === val);
+        if (matchingOpt) {
+          const textSpan = optRow.querySelector("span:first-child");
+          if (textSpan) textSpan.innerText = matchingOpt.innerText;
+        }
+        optRow.classList.toggle("active", val === selectEl.value);
+      });
+    });
+
+    // Also sync anim dropdown label
+    if (animSelectLabel && animationStyle) {
+      const activeAnimRow = document.querySelector(`.anim-option-row[data-value="${animationStyle.value}"]`);
+      if (activeAnimRow) {
+        const nameEl = activeAnimRow.querySelector(".opt-name");
+        const demoEl = activeAnimRow.querySelector(".opt-demo-box");
+        if (nameEl) animSelectLabel.innerText = nameEl.innerText;
+        if (demoEl && animSelectLivePreview) animSelectLivePreview.innerHTML = demoEl.innerHTML;
+        document.querySelectorAll(".anim-option-row").forEach(r => r.classList.remove("active"));
+        activeAnimRow.classList.add("active");
+      }
+    }
+  }
+
+  // Dialect change handler: update preview text and RTL direction
+  dialectHint.addEventListener("change", () => {
+    updateLiveSubtitlePreview();
+    syncAllCustomDropdowns();
+  });
 
   marginV.addEventListener("input", (e) => {
     marginVVal.innerText = e.target.value + "px";
@@ -913,6 +1166,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     backgroundMode.dispatchEvent(new Event("change"));
+    if (typeof syncAllCustomDropdowns === "function") {
+      syncAllCustomDropdowns();
+    }
 
     fileInfo.classList.remove("hidden");
     document.querySelector(".dropzone-body").classList.add("hidden");
@@ -927,6 +1183,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     fileInfo.classList.add("hidden");
     document.querySelector(".dropzone-body").classList.remove("hidden");
+    if (typeof syncAllCustomDropdowns === "function") {
+      syncAllCustomDropdowns();
+    }
   }
 
   // BATCH QUEUE FUNCTIONS
@@ -979,7 +1238,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div style="display: flex; align-items: center; gap: 4px;">
           <span class="queue-status-chip ${statusBadgeClass}">${statusText}</span>
-          ${item.result ? `<a href="${item.result.video_url}" download class="comic-tag" style="text-decoration:none; padding: 1px 4px; font-size: 8px;">DL</a>` : ''}
+          ${item.result ? `<a href="${item.result.video_url}" download class="comic-tag comic-tag-amber" onclick="event.stopPropagation()" style="text-decoration:none; padding: 2px 6px; font-size: 8.5px; font-weight: 900; display: inline-flex; align-items: center; gap: 3px;" title="Download Video">⬇ MP4</a>` : ''}
         </div>
       `;
 
@@ -1306,8 +1565,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // INITIAL SETUP CALLS
+  enhanceSelectsToComicDropdowns();
   applyLanguage(currentLang);
   applyTheme(currentTheme);
   updatePhonePlatformUI();
   updateLiveSubtitlePreview();
+  syncAllCustomDropdowns();
 });

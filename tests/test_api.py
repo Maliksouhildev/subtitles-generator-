@@ -133,3 +133,26 @@ def test_render_api_mock(client, tmp_path):
 
     # Cleanup
     shutil.rmtree(task_folder, ignore_errors=True)
+
+
+def test_custom_dropdowns_and_rtl_preview():
+    from pathlib import Path
+    base_dir = Path(__file__).resolve().parent.parent
+    html_content = (base_dir / "web" / "static" / "index.html").read_text(encoding="utf-8")
+    js_content = (base_dir / "web" / "static" / "app.js").read_text(encoding="utf-8")
+    css_content = (base_dir / "web" / "static" / "style.css").read_text(encoding="utf-8")
+
+    # Verify default preview text contains authentic Algerian Darija words
+    assert "السيارة" in html_content
+    assert "تاعي" in html_content
+    assert "الشخصية" in html_content
+    assert 'dir="rtl"' in html_content
+
+    # Verify universal custom dropdown engine and preview cycle in app.js
+    assert "enhanceSelectsToComicDropdowns" in js_content
+    assert "syncAllCustomDropdowns" in js_content
+    assert "stepPreviewCycle" in js_content
+
+    # Verify CSS custom dropdown styling
+    assert ".comic-dropdown-option" in css_content
+    assert ".custom-select-wrap" in css_content

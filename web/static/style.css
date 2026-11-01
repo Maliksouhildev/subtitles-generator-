@@ -1883,6 +1883,56 @@ html, body {
   border: 0;
 }
 
+/* Generic Custom Comic Dropdown Options */
+.comic-dropdown-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  transition: all 0.1s ease;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  user-select: none;
+}
+
+.comic-dropdown-option:last-child {
+  border-bottom: none;
+}
+
+.comic-dropdown-option:hover {
+  background: var(--bg-card-inner);
+  color: var(--amber);
+  padding-left: 12px;
+}
+
+.comic-dropdown-option.active {
+  background: var(--bg-card-inner);
+  border-left: 3.5px solid var(--amber);
+  font-weight: 900;
+  color: var(--amber);
+}
+
+[dir="rtl"] .comic-dropdown-option.active {
+  border-left: none;
+  border-right: 3.5px solid var(--amber);
+}
+
+.comic-dropdown-option .opt-badge {
+  font-size: 8px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--pitch-black);
+  background: var(--pitch-black);
+  color: var(--amber);
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
 /* ==========================================================================
    BATCH PROCESSING QUEUE STYLES
    ========================================================================== */
