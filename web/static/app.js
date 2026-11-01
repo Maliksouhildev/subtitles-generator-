@@ -1289,7 +1289,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FILE UPLOAD AND DRAG-AND-DROP HANDLERS
-  function setFile(file) {
+  function setFile(file, fromQueue = false) {
     if (!file) return;
     currentFile = file;
     fileName.innerText = file.name;
@@ -1298,7 +1298,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isVideo = file.type.startsWith("video/") || /\.(mp4|mov|mkv|webm)$/i.test(file.name);
     fileIconSymbol.innerHTML = isVideo ? `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+        <rect x="2" y="2" width="20" height="20" rx="2.18"></rect>
         <line x1="7" y1="2" x2="7" y2="22"></line>
         <line x1="17" y1="2" x2="17" y2="22"></line>
         <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -1328,9 +1328,32 @@ document.addEventListener("DOMContentLoaded", () => {
       syncAllCustomDropdowns();
     }
 
-    fileInfo.classList.remove("hidden");
-    document.querySelector(".dropzone-body").classList.add("hidden");
+    // When items are in queue, keep top dropzone in clean upload button mode
+    if (fromQueue || batchQueue.length > 0) {
+      fileInfo.classList.add("hidden");
+      document.querySelector(".dropzone-body").classList.remove("hidden");
+    } else {
+      fileInfo.classList.remove("hidden");
+      document.querySelector(".dropzone-body").classList.add("hidden");
+    }
   }
+
+  // Remove single item from queue
+  window.removeQueueItem = function(idx) {
+    if (idx < 0 || idx >= batchQueue.length) return;
+    const removed = batchQueue.splice(idx, 1)[0];
+    if (currentFile === removed.file) {
+      if (batchQueue.length > 0) {
+        const nextIdx = Math.min(idx, batchQueue.length - 1);
+        setFile(batchQueue[nextIdx].file, true);
+        if (batchQueue[nextIdx].task_id) currentTaskId = batchQueue[nextIdx].task_id;
+        if (batchQueue[nextIdx].transcription) currentTranscription = batchQueue[nextIdx].transcription;
+      } else {
+        clearFile();
+      }
+    }
+    renderQueueList();
+  };
 
   function clearFile() {
     currentFile = null;
@@ -1396,12 +1419,15 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div style="display: flex; align-items: center; gap: 4px;">
           <span class="queue-status-chip ${statusBadgeClass}">${statusText}</span>
-          ${item.result ? `<a href="${item.result.video_url}" download class="comic-tag comic-tag-amber" onclick="event.stopPropagation()" style="text-decoration:none; padding: 2px 6px; font-size: 8.5px; font-weight: 900; display: inline-flex; align-items: center; gap: 3px;" title="Download Video">⬇ MP4</a>` : ''}
+          ${item.result ? `<a href="${item.result.video_url}" download class="comic-tag comic-tag-amber" onclick="event.stopPropagation()" style="text-decoration:none; padding: 2px 5px; font-size: 8px; font-weight: 900; display: inline-flex; align-items: center; gap: 2px;" title="Download Video">⬇ MP4</a>` : ''}
+          <button type="button" class="comic-btn-square queue-del-btn" title="Remove file" onclick="event.stopPropagation(); window.removeQueueItem(${idx});" style="width: 18px; height: 18px; padding: 0; min-width: 18px; display: inline-flex; align-items: center; justify-content: center;">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
       `;
 
       qItem.addEventListener("click", () => {
-        setFile(item.file);
+        setFile(item.file, true);
         if (item.task_id) currentTaskId = item.task_id;
         if (item.transcription) currentTranscription = item.transcription;
         renderQueueList();
@@ -1436,9 +1462,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     batchQueue.push(...newItems);
     if (!currentFile && batchQueue.length > 0) {
-      setFile(batchQueue[0].file);
+      setFile(batchQueue[0].file, true);
     }
     renderQueueList();
+    // Keep top dropzone in clean upload button mode so user can easily add more files
+    fileInfo.classList.add("hidden");
+    document.querySelector(".dropzone-body").classList.remove("hidden");
   }
 
   if (clearQueueBtn) {
