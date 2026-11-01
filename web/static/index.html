@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Cairo:wght@600;700;900&family=Tajawal:wght@700&family=Lalezar&family=Almarai:wght@700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.7.3">
+  <link rel="stylesheet" href="style.css?v=2.8.0">
 </head>
 <body>
   <div class="comic-app-shell">
@@ -279,6 +279,14 @@
                 </svg>
                 <span data-i18n="dl_remotion">Remotion (React)</span>
               </a>
+              <a id="downloadAeBtn" class="comic-btn comic-btn-sm comic-btn-blue" download title="Import directly into Adobe After Effects (.jsx)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="4"></rect>
+                  <path d="M7 17l4-10 4 10"></path>
+                  <line x1="8.5" y1="13" x2="13.5" y2="13"></line>
+                </svg>
+                <span data-i18n="dl_ae">After Effects (JSX)</span>
+              </a>
             </div>
           </div>
 
@@ -397,6 +405,8 @@
                       <span class="sub-word active anim-karaoke_pop" id="subWord2">تاعي</span>
                       <span class="sub-word" id="subWord3">الشخصية</span>
                     </div>
+                    <div class="sub-resize-handle resize-right" id="subResizeHandleRight" title="Drag to resize font size"></div>
+                    <div class="sub-resize-handle resize-left" id="subResizeHandleLeft" title="Drag to resize font size"></div>
                   </div>
 
                   <!-- Bottom Safe Zone Info (Username, Subscribe/Follow button, Description, Sound) -->
@@ -681,6 +691,21 @@
                   <button type="button" class="speed-chip" data-speed="1.4" data-label="Viral">1.4x Viral</button>
                   <button type="button" class="speed-chip" data-speed="1.8" data-label="Rapid">1.8x Rapid</button>
                 </div>
+                <div class="ease-graph-container" id="easeGraphContainer">
+                  <div class="ease-graph-header">
+                    <span class="ease-graph-title">Animation Curve & Easing</span>
+                    <span class="ease-curve-badge" id="activeEaseBadge">Snappy Spring</span>
+                  </div>
+                  <div class="ease-canvas-wrap">
+                    <canvas id="easeCanvas" width="280" height="64" class="ease-graph-canvas"></canvas>
+                  </div>
+                  <div class="ease-preset-buttons">
+                    <button type="button" class="ease-btn active" data-ease="spring">Spring</button>
+                    <button type="button" class="ease-btn" data-ease="back">Bounce Back</button>
+                    <button type="button" class="ease-btn" data-ease="smooth">Smooth Fluid</button>
+                    <button type="button" class="ease-btn" data-ease="linear">Linear Pop</button>
+                  </div>
+                </div>
               </div>
 
               <!-- Colors: Primary Text & Highlight -->
@@ -690,8 +715,11 @@
                   <span data-i18n="ctrl_textcolor">Main Text Color</span>
                 </label>
                 <div class="comic-color-picker-wrap">
-                  <input type="color" id="primaryColor" value="#FFFFFF" class="comic-color-input">
-                  <span id="primaryColorText" class="color-hex-tag">#FFFFFF</span>
+                  <button type="button" class="color-swatch-trigger" id="primaryColorBtn" title="Click to pick color">
+                    <span class="color-disc" id="primaryColorDisc" style="background: #FFFFFF;"></span>
+                    <span id="primaryColorText" class="color-hex-tag">#FFFFFF</span>
+                    <input type="color" id="primaryColor" value="#FFFFFF" class="color-native-hidden">
+                  </button>
                   <div class="quick-swatches">
                     <span class="swatch-dot" data-target="primary" data-color="#FFFFFF" style="background: #FFFFFF;" title="White"></span>
                     <span class="swatch-dot" data-target="primary" data-color="#F4EBD9" style="background: #F4EBD9;" title="Cream"></span>
@@ -706,8 +734,11 @@
                   <span data-i18n="ctrl_highlight">Active Word Highlight</span>
                 </label>
                 <div class="comic-color-picker-wrap">
-                  <input type="color" id="highlightColor" value="#FFE600" class="comic-color-input">
-                  <span id="highlightColorText" class="color-hex-tag">#FFE600</span>
+                  <button type="button" class="color-swatch-trigger" id="highlightColorBtn" title="Click to pick color">
+                    <span class="color-disc" id="highlightColorDisc" style="background: #FFE600;"></span>
+                    <span id="highlightColorText" class="color-hex-tag">#FFE600</span>
+                    <input type="color" id="highlightColor" value="#FFE600" class="color-native-hidden">
+                  </button>
                   <div class="quick-swatches">
                     <span class="swatch-dot" data-target="highlight" data-color="#FFE600" style="background: #FFE600;" title="Gold"></span>
                     <span class="swatch-dot" data-target="highlight" data-color="#00F0FF" style="background: #00F0FF;" title="Cyan"></span>
@@ -731,17 +762,7 @@
                 </select>
               </div>
 
-              <div class="grid-col">
-                <label class="comic-label" for="aspectRatio">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect></svg>
-                  <span data-i18n="ctrl_aspect">Aspect Ratio</span>
-                </label>
-                <select id="aspectRatio" class="comic-select">
-                  <option value="9:16" selected data-i18n="opt_aspect_916">9:16 (Shorts / Reels / TikTok)</option>
-                  <option value="16:9" data-i18n="opt_aspect_169">16:9 (Landscape / YouTube)</option>
-                  <option value="1:1" data-i18n="opt_aspect_11">1:1 (Square)</option>
-                </select>
-              </div>
+
 
               <!-- Subtitle Background Box & Color -->
               <div class="grid-col">
@@ -928,6 +949,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=2.7.3"></script>
+  <script src="app.js?v=2.8.0"></script>
 </body>
 </html>

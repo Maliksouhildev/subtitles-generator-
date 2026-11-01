@@ -308,7 +308,10 @@ def test_ass_builder_new_creative_templates():
         "comic-bounce",
         "viral-punch",
         "fade-editorial",
-        "badge-invert"
+        "badge-invert",
+        "letter_pop",
+        "letter_drop",
+        "letter_rise"
     ]
     
     for style in new_styles:

@@ -21,6 +21,7 @@ from core.transcriber import transcribe, get_audio_duration, normalize_transcrip
 from core.ass_builder import ASSSubtitleBuilder
 from core.srt_builder import generate_srt, generate_vtt
 from core.video_engine import render_video, is_video_file, get_video_dimensions
+from core.ae_script_builder import AfterEffectsScriptBuilder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("server")
@@ -315,6 +316,20 @@ async def render_subtitles(req: RenderRequest):
         with open(task_folder / "remotion_props.json", "w", encoding="utf-8") as f:
             json.dump(remotion_props, f, ensure_ascii=False, indent=2)
 
+        # 3.5 Generate Adobe After Effects ExtendScript (.jsx)
+        ae_builder = AfterEffectsScriptBuilder(
+            font_name=req.font_name,
+            font_size=req.font_size,
+            primary_color=req.primary_color,
+            highlight_color=req.highlight_color,
+            animation_style=active_style,
+            words_per_line=req.words_per_line,
+            pos_y=req.pos_y or 960
+        )
+        ae_script_content = ae_builder.generate_jsx(transcription)
+        with open(task_folder / "subtitles_after_effects.jsx", "w", encoding="utf-8") as f:
+            f.write(ae_script_content)
+
         # 4. Render Output Video
         output_video_ext = ".webm" if req.background_mode == "transparent" else ".mp4"
         output_video_path = task_folder / f"result{output_video_ext}"
@@ -337,7 +352,8 @@ async def render_subtitles(req: RenderRequest):
             "ass_url": f"/api/download/{task_id}/subtitles.ass",
             "vtt_url": f"/api/download/{task_id}/subtitles.vtt",
             "json_url": f"/api/download/{task_id}/transcript.json",
-            "remotion_url": f"/api/download/{task_id}/remotion_props.json"
+            "remotion_url": f"/api/download/{task_id}/remotion_props.json",
+            "ae_url": f"/api/download/{task_id}/subtitles_after_effects.jsx"
         }
 
     except Exception as e:
@@ -418,6 +434,8 @@ async def download_file(task_id: str, file_name: str):
         media_type = "text/x-ssa; charset=utf-8"
     elif file_name.endswith(".json"):
         media_type = "application/json"
+    elif file_name.endswith(".jsx"):
+        media_type = "text/javascript; charset=utf-8"
 
     return FileResponse(path=str(file_path), media_type=media_type, filename=file_name)
 

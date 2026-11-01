@@ -1388,17 +1388,25 @@ html, body, :root, *,
 }
 
 .live-subtitle-box {
-  display: inline-flex;
-  gap: 4px;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   padding: 3px 8px;
   background: var(--sub-box-bg, transparent);
   border-radius: var(--sub-box-radius, 4px);
   text-align: center;
-  direction: rtl; /* RTL by default for Algerian Darija & Arabic to prevent word inversion! */
+  direction: rtl;
   unicode-bidi: isolate;
   border: var(--sub-box-border, none);
   box-shadow: var(--sub-box-shadow, none);
   transition: all 0.15s ease;
+  max-width: 95%;
+  position: relative;
+  font-size: 11px;
 }
 
 .live-subtitle-box[data-box-style="none"] {
@@ -1444,7 +1452,7 @@ html, body, :root, *,
 .sub-word {
   font-family: 'Lalezar', 'Cairo', sans-serif;
   font-weight: 900;
-  font-size: 11px;
+  font-size: inherit;
   color: #FFFFFF;
   -webkit-text-stroke: 1.2px #000;
   stroke-linejoin: round;
@@ -1452,6 +1460,8 @@ html, body, :root, *,
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
   transition: transform 0.15s ease, color 0.15s ease;
   display: inline-block;
+  white-space: nowrap !important;
+  flex-shrink: 0;
 }
 
 .sub-word.bidi-isolate {
@@ -1469,7 +1479,7 @@ html, body, :root, *,
 .subcol-controls {
   display: flex;
   flex-direction: column;
-  gap: 3.5px;
+  gap: 8.5px;
 }
 
 /* Presets Box */
@@ -1477,7 +1487,7 @@ html, body, :root, *,
   background: var(--bg-card-inner);
   border: var(--border-thick);
   border-radius: var(--radius-sm);
-  padding: 4px 6px;
+  padding: 8px 10px;
   box-shadow: var(--shadow-comic-sm);
 }
 
@@ -1668,13 +1678,13 @@ html, body, :root, *,
 .controls-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2.5px 8px;
+  gap: 7px 10px;
 }
 
 .grid-col {
   display: flex;
   flex-direction: column;
-  gap: 1.5px;
+  gap: 3px;
 }
 
 .grid-col-full {
@@ -2686,4 +2696,290 @@ html, body, :root, *,
   .comic-card {
     height: auto;
   }
+}
+
+
+/* Subtitle Frame Resize Handles */
+.sub-resize-handle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 14px;
+  background: var(--amber);
+  border: 1px solid var(--pitch-black);
+  border-radius: 3px;
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.12s;
+  z-index: 25;
+}
+
+.live-subtitle-container:hover .sub-resize-handle,
+.live-subtitle-container.is-resizing .sub-resize-handle {
+  opacity: 0.95;
+}
+
+.sub-resize-handle.resize-left {
+  left: -8px;
+}
+
+.sub-resize-handle.resize-right {
+  right: -8px;
+}
+
+.sub-resize-handle:hover {
+  transform: translateY(-50%) scale(1.25);
+  background: #ffffff;
+}
+
+/* Custom Interactive Color Swatch Buttons */
+.color-swatch-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-card-inner);
+  border: 1.5px solid var(--pitch-black);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 1.5px 1.5px 0 var(--pitch-black);
+}
+
+.color-swatch-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: 2.5px 3px 0 var(--pitch-black), 0 4px 12px rgba(255, 230, 0, 0.25);
+  border-color: var(--amber);
+}
+
+.color-swatch-trigger:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 var(--pitch-black);
+}
+
+.color-disc {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid var(--pitch-black);
+  display: inline-block;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.color-swatch-trigger:hover .color-disc {
+  transform: scale(1.12);
+}
+
+.color-native-hidden {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.swatch-dot {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease !important;
+}
+
+.swatch-dot:hover {
+  transform: translateY(-2px) scale(1.28) !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Subtitle Box Background Previews in Dropdown */
+.opt-box-demo {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1.5px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  line-height: 1.2;
+}
+
+.opt-box-demo.demo-none {
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+}
+
+.opt-box-demo.demo-pill {
+  background: var(--amber);
+  color: var(--pitch-black);
+  border-radius: 9999px;
+  padding: 1.5px 8px;
+}
+
+.opt-box-demo.demo-box {
+  background: var(--terracotta);
+  color: #FFFFFF;
+  border-radius: 2px;
+}
+
+.opt-box-demo.demo-shadow {
+  background: transparent;
+  color: #FFFFFF;
+  text-shadow: 2px 2px 0 var(--pitch-black);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Interactive Ease Graph Component */
+.ease-graph-container {
+  margin-top: 8px;
+  background: var(--bg-card-inner);
+  border: 1.5px solid var(--pitch-black);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  box-shadow: 1.5px 1.5px 0 var(--pitch-black);
+}
+
+.ease-graph-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.ease-graph-title {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ease-curve-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--amber);
+  background: rgba(255, 230, 0, 0.12);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-pill);
+  padding: 1px 7px;
+}
+
+.ease-canvas-wrap {
+  width: 100%;
+  height: 64px;
+  background: #0d0f14;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ease-graph-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ease-preset-buttons {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ease-btn {
+  flex: 1;
+  background: var(--bg-shell);
+  border: 1px solid var(--pitch-black);
+  border-radius: var(--radius-pill);
+  padding: 2.5px 4px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.ease-btn:hover {
+  background: var(--amber);
+  color: var(--pitch-black);
+}
+
+.ease-btn.active {
+  background: var(--amber);
+  color: var(--pitch-black);
+  border-color: var(--pitch-black);
+  box-shadow: 1px 1px 0 var(--pitch-black);
+}
+
+/* Letter-By-Letter Kinetic Animations */
+.sub-letter {
+  display: inline-block;
+  will-change: transform, opacity;
+  animation-fill-mode: both;
+}
+
+@keyframes letterPopAnim {
+  0% {
+    transform: scale(0.15);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.32);
+    opacity: 1;
+  }
+  85% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1.0);
+    opacity: 1;
+  }
+}
+
+@keyframes letterDropAnim {
+  0% {
+    transform: translateY(-20px) scale(0.6);
+    opacity: 0;
+  }
+  65% {
+    transform: translateY(4px) scale(1.15);
+    opacity: 1;
+  }
+  85% {
+    transform: translateY(-2px) scale(0.96);
+  }
+  100% {
+    transform: translateY(0) scale(1.0);
+    opacity: 1;
+  }
+}
+
+@keyframes letterRiseAnim {
+  0% {
+    transform: translateY(18px) scale(0.7);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(-3px) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1.0);
+    opacity: 1;
+  }
+}
+
+.anim-letter_pop .sub-letter {
+  animation: letterPopAnim calc(0.42s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+  animation-delay: calc(var(--letter-idx, 0) * (0.045s / var(--anim-speed, 1)));
+}
+
+.anim-letter_drop .sub-letter {
+  animation: letterDropAnim calc(0.46s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+  animation-delay: calc(var(--letter-idx, 0) * (0.045s / var(--anim-speed, 1)));
+}
+
+.anim-letter_rise .sub-letter {
+  animation: letterRiseAnim calc(0.42s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.25, 1, 0.5, 1)) both;
+  animation-delay: calc(var(--letter-idx, 0) * (0.045s / var(--anim-speed, 1)));
 }

@@ -616,6 +616,10 @@ export const TEMPLATE_REGISTRY: Record<string, React.FC<TemplateProps>> = {
   "badge-invert": BadgeInvertTemplate,
   "badge_invert": BadgeInvertTemplate,
   "box_highlight": BadgeInvertTemplate,
+  "letter_pop": LetterPopTemplate,
+  "letter-pop": LetterPopTemplate,
+  "letter_drop": LetterPopTemplate,
+  "letter_rise": LetterPopTemplate,
 };
 
 export const DEFAULT_TEMPLATE_ID = "hormozi-pop";

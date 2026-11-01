@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadSrtBtn = document.getElementById("downloadSrtBtn");
   const downloadJsonBtn = document.getElementById("downloadJsonBtn");
   const downloadRemotionBtn = document.getElementById("downloadRemotionBtn");
+  const downloadAeBtn = document.getElementById("downloadAeBtn");
 
   // Customization Form Controls
   const dialectHint = document.getElementById("dialectHint");
@@ -132,6 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_srt: "SRT File",
       dl_json: "JSON Timings",
       dl_remotion: "Remotion (React)",
+      dl_ae: "After Effects (.JSX)",
       empty_title: "Ready to Generate Viral Captions",
       empty_desc: "Upload an audio or video file. AI transcribes speech with exact millisecond word timestamps and burns viral animated subtitles in your chosen style.",
       editor_title: "Word & Timing Editor",
@@ -254,6 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_srt: "Fichier SRT",
       dl_json: "Horodatage JSON",
       dl_remotion: "Remotion (React)",
+      dl_ae: "After Effects (.JSX)",
       empty_title: "Prêt à créer des sous-titres viraux",
       empty_desc: "Importez un fichier audio ou vidéo. L'IA transcrit la parole avec horodatage mot par mot et applique des sous-titres animés selon votre style.",
       editor_title: "Éditeur de mots & minutage",
@@ -376,6 +379,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_srt: "ملف SRT",
       dl_json: "توقيتات JSON",
       dl_remotion: "ريموشن (React)",
+      dl_ae: "أفتر إفكتس (JSX)",
       empty_title: "جاهز لتوليد ترجمات متحركة احترافية",
       empty_desc: "قم برفع ملف صوتي أو فيديو. سيقوم الذكاء الاصطناعي بتوليد الترجمة المتزامنة مع كل كلمة وتطبيق الأنيميشن مع كروما خضراء أو دمج مباشر.",
       editor_title: "محرر ومراجعة الكلمات والتوقيت",
@@ -994,35 +998,38 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateLiveSubtitlePreview() {
     if (!liveSubtitleContainer || !liveSubtitleBox) return;
 
-    // Font styling (supports Lalezar, Cairo, Tajawal, Almarai, Amiri, etc.)
+    // Font styling & proportional responsive size
     liveSubtitleBox.style.fontFamily = fontName.value + ", sans-serif";
-    const scaledSize = Math.max(9, Math.round(parseInt(fontSize.value) * 0.18));
+    const currentFs = parseInt(fontSize ? fontSize.value : 56) || 56;
+    const scaledSize = Math.max(9, Math.round(currentFs * 0.20));
     liveSubtitleBox.style.fontSize = scaledSize + "px";
 
-    // Set sample words adapted to selected dialect when no user media has been transcribed yet
-    if (!currentTranscription) {
-      if (dialectHint.value.includes("Latin")) {
-        subWord1.innerText = "es-sayara";
-        subWord2.innerText = "ta3i";
-        subWord3.innerText = "echekhsiya";
-      } else if (dialectHint.value === "French") {
-        subWord1.innerText = "SOUS-TITRES";
-        subWord2.innerText = "ANIMÉS";
-        subWord3.innerText = "VIRAUX";
-      } else if (dialectHint.value === "English") {
-        subWord1.innerText = "VIRAL";
-        subWord2.innerText = "ANIMATED";
-        subWord3.innerText = "CAPTIONS";
-      } else {
-        // Default Algerian Darija (Arabic script)
-        subWord1.innerText = "السيارة";
-        subWord2.innerText = "تاعي";
-        subWord3.innerText = "الشخصية";
+    // 1. Determine words list based on wordsPerLine setting (2, 3, 4, 5 words)
+    const targetWordCount = parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3;
+    let wordList = [];
+    if (currentTranscription && currentTranscription.segments && currentTranscription.segments[0]) {
+      const segWords = currentTranscription.segments[0].words || [];
+      if (segWords.length > 0) {
+        wordList = segWords.slice(0, targetWordCount).map(w => w.word);
       }
     }
+    if (wordList.length === 0) {
+      const dictLang = dialectHint ? dialectHint.value : "General Algerian";
+      let baseSample = ["السيارة", "تاعي", "الشخصية", "اليوم", "روعة"];
+      if (dictLang.includes("Latin")) {
+        baseSample = ["es-sayara", "ta3i", "echekhsiya", "lyoum", "top"];
+      } else if (dictLang === "French") {
+        baseSample = ["SOUS-TITRES", "ANIMÉS", "VIRAUX", "TIKTOK", "RAPIDES"];
+      } else if (dictLang === "English") {
+        baseSample = ["VIRAL", "ANIMATED", "CAPTIONS", "FOR", "SHORTS"];
+      }
+      wordList = baseSample.slice(0, targetWordCount);
+    }
 
-    // RTL Detection: Ensure Arabic / Algerian Darija words are strictly RTL in the flex container
-    const sampleText = (subWord1.innerText || "") + (subWord2.innerText || "") + (subWord3.innerText || "");
+    if (previewActiveIdx >= wordList.length) previewActiveIdx = 0;
+
+    // RTL Detection & prevent Latin / French words from ever wrapping or appearing under each other
+    const sampleText = wordList.join(" ");
     const isArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(sampleText) || 
                      (dialectHint.value.includes("Algerian") && !dialectHint.value.includes("Latin")) || 
                      dialectHint.value.includes("Arabic");
@@ -1057,11 +1064,8 @@ document.addEventListener("DOMContentLoaded", () => {
       liveSubtitleBox.style.removeProperty("--sub-box-color");
     }
 
-    // Apply animation style & active word colors
-    const activeAnim = animationStyle.value || "karaoke_pop";
-    const words = [subWord1, subWord2, subWord3];
-
-    // Ensure CSS highlight preview color and badge contrast color are kept in sync
+    // Colors & contrast
+    const activeAnim = animationStyle ? (animationStyle.value || "karaoke_pop") : "karaoke_pop";
     const hlVal = highlightColor ? highlightColor.value : "#FFE600";
     function getBadgeContrastColor(hex) {
       if (!hex || hex.length < 7) return "#111111";
@@ -1075,29 +1079,38 @@ document.addEventListener("DOMContentLoaded", () => {
     document.documentElement.style.setProperty("--highlight-preview", hlVal);
     document.documentElement.style.setProperty("--badge-contrast-color", badgeContrast);
 
-    words.forEach((w, idx) => {
-      if (!w) return;
-
-      // BiDi Loanword Isolation: In an RTL context, wrap or flag Latin tokens with dir="ltr" and .bidi-isolate
-      const wordText = w.innerText || "";
+    // Dynamically render word spans
+    liveSubtitleBox.innerHTML = "";
+    wordList.forEach((wordText, idx) => {
+      const w = document.createElement("span");
       const isLatin = /[a-zA-Z]/.test(wordText);
       const bidiClass = (isArabic && isLatin) ? " bidi-isolate" : "";
       if (isArabic && isLatin) {
         w.setAttribute("dir", "ltr");
         w.style.unicodeBidi = "isolate";
-      } else {
-        w.removeAttribute("dir");
-        w.style.unicodeBidi = "";
       }
 
       if (idx === previewActiveIdx) {
-        // Trigger reflow to restart CSS animation from frame 0 for clean opening ease
-        w.style.animation = "none";
-        void w.offsetWidth;
-        w.style.animation = "";
-
         w.className = `sub-word active anim-${activeAnim}${bidiClass}`;
-        if (activeAnim === "box_highlight" || activeAnim === "badge_invert") {
+
+        // Letter-by-letter rendering
+        if (activeAnim.startsWith("letter_")) {
+          w.innerHTML = "";
+          Array.from(wordText).forEach((ch, cIdx) => {
+            const letSpan = document.createElement("span");
+            letSpan.className = "sub-letter";
+            letSpan.innerText = ch;
+            letSpan.style.setProperty("--letter-idx", cIdx);
+            w.appendChild(letSpan);
+          });
+          w.style.background = "none";
+          w.style.color = hlVal;
+          w.style.webkitTextStroke = "1.2px #000";
+          w.style.textShadow = "0 2px 6px rgba(0, 0, 0, 0.85)";
+          w.style.padding = "0";
+          w.style.boxShadow = "none";
+        } else if (activeAnim === "box_highlight" || activeAnim === "badge_invert") {
+          w.innerText = wordText;
           w.style.background = hlVal;
           w.style.color = badgeContrast;
           w.style.webkitTextStroke = "0 transparent";
@@ -1108,6 +1121,7 @@ document.addEventListener("DOMContentLoaded", () => {
           w.style.borderRadius = "5px";
           w.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.35)";
         } else {
+          w.innerText = wordText;
           w.style.background = "none";
           w.style.color = hlVal;
           w.style.webkitTextStroke = "1.2px #000";
@@ -1120,6 +1134,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       } else {
         w.className = `sub-word${bidiClass}`;
+        w.innerText = wordText;
         w.style.background = "none";
         w.style.color = primaryColor ? primaryColor.value : "#FFFFFF";
         w.style.webkitTextStroke = "1.2px #000";
@@ -1130,6 +1145,8 @@ document.addEventListener("DOMContentLoaded", () => {
         w.style.borderRadius = "";
         w.style.boxShadow = "none";
       }
+
+      liveSubtitleBox.appendChild(w);
     });
 
     // Position mapping inside simulated phone (based on marginV)
@@ -1153,59 +1170,95 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function stepPreviewCycle() {
-    previewActiveIdx = (previewActiveIdx + 1) % 3;
+    const wordCount = parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3;
+    previewActiveIdx = (previewActiveIdx + 1) % wordCount;
     updateLiveSubtitlePreview();
+  }
+
+  if (wordsPerLine) {
+    wordsPerLine.addEventListener("change", () => {
+      previewActiveIdx = 0;
+      updateLiveSubtitlePreview();
+      restartPreviewCycle();
+    });
   }
 
   restartPreviewCycle();
 
-  // DRAGGABLE SUBTITLES ON PHONE SIMULATION (Direct mouse / touch dragging!)
+  // FLUID DRAGGABLE & RESIZABLE SUBTITLES (Zero-snap relative tracking!)
   let isDraggingSubtitle = false;
+  let isResizingSubtitle = false;
+  let dragStartY = 0;
+  let dragStartTopPct = 50;
+  let resizeStartX = 0;
+  let resizeStartFontSize = 56;
 
   function handleDragStart(e) {
     if (!phoneDevice || !liveSubtitleContainer) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    if (e.target && e.target.classList.contains("sub-resize-handle")) {
+      isResizingSubtitle = true;
+      resizeStartX = clientX;
+      resizeStartFontSize = parseInt(fontSize ? fontSize.value : 56) || 56;
+      liveSubtitleContainer.classList.add("is-resizing");
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     isDraggingSubtitle = true;
+    dragStartY = clientY;
+    dragStartTopPct = parseFloat(liveSubtitleContainer.style.top) || 50;
     liveSubtitleContainer.classList.add("is-dragging");
     if (dragTooltip) dragTooltip.classList.remove("hidden");
     e.preventDefault();
   }
 
   function handleDragMove(e) {
+    if (isResizingSubtitle) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const deltaX = clientX - resizeStartX;
+      const newSize = Math.max(28, Math.min(84, Math.round(resizeStartFontSize + deltaX * 0.35)));
+      if (fontSize) {
+        fontSize.value = newSize;
+        if (fontSizeVal) fontSizeVal.innerText = newSize + "px";
+        updateLiveSubtitlePreview();
+      }
+      return;
+    }
+
     if (!isDraggingSubtitle || !phoneDevice || !liveSubtitleContainer) return;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     const rect = phoneDevice.getBoundingClientRect();
-    const offsetY = clientY - rect.top;
-    let pct = (offsetY / rect.height) * 100;
-    // Constrain inside phone screen safe zones (10% to 86%)
-    pct = Math.max(10, Math.min(86, pct));
+    const deltaY = clientY - dragStartY;
+    let pct = dragStartTopPct + (deltaY / rect.height) * 100;
+    pct = Math.max(10, Math.min(88, pct));
 
     liveSubtitleContainer.style.top = pct + "%";
     liveSubtitleContainer.style.bottom = "auto";
     liveSubtitleContainer.style.transform = "translate(-50%, -50%)";
 
-    // Calibrate corresponding MarginV for 1920px vertical resolution
     const calculatedMarginV = Math.round((1 - (pct / 100)) * 1920);
-    marginV.value = calculatedMarginV;
+    if (marginV) marginV.value = calculatedMarginV;
 
     let zoneLabel = "Custom";
-    if (pct >= 62 && pct <= 80) {
-      zoneLabel = "Safe Zone";
-    } else if (pct < 30) {
-      zoneLabel = "Top Header";
-    } else {
-      zoneLabel = "Middle";
-    }
+    if (pct >= 62 && pct <= 80) zoneLabel = "Safe Zone";
+    else if (pct < 30) zoneLabel = "Top Header";
+    else zoneLabel = "Middle";
 
     if (dragTooltip) {
       dragTooltip.innerText = `${zoneLabel} (${Math.round(pct)}% Y • ${calculatedMarginV}px)`;
     }
-    marginVVal.innerText = `${calculatedMarginV}px (${zoneLabel})`;
+    if (marginVVal) marginVVal.innerText = `${calculatedMarginV}px (${zoneLabel})`;
   }
 
   function handleDragEnd() {
-    if (!isDraggingSubtitle) return;
     isDraggingSubtitle = false;
+    isResizingSubtitle = false;
     liveSubtitleContainer.classList.remove("is-dragging");
+    liveSubtitleContainer.classList.remove("is-resizing");
     if (dragTooltip) dragTooltip.classList.add("hidden");
   }
 
@@ -1277,7 +1330,6 @@ document.addEventListener("DOMContentLoaded", () => {
       { el: dialectHint, type: "lang" },
       { el: fontName, type: "font" },
       { el: wordsPerLine, type: "words" },
-      { el: aspectRatio, type: "aspect" },
       { el: subBoxStyle, type: "box" },
       { el: backgroundMode, type: "bg" }
     ];
@@ -1343,6 +1395,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         optRow.appendChild(textSpan);
+
+        if (type === "box") {
+          const demo = document.createElement("span");
+          demo.className = `opt-box-demo demo-${opt.value}`;
+          demo.innerText = "Aa";
+          optRow.appendChild(demo);
+        }
 
         if (type === "bg") {
           const badge = document.createElement("span");
@@ -1758,6 +1817,10 @@ document.addEventListener("DOMContentLoaded", () => {
           if (downloadRemotionBtn) {
             downloadRemotionBtn.href = item.result.remotion_url || `/api/download/${item.task_id}/remotion_props.json`;
           }
+          if (downloadAeBtn) {
+            downloadAeBtn.href = item.result.ae_url || `/api/download/${item.task_id}/subtitles_after_effects.jsx`;
+            downloadAeBtn.setAttribute("download", `subtitles_${item.task_id}.jsx`);
+          }
           videoContainer.classList.remove("hidden");
           emptyState.classList.add("hidden");
           if (item.transcription) renderEditor(item.transcription);
@@ -2109,6 +2172,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (downloadRemotionBtn) {
       downloadRemotionBtn.href = data.remotion_url || `/api/download/${currentTaskId}/remotion_props.json`;
     }
+    if (downloadAeBtn) {
+      downloadAeBtn.href = data.ae_url || `/api/download/${currentTaskId}/subtitles_after_effects.jsx`;
+      downloadAeBtn.setAttribute("download", `subtitles_${currentTaskId}.jsx`);
+    }
 
     videoContainer.classList.remove("hidden");
     resultVideo.load();
@@ -2127,3 +2194,126 @@ document.addEventListener("DOMContentLoaded", () => {
   updateLiveSubtitlePreview();
   syncAllCustomDropdowns();
 });
+
+
+  // INTERACTIVE EASE GRAPH COMPONENT
+  const easeCanvas = document.getElementById("easeCanvas");
+  const activeEaseBadge = document.getElementById("activeEaseBadge");
+  const easePresetButtons = document.querySelectorAll(".ease-btn");
+  let activeEaseType = "spring";
+  let easeTracerT = 0;
+
+  const EASE_CURVES = {
+    spring: {
+      name: "Snappy Spring",
+      css: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      eval: (t) => {
+        const c4 = (2 * Math.PI) / 3;
+        return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+      }
+    },
+    back: {
+      name: "Bounce Back",
+      css: "cubic-bezier(0.68, -0.6, 0.32, 1.6)",
+      eval: (t) => {
+        const s = 1.70158;
+        return (t = t - 1) * t * ((s + 1) * t + s) + 1;
+      }
+    },
+    smooth: {
+      name: "Smooth Fluid",
+      css: "cubic-bezier(0.25, 1, 0.5, 1)",
+      eval: (t) => 1 - Math.pow(1 - t, 3)
+    },
+    linear: {
+      name: "Linear Pop",
+      css: "linear",
+      eval: (t) => t
+    }
+  };
+
+  function drawEaseGraph() {
+    if (!easeCanvas) return;
+    const ctx = easeCanvas.getContext("2d");
+    const w = easeCanvas.width;
+    const h = easeCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Grid lines
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= w; x += 35) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let y = 0; y <= h; y += 16) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    const curve = EASE_CURVES[activeEaseType] || EASE_CURVES.spring;
+    const pad = 12;
+    const plotW = w - pad * 2;
+    const plotH = h - pad * 2;
+
+    // Draw curve path
+    ctx.beginPath();
+    ctx.moveTo(pad, h - pad);
+    for (let i = 0; i <= plotW; i += 2) {
+      const t = i / plotW;
+      const val = curve.eval(t);
+      const y = (h - pad) - val * (plotH * 0.75);
+      ctx.lineTo(pad + i, y);
+    }
+    ctx.strokeStyle = "#FFE600";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Area fill under curve
+    ctx.lineTo(pad + plotW, h - pad);
+    ctx.lineTo(pad, h - pad);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, "rgba(255, 230, 0, 0.22)");
+    grad.addColorStop(1, "rgba(255, 230, 0, 0.0)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Animated tracer particle moving along curve
+    const spd = parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0;
+    easeTracerT = (easeTracerT + 0.018 * spd) % 1;
+    const tracerVal = curve.eval(easeTracerT);
+    const tracerX = pad + easeTracerT * plotW;
+    const tracerY = (h - pad) - tracerVal * (plotH * 0.75);
+
+    // Glowing particle
+    ctx.beginPath();
+    ctx.arc(tracerX, tracerY, 4, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.shadowColor = "#00F0FF";
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    requestAnimationFrame(drawEaseGraph);
+  }
+
+  function setEaseCurve(type) {
+    if (!EASE_CURVES[type]) type = "spring";
+    activeEaseType = type;
+    const curve = EASE_CURVES[type];
+    if (activeEaseBadge) activeEaseBadge.innerText = curve.name;
+    document.documentElement.style.setProperty("--anim-ease", curve.css);
+    easePresetButtons.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.ease === type);
+    });
+  }
+
+  easePresetButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      setEaseCurve(btn.dataset.ease);
+    });
+  });
+
+  if (easeCanvas) {
+    setEaseCurve("spring");
+    drawEaseGraph();
+  }

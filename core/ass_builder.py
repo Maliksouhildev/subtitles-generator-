@@ -687,6 +687,77 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         return events
 
+    def build_letter_pop_events(self, chunks: List[List[Dict[str, Any]]], style_type: str = "pop") -> List[str]:
+        """Builds kinetic letter-by-letter popping subtitles with spring dynamics."""
+        events = []
+        pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
+        hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
+        spd = self.animation_speed
+        out_ass = hex_to_ass_color(self.outline_color)
+
+        for chunk_idx, chunk in enumerate(chunks):
+            if not chunk:
+                continue
+
+            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
+
+            for i, active_word in enumerate(chunk):
+                w_start = active_word["start"]
+                if i + 1 < len(chunk):
+                    w_end = chunk[i + 1]["start"]
+                else:
+                    natural_end = active_word["end"]
+                    min_hold = w_start + 0.65
+                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+
+                if w_end <= w_start:
+                    w_end = w_start + 0.30
+
+                dur_ms = max(100, int((w_end - w_start) * 1000))
+                t1 = max(30, min(int(dur_ms * 0.35), int(80 / spd)))
+                t2 = max(t1 + 25, min(int(dur_ms * 0.7), int(160 / spd)))
+
+                if style_type == "drop":
+                    pop_tag = (
+                        f"\\fscx85\\fscy85"
+                        f"\\t(0,{t1},0.5,\\fscx116\\fscy116)"
+                        f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
+                    )
+                elif style_type == "rise":
+                    pop_tag = (
+                        f"\\fscx90\\fscy90"
+                        f"\\t(0,{t1},0.6,\\fscx118\\fscy118)"
+                        f"\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
+                    )
+                else:
+                    pop_tag = (
+                        f"\\fscx40\\fscy40"
+                        f"\\t(0,{t1},0.5,\\fscx124\\fscy124)"
+                        f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
+                    )
+
+                reset_tag = "\\fscx100\\fscy100"
+                start_str = format_ass_time(w_start)
+                end_str = format_ass_time(w_end)
+
+                display_indices = resolve_visual_word_order(chunk, in_rtl_context=chunk_is_rtl)
+                formatted_words = []
+                for j in display_indices:
+                    w = chunk[j]
+                    word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
+                    if j == i:
+                        formatted_words.append(f"{{{hl_tag}\\blur0.8{pop_tag}}}{word_text}{{{pri_tag}{reset_tag}}}")
+                    elif j < i:
+                        formatted_words.append(f"{{{pri_tag}\\blur0.8{reset_tag}}}{word_text}")
+                    else:
+                        formatted_words.append(f"{{{pri_tag}\\alpha&H88&\\blur0.8{reset_tag}}}{word_text}")
+
+                line_text = " ".join(formatted_words)
+                events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
+
+        return events
+
     def generate_ass(self, transcription_data: Dict[str, Any]) -> str:
         """
         Generates full ASS file content from transcription data.
@@ -721,6 +792,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             events = self.build_word_reveal_events(chunks)
         elif anim in ("viral_punch", "typewriter_pop"):
             events = self.build_karaoke_pop_events(chunks)
+        elif anim in ("letter_pop", "letter_bounce", "letter_snap"):
+            events = self.build_letter_pop_events(chunks, style_type="pop")
+        elif anim in ("letter_drop", "gravity_drop"):
+            events = self.build_letter_pop_events(chunks, style_type="drop")
+        elif anim in ("letter_rise", "wave_rise"):
+            events = self.build_letter_pop_events(chunks, style_type="rise")
         elif anim in ("box_highlight", "badge_invert"):
             events = self.build_box_highlight_events(chunks)
         elif anim == "color_flash":

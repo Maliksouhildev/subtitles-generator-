@@ -129,6 +129,14 @@ def test_render_api_mock(client, tmp_path):
         assert "ass_url" in res_data
         assert "srt_url" in res_data
         assert "remotion_url" in res_data
+        assert "ae_url" in res_data
+
+        # Check After Effects JSX script download
+        ae_res = client.get(res_data["ae_url"])
+        assert ae_res.status_code == 200
+        assert "app.beginUndoGroup" in ae_res.text
+        assert "addComp" in ae_res.text
+        assert "DZ_Subtitles_Viral" in ae_res.text
 
         # Check Remotion props file download
         remotion_res = client.get(res_data["remotion_url"])
@@ -167,6 +175,13 @@ def test_custom_dropdowns_and_rtl_preview():
     # Verify CSS custom dropdown styling
     assert ".comic-dropdown-option" in css_content
     assert ".custom-select-wrap" in css_content
+
+    # Verify Ease graph, After Effects and letter animation components
+    assert "easeCanvas" in html_content
+    assert "sub-resize-handle" in html_content
+    assert "downloadAeBtn" in html_content
+    assert ".opt-box-demo" in css_content
+    assert "letterPopAnim" in css_content
 
 
 def test_presets_api_and_persistence(client, tmp_path):
