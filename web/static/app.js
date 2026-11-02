@@ -4851,59 +4851,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     const renderPayload = {
-
       task_id: currentTaskId,
-
       transcription_data: currentTranscription,
-
-      font_name: fontName.value,
-
-      font_size: parseInt(fontSize.value),
-
-      primary_color: primaryColor.value,
-
-      highlight_color: highlightColor.value,
-
+      font_name: (fontName && fontName.value) ? fontName.value : "Cairo",
+      font_size: parseInt(fontSize ? fontSize.value : 56) || 56,
+      primary_color: (primaryColor && primaryColor.value) ? primaryColor.value : "#FFFFFF",
+      highlight_color: (highlightColor && highlightColor.value) ? highlightColor.value : "#FFE600",
       outline_color: "#000000",
-
       shadow_color: "#000000",
-
       outline_width: 2.4,
-
       shadow_depth: 2.2,
-
-      alignment: parseInt(alignment.value) || 2,
-
-      margin_v: parseInt(marginV.value) || 960,
-
-      pos_y: Math.max(30, 1920 - (parseInt(marginV.value) || 960)),
-
-      words_per_line: parseInt(wordsPerLine.value) || 4,
-
-      template_id: animationStyle.value || "karaoke_pop",
-
-      animation_style: animationStyle.value || "karaoke_pop",
-
+      alignment: parseInt(alignment ? alignment.value : 2) || 2,
+      margin_v: parseInt(marginV ? marginV.value : 960) || 960,
+      pos_y: Math.max(30, 1920 - (parseInt(marginV ? marginV.value : 960) || 960)),
+      words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 4) || 4,
+      template_id: (animationStyle && animationStyle.value) ? animationStyle.value : "karaoke_pop",
+      animation_style: (animationStyle && animationStyle.value) ? animationStyle.value : "karaoke_pop",
       animation_speed: parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0,
-
-      sub_box_style: subBoxStyle ? subBoxStyle.value : "none",
-
-      sub_box_color: subBoxColor ? subBoxColor.value : "#000000",
-
+      sub_box_style: (subBoxStyle && subBoxStyle.value) ? subBoxStyle.value : "none",
+      sub_box_color: (subBoxColor && subBoxColor.value) ? subBoxColor.value : "#000000",
       sub_box_alpha: parseFloat(subBoxAlpha ? subBoxAlpha.value : 0.85) || 0.85,
-
-      background_mode: backgroundMode.value || "transparent",
-
-      custom_color_hex: customColorHex.value,
-
-      aspect_ratio: aspectRatio.value || "9:16",
-
-      ease_p1: [easeP1.x, easeP1.y],
-
-      ease_p2: [easeP2.x, easeP2.y],
-
-      cubic_bezier: `cubic-bezier(${easeP1.x.toFixed(2)}, ${easeP1.y.toFixed(2)}, ${easeP2.x.toFixed(2)}, ${easeP2.y.toFixed(2)})`
-
+      background_mode: (backgroundMode && backgroundMode.value) ? backgroundMode.value : "green_screen",
+      custom_color_hex: (customColorHex && customColorHex.value) ? customColorHex.value : "#1A1A24",
+      aspect_ratio: (aspectRatio && aspectRatio.value) ? aspectRatio.value : "9:16",
+      ease_p1: [easeP1 ? easeP1.x : 0.34, easeP1 ? easeP1.y : 1.56],
+      ease_p2: [easeP2 ? easeP2.x : 0.64, easeP2 ? easeP2.y : 1.00],
+      cubic_bezier: `cubic-bezier(${(easeP1 ? easeP1.x : 0.34).toFixed(2)}, ${(easeP1 ? easeP1.y : 1.56).toFixed(2)}, ${(easeP2 ? easeP2.x : 0.64).toFixed(2)}, ${(easeP2 ? easeP2.y : 1.00).toFixed(2)})`
     };
 
 
