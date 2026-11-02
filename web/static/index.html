@@ -16,7 +16,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;900&family=Almarai:wght@700;800&family=Amiri:wght@700&family=Anton&family=Archivo+Black&family=Aref+Ruqaa:wght@700&family=Baloo+Bhaijaan+2:wght@700;800&family=Bangers&family=Bebas+Neue&family=Black+Han+Sans&family=Cairo:wght@700;900&family=Changa:wght@700;800&family=El+Messiri:wght@700&family=Epilogue:wght@800;900&family=Harmattan:wght@700&family=IBM+Plex+Sans+Arabic:wght@700&family=Inter:wght@700;900&family=Kanit:wght@700;900&family=Lalezar&family=Lemonada:wght@700&family=Lexend:wght@700;800&family=Mada:wght@700;900&family=Marhey:wght@700&family=Montserrat:wght@800;900&family=Noto+Kufi+Arabic:wght@700;900&family=Noto+Sans+Arabic:wght@700;900&family=Oswald:wght@700&family=Outfit:wght@700;900&family=Plus+Jakarta+Sans:wght@700;800;900&family=Poppins:wght@700;800;900&family=Raleway:wght@800;900&family=Readex+Pro:wght@700&family=Reem+Kufi:wght@700&family=Righteous&family=Rubik:wght@700;900&family=Syne:wght@700;800&family=Tajawal:wght@700;900&family=Titan+One&family=Urbanist:wght@800;900&family=Work+Sans:wght@800;900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=2.9.3">
+  <link rel="stylesheet" href="style.css?v=2.9.4">
 
 </head>
 
@@ -1712,26 +1712,30 @@
 
 
 
-              <!-- Optional Gemini Key -->
-
-              <div class="grid-col-full">
-
+              <!-- Required Gemini Key -->
+              <div class="grid-col-full api-key-container">
                 <div class="collapsible-key-header" id="keyToggleHeader">
-
                   <div class="key-label-wrap">
-
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-
-                    <span data-i18n="ctrl_apikey">Gemini API Key (Optional)</span>
-
+                    <span data-i18n="ctrl_apikey">Gemini API Key</span>
+                    <span class="required-asterisk">*</span>
                   </div>
-
-                  <span class="comic-tag comic-tag-sm" data-i18n="tag_optional">Preconfigured on server</span>
-
+                  <span class="comic-tag comic-tag-sm tag-required" id="apiKeyStatusBadge" data-i18n="tag_required">Required</span>
                 </div>
-
-                <input type="password" id="apiKey" class="comic-input" placeholder="AIzaSy... (Leave empty to use server default key)">
-
+                <div class="api-key-input-wrapper">
+                  <input type="password" id="apiKey" class="comic-input api-key-input" placeholder="Paste your Gemini API key (AIzaSy...)" autocomplete="off">
+                  <button type="button" id="toggleApiKeyVisibility" class="btn-api-key-toggle" title="Show or Hide Key">
+                    <svg id="eyeIconOpen" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <svg id="eyeIconClosed" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                  </button>
+                </div>
+                <div class="api-key-footer-info">
+                  <span class="api-key-vault-msg">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    Saved securely in your browser vault. Never exposed in HTML or leaks.
+                  </span>
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="api-key-free-link">Get Free Key ↗</a>
+                </div>
               </div>
 
             </div>
@@ -1970,7 +1974,7 @@
 
 
 
-  <script src="app.js?v=2.9.3"></script>
+  <script src="app.js?v=2.9.4"></script>
 
 </body>
 

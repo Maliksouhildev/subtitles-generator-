@@ -153,6 +153,14 @@ async def transcribe_media(
     """
     Uploads an audio or video file and transcribes it in Algerian Darija with word-level timestamps.
     """
+    # 0. Validate required Gemini API Key upfront
+    effective_api_key = (api_key or "").strip() or os.environ.get("GEMINI_API_KEY", "").strip()
+    if not effective_api_key:
+        raise HTTPException(
+            status_code=400,
+            detail="Gemini API Key is required. Please provide a valid Gemini API key to transcribe media."
+        )
+
     task_id = str(uuid.uuid4())[:8]
     task_folder = OUTPUT_DIR / task_id
     os.makedirs(task_folder, exist_ok=True)
@@ -173,7 +181,7 @@ async def transcribe_media(
         # Perform transcription
         transcription_result = transcribe(
             audio_path=str(input_file_path),
-            api_key=api_key,
+            api_key=effective_api_key,
             dialect_hint=dialect_hint,
             force_local=force_local
         )
@@ -201,6 +209,8 @@ async def transcribe_media(
             "transcription": transcription_result
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Transcription failed for task {task_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

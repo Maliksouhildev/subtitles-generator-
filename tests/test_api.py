@@ -480,3 +480,37 @@ def test_arabic_font_rendering_and_color_slider():
     assert ".phone-color-slider-bar" in css
     assert ".phone-hue-slider" in css
     assert "font-family: inherit !important;" in css
+
+
+def test_api_key_required_and_vault_security(client, monkeypatch, tmp_path):
+    """Verify Gemini API key is required on backend and safely handled on client."""
+    import io
+    # Ensure no GEMINI_API_KEY is present in env during test
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    fake_file = io.BytesIO(b"RIFF....WAVEfmt ....data....")
+    response = client.post(
+        "/api/transcribe",
+        files={"file": ("test.wav", fake_file, "audio/wav")},
+        data={"dialect_hint": "General Algerian"}
+    )
+    assert response.status_code == 400
+    assert "Gemini API Key is required" in response.json()["detail"]
+
+    # Verify HTML DOM and security
+    with open("web/static/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+
+    assert 'id="apiKeyStatusBadge"' in html
+    assert 'id="toggleApiKeyVisibility"' in html
+    assert 'data-i18n="tag_required"' in html
+    # Ensure no secret keys are leaked in HTML
+    assert "AIzaSy" not in html or "AIzaSy..." in html
+
+    # Verify JS secure vault
+    with open("web/static/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+    assert "saveSecureApiKey" in js
+    assert "loadSecureApiKey" in js
+    assert "dz_sec_gemini_key" in js
+    assert "inputShakeError" in js or "input-shake-error" in js

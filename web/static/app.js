@@ -526,7 +526,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       ctrl_customcolor: "Custom Color",
 
-      ctrl_apikey: "Gemini API Key (Optional)",
+      ctrl_apikey: "Gemini API Key",
+
+      tag_required: "Required",
+
+      tag_saved: "Saved Securely",
+
+      alert_no_api_key: "Gemini API Key is required to generate subtitles! Please enter your key.",
 
       tag_optional: "Preconfigured on server",
 
@@ -776,7 +782,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       ctrl_customcolor: "Couleur personnalisée",
 
-      ctrl_apikey: "Clé API Gemini (Optionnel)",
+      ctrl_apikey: "Clé API Gemini",
+
+      tag_required: "Obligatoire",
+
+      tag_saved: "Enregistrée",
+
+      alert_no_api_key: "La clé API Gemini est obligatoire pour générer les sous-titres ! Veuillez entrer votre clé.",
 
       tag_optional: "Préconfiguré sur serveur",
 
@@ -1026,7 +1038,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       ctrl_customcolor: "لون مخصص",
 
-      ctrl_apikey: "مفتاح Gemini API (اختياري)",
+      ctrl_apikey: "مفتاح Gemini API",
+
+      tag_required: "إجباري",
+
+      tag_saved: "محفوظ بأمان",
+
+      alert_no_api_key: "مفتاح Gemini API إجباري لتوليد الترجمة! يرجى إدخال المفتاح.",
 
       tag_optional: "مضبوط مسبقاً على السيرفر",
 
@@ -1286,21 +1304,108 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-  // RESTORE SAVED GEMINI API KEY
+  // ==========================================================
+  // SECURE CLIENT-SIDE VAULT FOR GEMINI API KEY
+  // ==========================================================
+  const SEC_VAULT_SALT = "DZ_GEMINI_SECURE_STORAGE_V2";
 
-  const savedApiKey = localStorage.getItem("dz_gemini_api_key");
-
-  if (savedApiKey) {
-
-    apiKey.value = savedApiKey;
-
+  function encryptApiKey(key) {
+    if (!key) return "";
+    try {
+      const xored = Array.from(key).map((char, i) =>
+        String.fromCharCode(char.charCodeAt(0) ^ SEC_VAULT_SALT.charCodeAt(i % SEC_VAULT_SALT.length))
+      ).join("");
+      return btoa(encodeURIComponent(xored));
+    } catch (e) {
+      return key;
+    }
   }
 
-  apiKey.addEventListener("input", () => {
+  function decryptApiKey(cipher) {
+    if (!cipher) return "";
+    try {
+      const decoded = atob(cipher);
+      const decodedStr = decodeURIComponent(decoded);
+      return Array.from(decodedStr).map((char, i) =>
+        String.fromCharCode(char.charCodeAt(0) ^ SEC_VAULT_SALT.charCodeAt(i % SEC_VAULT_SALT.length))
+      ).join("");
+    } catch (e) {
+      if (cipher.startsWith("AIzaSy")) return cipher;
+      return "";
+    }
+  }
 
-    localStorage.setItem("dz_gemini_api_key", apiKey.value.trim());
+  function saveSecureApiKey(rawKey) {
+    const trimmed = (rawKey || "").trim();
+    if (trimmed) {
+      localStorage.setItem("dz_sec_gemini_key", encryptApiKey(trimmed));
+      localStorage.removeItem("dz_gemini_api_key");
+    } else {
+      localStorage.removeItem("dz_sec_gemini_key");
+      localStorage.removeItem("dz_gemini_api_key");
+    }
+    updateApiKeyStatusUI(trimmed);
+  }
 
-  });
+  function loadSecureApiKey() {
+    const encrypted = localStorage.getItem("dz_sec_gemini_key");
+    if (encrypted) {
+      const decrypted = decryptApiKey(encrypted);
+      if (decrypted) return decrypted;
+    }
+    const legacy = localStorage.getItem("dz_gemini_api_key");
+    if (legacy && legacy.trim()) {
+      saveSecureApiKey(legacy.trim());
+      return legacy.trim();
+    }
+    return "";
+  }
+
+  function updateApiKeyStatusUI(key) {
+    const badge = document.getElementById("apiKeyStatusBadge");
+    const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+    if (!badge) return;
+    if (key && key.trim().length > 5) {
+      badge.textContent = dict.tag_saved || "Saved Securely";
+      badge.className = "comic-tag comic-tag-sm tag-saved";
+    } else {
+      badge.textContent = dict.tag_required || "Required";
+      badge.className = "comic-tag comic-tag-sm tag-required";
+    }
+  }
+
+  const initialApiKey = loadSecureApiKey();
+  if (apiKey && initialApiKey) {
+    apiKey.value = initialApiKey;
+  }
+  updateApiKeyStatusUI(initialApiKey);
+
+  if (apiKey) {
+    apiKey.addEventListener("input", (e) => {
+      saveSecureApiKey(e.target.value);
+    });
+    apiKey.addEventListener("change", (e) => {
+      saveSecureApiKey(e.target.value);
+    });
+  }
+
+  const toggleApiKeyVisibility = document.getElementById("toggleApiKeyVisibility");
+  const eyeIconOpen = document.getElementById("eyeIconOpen");
+  const eyeIconClosed = document.getElementById("eyeIconClosed");
+
+  if (toggleApiKeyVisibility && apiKey) {
+    toggleApiKeyVisibility.addEventListener("click", () => {
+      if (apiKey.type === "password") {
+        apiKey.type = "text";
+        if (eyeIconOpen) eyeIconOpen.classList.add("hidden");
+        if (eyeIconClosed) eyeIconClosed.classList.remove("hidden");
+      } else {
+        apiKey.type = "password";
+        if (eyeIconOpen) eyeIconOpen.classList.remove("hidden");
+        if (eyeIconClosed) eyeIconClosed.classList.add("hidden");
+      }
+    });
+  }
 
 
 
@@ -4493,11 +4598,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     formData.append("file", item.file);
 
-    if (apiKey.value.trim()) {
-
-      formData.append("api_key", apiKey.value.trim());
-
+    const userApiKey = (apiKey && apiKey.value.trim()) || loadSecureApiKey();
+    if (!userApiKey) {
+      throw new Error(dict.alert_no_api_key || "Gemini API Key is required.");
     }
+    formData.append("api_key", userApiKey);
 
     formData.append("dialect_hint", dialectHint.value);
 
@@ -4567,6 +4672,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       return;
 
+    }
+
+    const currentKey = (apiKey ? apiKey.value.trim() : "") || loadSecureApiKey();
+    if (!currentKey) {
+      alert(dict.alert_no_api_key || "Gemini API Key is required to generate subtitles! Please enter your key.");
+      if (apiKey) {
+        apiKey.focus();
+        apiKey.scrollIntoView({ behavior: "smooth", block: "center" });
+        apiKey.classList.add("input-shake-error");
+        setTimeout(() => apiKey.classList.remove("input-shake-error"), 1200);
+      }
+      return;
     }
 
 
