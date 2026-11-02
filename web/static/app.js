@@ -3954,7 +3954,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } else {
 
-      backgroundMode.value = "transparent";
+      backgroundMode.value = "green_screen";
 
       if (phoneVideoBg) {
 
@@ -4835,7 +4835,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
-    updateProgress(80, "Step 3/4", dict.step_3, "Est. ~3s");
+    let renderProgressPct = 80;
+    updateProgress(80, "Step 3/4", dict.step_3, "Rendering video...");
+    const renderProgressTimer = setInterval(() => {
+      if (renderProgressPct < 96) {
+        renderProgressPct += 1.5;
+        updateProgress(Math.round(renderProgressPct), "Step 3/4", dict.step_3, "Encoding with FFmpeg...");
+      }
+    }, 350);
 
 
 
@@ -4907,7 +4914,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     if (!renderRes.ok) {
-
+      clearInterval(renderProgressTimer);
       const err = await renderRes.json();
 
       throw new Error(err.detail || "Rendering failed");
@@ -4916,6 +4923,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+    clearInterval(renderProgressTimer);
     const data = await renderRes.json();
 
     updateProgress(100, "Step 4/4", dict.step_4, "Complete!");

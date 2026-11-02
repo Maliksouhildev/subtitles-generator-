@@ -19,10 +19,10 @@ logging.basicConfig(level=logging.INFO)
 
 # Gemini models with free-tier access ordered by speed, transcription accuracy & JSON mode support
 GEMINI_MODELS = [
-    "gemini-3.5-flash",
     "gemini-2.5-flash",
-    "gemini-3.5-flash-lite",
     "gemini-flash-latest",
+    "gemini-2.5-flash-lite",
+    "gemini-3.5-flash",
     "gemini-3.1-flash-lite",
     "gemini-2.5-pro",
 ]
@@ -592,6 +592,8 @@ def transcribe_with_gemini(
     key = api_key or os.environ.get("GEMINI_API_KEY")
     if not key:
         raise ValueError("GEMINI_API_KEY is not set. Please provide an API key or set GEMINI_API_KEY.")
+    key_masked = f"{key[:4]}...{key[-4:]}" if len(key) > 8 else "***"
+    logger.info(f"Authenticating with user Gemini API Key: {key_masked}")
 
     # 1. Downsample to 16kHz mono MP3
     processed_audio = extract_audio(audio_path)
@@ -647,7 +649,7 @@ def transcribe_with_gemini(
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
         logger.info(f"Attempting Gemini transcription with model: {model_name}...")
         try:
-            response = requests.post(url, json=payload, timeout=90)
+            response = requests.post(url, json=payload, timeout=30)
             if response.status_code == 200:
                 resp_json = response.json()
                 candidates = resp_json.get("candidates", [])
