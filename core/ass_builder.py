@@ -309,12 +309,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 t3 = max(t2 + 25, min(int(dur_ms * 0.85), int(260 / spd)))
                 t4 = max(t3 + 20, min(dur_ms, int(330 / spd)))
 
+                # Lock \fscx at 100 to eliminate horizontal line drift and keep sibling words rock-solid
                 active_pop_transform = (
                     f"\\blur1.8\\fscx100\\fscy100"
-                    f"\\t(0,{t1},0.45,\\fscx130\\fscy130)"
-                    f"\\t({t1},{t2},1.6,\\fscx107\\fscy107)"
-                    f"\\t({t2},{t3},0.8,\\fscx115\\fscy115)"
-                    f"\\t({t3},{t4},1.3,\\fscx110\\fscy110)"
+                    f"\\t(0,{t1},0.45,\\fscx100\\fscy122)"
+                    f"\\t({t1},{t2},1.6,\\fscx100\\fscy106)"
+                    f"\\t({t2},{t3},0.8,\\fscx100\\fscy112)"
+                    f"\\t({t3},{t4},1.3,\\fscx100\\fscy106)"
                 )
 
                 start_str = format_ass_time(w_start)
@@ -368,8 +369,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 t2 = max(t1 + 30, min(int(dur_ms * 0.85), int(220 / spd)))
 
                 reveal_tag = (
-                    f"\\alpha&HFF&\\blur1.8\\fscx95\\fscy95"
-                    f"\\t(0,{t1},0.6,\\alpha&H00&\\fscx115\\fscy115)"
+                    f"\\alpha&HFF&\\blur1.8\\fscx100\\fscy90"
+                    f"\\t(0,{t1},0.6,\\alpha&H00&\\fscx100\\fscy115)"
                     f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
                 )
 
@@ -449,8 +450,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 box_tag = (
                     f"\\bord{self.outline_width}\\3c{out_ass}\\fscx100\\fscy100"
-                    f"\\t(0,{t1},0.6,\\bord{self.outline_width + 0.8}\\3c{hl_ass}\\fscx112\\fscy112)"
-                    f"\\t({t1},{t2},1.3,\\bord{self.outline_width}\\3c{hl_ass}\\fscx106\\fscy106)"
+                    f"\\t(0,{t1},0.6,\\bord{self.outline_width + 0.8}\\3c{hl_ass}\\fscx100\\fscy114)"
+                    f"\\t({t1},{t2},1.3,\\bord{self.outline_width}\\3c{hl_ass}\\fscx100\\fscy106)"
                 )
                 reset_box = f"\\bord{self.outline_width}\\3c{out_ass}\\fscx100\\fscy100"
 
@@ -479,7 +480,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
         spd = self.animation_speed
-        norm_tag = "\\fscx100\\fscy100\\frz0"
+        norm_tag = "\\fscx100\\fscy100"
 
         for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
@@ -507,11 +508,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 t4 = max(t3 + 20, min(dur_ms, int(330 / spd)))
 
                 bounce_tag = (
-                    f"\\blur1.8\\fscx100\\fscy100\\frz0"
-                    f"\\t(0,{t1},0.45,\\fscy134\\fscx112\\frz-2.5)"
-                    f"\\t({t1},{t2},1.6,\\fscy94\\fscx105\\frz1.5)"
-                    f"\\t({t2},{t3},0.8,\\fscy108\\fscx102\\frz-0.8)"
-                    f"\\t({t3},{t4},1.3,\\fscy102\\fscx100\\frz0)"
+                    f"\\blur1.8\\fscx100\\fscy100"
+                    f"\\t(0,{t1},0.45,\\fscx100\\fscy126)"
+                    f"\\t({t1},{t2},1.6,\\fscx100\\fscy96)"
+                    f"\\t({t2},{t3},0.8,\\fscx100\\fscy110)"
+                    f"\\t({t3},{t4},1.3,\\fscx100\\fscy102)"
                 )
 
                 start_str = format_ass_time(w_start)
@@ -567,8 +568,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 neon_tag = (
                     f"\\bord{self.outline_width}\\3c{out_ass}\\blur1.8\\fscx100\\fscy100"
-                    f"\\t(0,{t1},0.6,\\bord{self.outline_width + 4}\\3c{hl_ass}\\blur4.5\\fscx114\\fscy114)"
-                    f"\\t({t1},{t2},1.3,\\bord{self.outline_width + 2.5}\\3c{hl_ass}\\blur2.5\\fscx108\\fscy108)"
+                    f"\\t(0,{t1},0.6,\\bord{self.outline_width + 4}\\3c{hl_ass}\\blur4.5\\fscx100\\fscy116)"
+                    f"\\t({t1},{t2},1.3,\\bord{self.outline_width + 2.5}\\3c{hl_ass}\\blur2.5\\fscx100\\fscy108)"
                 )
                 reset_neon = f"\\bord{self.outline_width}\\3c{out_ass}\\blur1.8\\fscx100\\fscy100"
 
@@ -624,8 +625,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 flash_tag = (
                     f"\\c{hl_ass}\\blur1.8\\fscx100\\fscy100"
-                    f"\\t(0,{t1},0.6,\\c&H00FFFF00&\\blur2.2\\fscx120\\fscy120)"
-                    f"\\t({t1},{t2},1.4,\\c{hl_ass}\\blur1.8\\fscx108\\fscy108)"
+                    f"\\t(0,{t1},0.6,\\c&H00FFFF00&\\blur2.2\\fscx100\\fscy118)"
+                    f"\\t({t1},{t2},1.4,\\c{hl_ass}\\blur1.8\\fscx100\\fscy106)"
                 )
 
                 start_str = format_ass_time(w_start)
@@ -680,20 +681,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 if style_type == "drop":
                     pop_tag = (
-                        f"\\fscx85\\fscy85"
-                        f"\\t(0,{t1},0.5,\\fscx116\\fscy116)"
+                        f"\\fscx100\\fscy85"
+                        f"\\t(0,{t1},0.5,\\fscx100\\fscy118)"
                         f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
                     )
                 elif style_type == "rise":
                     pop_tag = (
-                        f"\\fscx90\\fscy90"
-                        f"\\t(0,{t1},0.6,\\fscx118\\fscy118)"
+                        f"\\fscx100\\fscy90"
+                        f"\\t(0,{t1},0.6,\\fscx100\\fscy118)"
                         f"\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
                     )
                 else:
                     pop_tag = (
-                        f"\\fscx40\\fscy40"
-                        f"\\t(0,{t1},0.5,\\fscx124\\fscy124)"
+                        f"\\fscx100\\fscy50"
+                        f"\\t(0,{t1},0.5,\\fscx100\\fscy124)"
                         f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
                     )
 
@@ -727,7 +728,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
         spd = self.animation_speed
-        norm_tag = "\\fscx100\\fscy100\\frz0"
+        norm_tag = "\\fscx100\\fscy100"
 
         for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
@@ -754,17 +755,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 if style_type == "glow":
                     active_tag = (
-                        f"\\t(0,{t1},0.6,\\fscx114\\fscy114\\blur3.5)"
-                        f"\\t({t1},{t2},1.3,\\fscx104\\fscy104\\blur1.8)"
+                        f"\\t(0,{t1},0.6,\\fscx100\\fscy116\\blur3.5)"
+                        f"\\t({t1},{t2},1.3,\\fscx100\\fscy104\\blur1.8)"
                     )
                 elif style_type == "bounce":
                     active_tag = (
-                        f"\\t(0,{t1},0.5,\\fscx120\\fscy120\\frz-2)"
-                        f"\\t({t1},{t2},1.4,\\fscx104\\fscy104\\frz0)"
+                        f"\\t(0,{t1},0.5,\\fscx100\\fscy122)"
+                        f"\\t({t1},{t2},1.4,\\fscx100\\fscy104)"
                     )
                 else:
                     active_tag = (
-                        f"\\t(0,{t1},0.6,\\fscx115\\fscy115)"
+                        f"\\t(0,{t1},0.6,\\fscx100\\fscy116)"
                         f"\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
                     )
 

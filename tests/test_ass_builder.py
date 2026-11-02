@@ -58,7 +58,8 @@ def test_ass_builder_karaoke_pop():
     assert "Dialogue: 0," in ass_text
     assert "سلام" in ass_text
     assert "\\t(" in ass_text
-    assert "\\fscx130" in ass_text
+    assert "\\fscy122" in ass_text
+    assert "\\fscx100" in ass_text
 
 
 def test_ass_builder_speed_scaling():
