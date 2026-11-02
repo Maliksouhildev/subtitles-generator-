@@ -160,6 +160,33 @@ def format_ass_time(seconds: float) -> str:
     return f"{hours}:{minutes:02d}:{secs:02d}.{centis:02d}"
 
 
+FONT_FAMILY_MAP = {
+    "Cairo": "Cairo",
+    "Tajawal": "Tajawal",
+    "Lalezar": "Lalezar",
+    "Amiri": "Amiri",
+    "Almarai": "Almarai",
+    "Changa": "Changa",
+    "El Messiri": "El Messiri",
+    "Readex Pro": "Readex Pro",
+    "Rubik": "Rubik Light",
+    "IBM Plex Sans Arabic": "IBM Plex Sans Arabic",
+    "Reem Kufi": "Reem Kufi",
+    "Alexandria": "Alexandria",
+    "Baloo Bhaijaan 2": "Baloo Bhaijaan 2",
+    "Aref Ruqaa": "Aref Ruqaa",
+    "Marhey": "Marhey Light",
+    "Noto Sans Arabic": "Noto Sans Arabic",
+    "Noto Kufi Arabic": "Noto Kufi Arabic",
+    "Lemonada": "Lemonada",
+    "Mada": "Mada",
+    "Harmattan": "Harmattan",
+    "Montserrat": "Montserrat Thin",
+    "Anton": "Anton",
+    "Bebas Neue": "Bebas Neue",
+    "Outfit": "Outfit Thin",
+}
+
 class ASSSubtitleBuilder:
     def __init__(
         self,
@@ -183,7 +210,7 @@ class ASSSubtitleBuilder:
         sub_box_color: str = "#000000",
         sub_box_alpha: float = 0.85
     ):
-        self.font_name = font_name
+        self.font_name = FONT_FAMILY_MAP.get(font_name, font_name)
         self.font_size = font_size
         self.primary_color = primary_color
         self.highlight_color = highlight_color

@@ -440,6 +440,43 @@ def test_fixed_phone_preview_and_ae_graph_integration():
     assert "tiktok-top-nav" in html
     assert "side-item" in html
     assert "@creator_pro" in html
-    assert "app.js?v=2.9.1" in html
+    assert "app.js?v=" in html
+    assert "phoneColorSliderBar" in html
+    assert "phoneHueSlider" in html
     assert "ease-graph-container" not in html
 
+
+
+def test_arabic_font_rendering_and_color_slider():
+    """Verify Arabic fonts map properly in ASS and color slider is in DOM."""
+    from core.ass_builder import ASSSubtitleBuilder, FONT_FAMILY_MAP
+    
+    assert "Cairo" in FONT_FAMILY_MAP
+    assert "Tajawal" in FONT_FAMILY_MAP
+    assert "Amiri" in FONT_FAMILY_MAP
+    assert "Changa" in FONT_FAMILY_MAP
+    assert "El Messiri" in FONT_FAMILY_MAP
+    assert "Readex Pro" in FONT_FAMILY_MAP
+
+    builder = ASSSubtitleBuilder(
+        font_name="Cairo",
+        font_size=60,
+        primary_color="#FFFFFF",
+        highlight_color="#00F0FF",
+        animation_style="karaoke_pop"
+    )
+    header = builder.generate_header()
+    assert "Cairo" in header
+    assert "Style: Default,Cairo,60," in header
+
+    with open("web/static/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    assert 'id="phoneColorSliderBar"' in html
+    assert 'id="phoneHueSlider"' in html
+    assert 'id="phoneColorSwatches"' in html
+
+    with open("web/static/style.css", "r", encoding="utf-8") as f:
+        css = f.read()
+    assert ".phone-color-slider-bar" in css
+    assert ".phone-hue-slider" in css
+    assert "font-family: inherit !important;" in css

@@ -2925,8 +2925,7 @@ html, body, :root, *,
 
 
 .sub-word {
-
-  font-family: 'Lalezar', 'Cairo', sans-serif;
+  font-family: inherit !important;
 
   font-weight: 900;
 
@@ -5819,6 +5818,7 @@ html, body, :root, *,
 /* Letter-By-Letter Kinetic Animations */
 
 .sub-letter {
+  font-family: inherit !important;
   display: inline-block;
   will-change: transform, opacity;
   animation-fill-mode: both;
@@ -6091,4 +6091,147 @@ html, body, :root, *,
   font-weight: 800;
   border-color: var(--amber);
   box-shadow: 0 2px 8px rgba(255, 230, 0, 0.4);
+}
+
+
+/* ==========================================================
+   PHONE PREVIEW QUICK COLOR SLIDER & SWATCHES
+   ========================================================== */
+.phone-color-slider-bar {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 310px;
+  margin-left: auto;
+  margin-right: auto;
+  background: #181920;
+  border: 2px solid #2a2c38;
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-sizing: border-box;
+}
+
+.phone-color-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.phone-color-slider-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0a5b8;
+}
+
+.phone-color-preview-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f1015;
+  border: 1px solid #333645;
+  padding: 2px 7px;
+  border-radius: 12px;
+}
+
+.phone-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(255, 230, 0, 0.5);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.phone-color-hex {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.phone-slider-track-wrap {
+  width: 100%;
+  padding: 2px 0 6px;
+}
+
+.phone-hue-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    to right,
+    #ff0000 0%,
+    #ffff00 17%,
+    #00ff00 33%,
+    #00ffff 50%,
+    #0000ff 67%,
+    #ff00ff 83%,
+    #ff0000 100%
+  );
+  outline: none;
+  cursor: pointer;
+  border: 1px solid #44475a;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.phone-hue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #111116;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.phone-hue-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.phone-hue-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #111116;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+.phone-color-swatches {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.phone-swatch-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #232530;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.phone-swatch-dot:hover {
+  transform: scale(1.2);
+}
+
+.phone-swatch-dot.active {
+  border-color: #ffffff;
+  transform: scale(1.15);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }

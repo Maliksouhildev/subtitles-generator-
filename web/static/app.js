@@ -210,11 +210,12 @@ document.addEventListener("DOMContentLoaded", () => {
             optRow.classList.add("active");
             if (labelSpan) {
               labelSpan.innerText = opt.innerText;
-              labelSpan.style.fontFamily = opt.value + ", sans-serif";
+              labelSpan.style.setProperty("font-family", `"${opt.value}", sans-serif`, "important");
             }
             panel.classList.add("hidden");
             const chevron = wrap.querySelector(".trigger-chevron");
             if (chevron) chevron.style.transform = "rotate(0deg)";
+            fontName.dispatchEvent(new Event("change", { bubbles: true }));
             updateLiveSubtitlePreview();
             autoSaveSettings();
           });
@@ -1480,11 +1481,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (s.highlight && highlightColor) {
-
       highlightColor.value = s.highlight;
-
       if (highlightColorText) highlightColorText.innerText = s.highlight.toUpperCase();
-
+      syncPhoneColorUI(s.highlight);
     }
 
     if (s.anim && animationStyle) animationStyle.value = s.anim;
@@ -2357,6 +2356,92 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+  
+  // ==========================================================
+  // PHONE PREVIEW CONTINUOUS COLOR SLIDER & SWATCHES
+  // ==========================================================
+  const phoneHueSlider = document.getElementById("phoneHueSlider");
+  const phoneColorDot = document.getElementById("phoneColorDot");
+  const phoneColorHex = document.getElementById("phoneColorHex");
+  const phoneColorSwatches = document.getElementById("phoneColorSwatches");
+
+  function hslToHex(h, s, l) {
+    l /= 100;
+    const a = (s * Math.min(l, 1 - l)) / 100;
+    const f = n => {
+      const k = (n + h / 30) % 12;
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      return Math.round(255 * color).toString(16).padStart(2, "0");
+    };
+    return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+  }
+
+  function hexToHue(hex) {
+    if (!hex) return 54;
+    hex = hex.replace("#", "");
+    if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0;
+    const d = max - min;
+    if (d === 0) h = 0;
+    else if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else if (max === b) h = (r - g) / d + 4;
+    h = Math.round(h * 60);
+    if (h < 0) h += 360;
+    return h;
+  }
+
+  function syncPhoneColorUI(newHex) {
+    if (!newHex) return;
+    newHex = newHex.toUpperCase();
+    if (phoneColorHex) phoneColorHex.innerText = newHex;
+    if (phoneColorDot) {
+      phoneColorDot.style.backgroundColor = newHex;
+      phoneColorDot.style.boxShadow = `0 0 8px ${newHex}`;
+    }
+    if (phoneHueSlider) {
+      phoneHueSlider.value = hexToHue(newHex);
+    }
+    if (phoneColorSwatches) {
+      phoneColorSwatches.querySelectorAll(".phone-swatch-dot").forEach(dot => {
+        if (dot.dataset.color.toUpperCase() === newHex) {
+          dot.classList.add("active");
+        } else {
+          dot.classList.remove("active");
+        }
+      });
+    }
+  }
+
+  function applyHighlightColor(newHex) {
+    newHex = newHex.toUpperCase();
+    if (highlightColor) highlightColor.value = newHex;
+    if (highlightColorText) highlightColorText.innerText = newHex;
+    syncPhoneColorUI(newHex);
+    updateLiveSubtitlePreview();
+    autoSaveSettings();
+  }
+
+  if (phoneHueSlider) {
+    phoneHueSlider.addEventListener("input", (e) => {
+      const hue = parseInt(e.target.value) || 0;
+      const hex = hslToHex(hue, 100, 50);
+      applyHighlightColor(hex);
+    });
+  }
+
+  if (phoneColorSwatches) {
+    phoneColorSwatches.querySelectorAll(".phone-swatch-dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        applyHighlightColor(dot.dataset.color);
+      });
+    });
+  }
+
   function updateLiveSubtitlePreview() {
 
     if (!liveSubtitleContainer || !liveSubtitleBox) return;
@@ -2365,7 +2450,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Font styling & proportional responsive size
 
-    liveSubtitleBox.style.fontFamily = fontName.value + ", sans-serif";
+    const activeFont = (fontName && fontName.value) ? fontName.value : "Lalezar";
+    liveSubtitleBox.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
 
     const currentFs = parseInt(fontSize ? fontSize.value : 56) || 56;
 
@@ -2532,6 +2618,7 @@ document.addEventListener("DOMContentLoaded", () => {
     wordList.forEach((wordText, idx) => {
 
       const w = document.createElement("span");
+      w.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
 
       const isLatin = /[a-zA-Z]/.test(wordText);
 
@@ -2587,6 +2674,7 @@ document.addEventListener("DOMContentLoaded", () => {
             letSpan.className = "sub-letter" + (isArabicWord ? " arabic-letter" : "");
             letSpan.innerText = ch;
             letSpan.style.setProperty("--letter-idx", cIdx);
+            letSpan.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
             w.appendChild(letSpan);
           });
           w.style.background = "none";
@@ -3574,11 +3662,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   highlightColor.addEventListener("input", (e) => {
-
-    highlightColorText.innerText = e.target.value.toUpperCase();
-
+    const val = e.target.value.toUpperCase();
+    highlightColorText.innerText = val;
+    syncPhoneColorUI(val);
     updateLiveSubtitlePreview();
-
+    autoSaveSettings();
   });
 
 
