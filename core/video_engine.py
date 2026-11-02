@@ -18,6 +18,25 @@ from core.transcriber import get_audio_duration
 
 logger = logging.getLogger("video_engine")
 
+ACTIVE_RENDER_PROCESSES: Dict[str, subprocess.Popen] = {}
+CANCELLED_TASKS: set = set()
+
+def cancel_render(task_id: str) -> bool:
+    """Terminates any running FFmpeg render process associated with task_id."""
+    if not task_id:
+        return False
+    CANCELLED_TASKS.add(task_id)
+    proc = ACTIVE_RENDER_PROCESSES.get(task_id)
+    if proc:
+        try:
+            proc.terminate()
+            proc.kill()
+            logger.info(f"Terminated active FFmpeg render process for task {task_id}")
+            return True
+        except Exception as e:
+            logger.warning(f"Error terminating process for task {task_id}: {e}")
+    return False
+
 ASPECT_RATIOS = {
     "9:16": (1080, 1920),
     "16:9": (1920, 1080),
@@ -78,7 +97,8 @@ def render_video(
     background_mode: str = "green_screen",  # "original_video", "green_screen", "black", "blue", "transparent", "custom"
     custom_color_hex: Optional[str] = None,
     aspect_ratio: str = "9:16",
-    fps: int = 30
+    fps: int = 30,
+    task_id: Optional[str] = None
 ) -> str:
     """
     Renders video with animated subtitles burned in using FFmpeg libass.
@@ -201,9 +221,21 @@ def render_video(
                 ]
 
         logger.info(f"Executing FFmpeg render in stage dir: {' '.join(cmd)}")
-        result = subprocess.run(cmd, cwd=stage_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode != 0:
-            err = result.stderr.decode("utf-8", errors="ignore")
+        proc = subprocess.Popen(cmd, cwd=stage_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if task_id:
+            ACTIVE_RENDER_PROCESSES[task_id] = proc
+        try:
+            stdout, stderr = proc.communicate()
+        finally:
+            if task_id and task_id in ACTIVE_RENDER_PROCESSES:
+                ACTIVE_RENDER_PROCESSES.pop(task_id, None)
+
+        if task_id and task_id in CANCELLED_TASKS:
+            CANCELLED_TASKS.discard(task_id)
+            raise RuntimeError(f"Rendering cancelled by user for task {task_id}")
+
+        if proc.returncode != 0:
+            err = stderr.decode("utf-8", errors="ignore")
             logger.error(f"FFmpeg render failed: {err}")
             raise RuntimeError(f"FFmpeg rendering error: {err}")
 

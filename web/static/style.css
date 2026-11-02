@@ -6329,3 +6329,37 @@ html, body, :root, *,
   transform: scale(1.15);
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
+
+
+/* ==========================================================
+   CANCEL RENDER BUTTON
+   ========================================================== */
+.comic-btn-cancel-render {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 51, 102, 0.12);
+  color: #ff3366;
+  border: 1.5px solid #ff3366;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 4px rgba(255, 51, 102, 0.25);
+  margin-right: 6px;
+}
+
+.comic-btn-cancel-render:hover {
+  background: #ff3366;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(255, 51, 102, 0.5);
+}
+
+.comic-btn-cancel-render:active {
+  transform: translateY(1px);
+}

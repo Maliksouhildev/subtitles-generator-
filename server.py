@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from core.transcriber import transcribe, get_audio_duration, normalize_transcription_data, calibrate_transcription_to_vad
 from core.ass_builder import ASSSubtitleBuilder
 from core.srt_builder import generate_srt, generate_vtt
-from core.video_engine import render_video, is_video_file, get_video_dimensions
+from core.video_engine import render_video, cancel_render, is_video_file, get_video_dimensions
 from core.ae_script_builder import AfterEffectsScriptBuilder
 
 logging.basicConfig(level=logging.INFO)
@@ -359,7 +359,8 @@ async def render_subtitles(req: RenderRequest):
             fonts_dir=str(FONTS_DIR),
             background_mode=req.background_mode,
             custom_color_hex=req.custom_color_hex,
-            aspect_ratio=req.aspect_ratio
+            aspect_ratio=req.aspect_ratio,
+            task_id=task_id
         )
 
         return {
@@ -378,6 +379,14 @@ async def render_subtitles(req: RenderRequest):
         logger.error(f"Rendering failed for task {task_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+@app.post("/api/cancel/{task_id}")
+async def cancel_task_endpoint(task_id: str):
+    """Cancels an ongoing rendering or transcription task and terminates FFmpeg."""
+    logger.info(f"Cancellation requested for task {task_id}")
+    terminated = cancel_render(task_id)
+    return {"status": "cancelled", "task_id": task_id, "terminated": terminated}
 
 @app.post("/api/transcribe_and_render")
 async def transcribe_and_render_endpoint(

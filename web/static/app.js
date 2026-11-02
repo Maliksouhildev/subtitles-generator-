@@ -538,6 +538,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       btn_generate: "GENERATE ANIMATED SUBTITLES",
 
+      btn_cancel_render: "Cancel",
+
       modal_guide_title: "Video Editing & Safe-Zone Guide",
 
       guide_capcut: "Add the generated subtitle video as an <strong>Overlay</strong> above your main video. Select <strong>Remove BG</strong> > <strong>Chroma Key</strong>, click the green background with the color picker, and set Intensity to 15-20%.",
@@ -794,6 +796,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       btn_generate: "GÉNÉRER LES SOUS-TITRES ANIMÉS",
 
+      btn_cancel_render: "Annuler",
+
       modal_guide_title: "Guide de montage & Zones sécurisées",
 
       guide_capcut: "Ajoutez la vidéo générée en tant que <strong>Superposition (Overlay)</strong>. Allez dans <strong>Supprimer l'arrière-plan</strong> > <strong>Chroma Key</strong>, sélectionnez le vert avec la pipette et réglez l'intensité à 15-20%.",
@@ -1049,6 +1053,8 @@ document.addEventListener("DOMContentLoaded", () => {
       tag_optional: "مضبوط مسبقاً على السيرفر",
 
       btn_generate: "توليد الترجمة المتحركة الآن",
+
+      btn_cancel_render: "إلغاء",
 
       modal_guide_title: "دليل المونتاج ومناطق الأمان للهواتف",
 
@@ -4375,6 +4381,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // PROGRESS TRACKER HELPER
 
+    let currentAbortController = null;
+  const cancelRenderBtn = document.getElementById("cancelRenderBtn");
+
+  if (cancelRenderBtn) {
+    cancelRenderBtn.addEventListener("click", () => {
+      if (currentAbortController) {
+        currentAbortController.abort();
+      }
+      if (currentTaskId) {
+        fetch(`/api/cancel/${currentTaskId}`, { method: "POST" }).catch(() => {});
+      }
+      isProcessingBatch = false;
+      if (startBtn) startBtn.disabled = false;
+      if (reRenderBtn) reRenderBtn.disabled = false;
+      cancelRenderBtn.classList.add("hidden");
+      updateProgress(0, "Cancelled", "Render cancelled by user.", "");
+      setTimeout(() => {
+        if (!isProcessingBatch && progressContainer) {
+          progressContainer.classList.add("hidden");
+        }
+      }, 2000);
+    });
+  }
+
   function updateProgress(percent, stepText, message, etaText = "") {
 
     progressContainer.classList.remove("hidden");
@@ -4388,9 +4418,14 @@ document.addEventListener("DOMContentLoaded", () => {
     progressStatus.innerText = message;
 
     if (progressEta) {
-
       progressEta.innerText = etaText || (percent === 100 ? "Done!" : "Est. ~8s");
-
+    }
+    if (cancelRenderBtn) {
+      if (percent > 0 && percent < 100) {
+        cancelRenderBtn.classList.remove("hidden");
+      } else {
+        cancelRenderBtn.classList.add("hidden");
+      }
     }
 
   }
@@ -4558,11 +4593,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     const transcribeRes = await fetch("/api/transcribe", {
-
       method: "POST",
-
-      body: formData
-
+      body: formData,
+      signal: currentAbortController ? currentAbortController.signal : undefined
     });
 
 
@@ -4679,8 +4712,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+    currentAbortController = new AbortController();
     startBtn.disabled = true;
-
     isProcessingBatch = true;
 
 
@@ -4700,13 +4733,15 @@ document.addEventListener("DOMContentLoaded", () => {
             await processFileItem(item);
 
           } catch (itemErr) {
-
+            if (itemErr.name === "AbortError" || (currentAbortController && currentAbortController.signal && currentAbortController.signal.aborted)) {
+              item.status = "cancelled";
+              renderQueueList();
+              updateProgress(0, "Cancelled", "Render cancelled by user.", "");
+              break;
+            }
             console.error("Item processing failed", itemErr);
-
             item.status = "error";
-
             renderQueueList();
-
           }
 
         }
@@ -4733,8 +4768,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!currentTaskId || !currentTranscription) return;
 
+    currentAbortController = new AbortController();
     reRenderBtn.disabled = true;
-
     const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
     updateProgress(50, "Re-rendering", dict.step_3, "Est. ~4s");
@@ -4744,9 +4779,11 @@ document.addEventListener("DOMContentLoaded", () => {
       await triggerRender();
 
     } catch (err) {
-
+      if (err.name === "AbortError" || (currentAbortController && currentAbortController.signal && currentAbortController.signal.aborted)) {
+        updateProgress(0, "Cancelled", "Render cancelled by user.", "");
+        return;
+      }
       alert("Render failed: " + err.message);
-
     } finally {
 
       reRenderBtn.disabled = false;
@@ -4824,13 +4861,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     const renderRes = await fetch("/api/render", {
-
       method: "POST",
-
       headers: { "Content-Type": "application/json" },
-
-      body: JSON.stringify(renderPayload)
-
+      body: JSON.stringify(renderPayload),
+      signal: currentAbortController ? currentAbortController.signal : undefined
     });
 
 

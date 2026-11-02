@@ -514,3 +514,23 @@ def test_api_key_required_and_vault_security(client, monkeypatch, tmp_path):
     assert "loadSecureApiKey" in js
     assert "dz_sec_gemini_key" in js
     assert "inputShakeError" in js or "input-shake-error" in js
+
+
+def test_cancel_render_endpoint_and_ui(client):
+    """Verify /api/cancel endpoint and cancel button in DOM."""
+    res = client.post("/api/cancel/sample_task_123")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "cancelled"
+    assert data["task_id"] == "sample_task_123"
+
+    with open("web/static/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    assert 'id="cancelRenderBtn"' in html
+    assert 'data-i18n="btn_cancel_render"' in html
+
+    with open("web/static/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+    assert "btn_cancel_render" in js
+    assert "currentAbortController" in js
+    assert "/api/cancel/" in js
