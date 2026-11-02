@@ -31,13 +31,11 @@ LATIN_REGEX = re.compile(r"[a-zA-Z]")
 
 def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4) -> List[List[Dict[str, Any]]]:
     """
-    Chunks words respecting speech pauses and language script boundaries (Arabic vs French/Latin),
-    guaranteeing that French terms and Arabic phrases are rendered as separate subtitle lines.
+    Chunks words respecting speech pauses, keeping Arabic phrases and Latin loanwords unified.
     """
     if not words:
         return []
 
-    # 1. Group by natural pause > 0.9s
     pause_blocks = []
     current_block = []
     for w in words:
@@ -50,40 +48,10 @@ def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4)
     if current_block:
         pause_blocks.append(current_block)
 
-    # 2. Partition each pause block into script-homogeneous runs
-    script_runs = []
-    for block in pause_blocks:
-        current_run = []
-        current_script = None
-        for w in block:
-            text = w.get("word", "")
-            has_latin = bool(LATIN_REGEX.search(text))
-            has_arabic = bool(ARABIC_REGEX.search(text))
-            if has_latin and not has_arabic:
-                script = "latin"
-            elif has_arabic and not has_latin:
-                script = "arabic"
-            elif has_arabic and has_latin:
-                script = "arabic"
-            else:
-                script = current_script or "arabic"
-
-            if current_script is None or script == current_script:
-                current_run.append(w)
-                current_script = script
-            else:
-                if current_run:
-                    script_runs.append(current_run)
-                current_run = [w]
-                current_script = script
-        if current_run:
-            script_runs.append(current_run)
-
-    # 3. Chunk within each script-homogeneous run
     chunks = []
-    for run in script_runs:
-        for i in range(0, len(run), words_per_chunk):
-            chunks.append(run[i:i + words_per_chunk])
+    for block in pause_blocks:
+        for i in range(0, len(block), words_per_chunk):
+            chunks.append(block[i:i + words_per_chunk])
     return chunks
 
 

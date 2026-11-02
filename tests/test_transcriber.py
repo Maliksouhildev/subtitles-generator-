@@ -107,23 +107,12 @@ def test_normalize_transcription_script_separation():
     }
     normalized = normalize_transcription_data(raw_mixed)
     segs = normalized["segments"]
-    assert len(segs) == 4
-    # Segment 1: Pure Arabic
-    assert segs[0]["text"] == "وكان شرف للشركة"
+    # Unified natural phrase without awkward fragmenting
+    assert len(segs) == 1
+    assert len(segs[0]["words"]) == 8
+    assert segs[0]["text"] == "وكان شرف للشركة Red Field أنها تدير test"
     assert segs[0]["start"] == 0.0
-    assert segs[0]["end"] == 2.0
-    # Segment 2: Pure French loanwords
-    assert segs[1]["text"] == "Red Field"
-    assert segs[1]["start"] == 2.0
-    assert segs[1]["end"] == 3.4
-    # Segment 3: Pure Arabic
-    assert segs[2]["text"] == "أنها تدير"
-    assert segs[2]["start"] == 3.4
-    assert segs[2]["end"] == 4.9
-    # Segment 4: Pure French loanword
-    assert segs[3]["text"] == "test"
-    assert segs[3]["start"] == 4.9
-    assert segs[3]["end"] == 5.8
+    assert segs[0]["end"] == 5.8
 
 
 def test_calibrate_transcription_to_vad_timing_drift():

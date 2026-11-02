@@ -36,9 +36,10 @@ DIALECT & LINGUISTIC RULES:
 2. Accurately capture authentic Algerian vocabulary, slang, and expressions:
    - "واش", "واشنو", "علاش", "كيفاش", "وقتاش", "وينتا", "راني", "راك", "راهو", "راهي", "حنا", "نتوما"
    - "برك", "بزاف", "شوية", "مليح", "قع", "كامل", "دير", "حاب", "باغي", "خلاص", "صحة", "خويا", "ختي", "كاش", "هكذا", "هاكا"
-3. FRENCH LOANWORD & PHONETIC REFINEMENT:
-   - Do NOT create awkward, broken phonetic transliterations of French loanwords into Arabic letters (e.g. avoid 'برومي لو تيست', 'دوزيام مو', etc.).
-   - If the speaker uses clear French words or technical terms (e.g., "premier test", "rendez-vous", "projet", "voiture", "normal", "c'est bon", "merci"), write them cleanly in standard French or natural Algerian Arabic (e.g. سيارة / طوموبيل) so subtitles remain natural and readable.
+3. FRENCH & FOREIGN LOANWORD SPELLING (CRITICAL):
+   - NEVER phonetically transliterate French, English, or foreign loanwords into Arabic letters (e.g. do NOT write 'برومي' for 'premier', do NOT write 'نوفيل' for 'nouvelle', do NOT write 'تيست' for 'test', do NOT write 'ريدفيلد' for 'Redfield', do NOT write 'دوزيام' for 'deuxième').
+   - Always write established French, English, or foreign brand names, technical terms, and loanwords in their authentic standard LATIN script (e.g. "premier", "nouvelle", "test", "Redfield", "rendez-vous", "projet", "voiture", "normal", "c'est bon").
+   - This ensures professional, native-grade bilingual subtitling.
 4. Provide PRECISE TIMESTAMPS:
    - Every segment must have 'start' and 'end' in seconds (float).
    - Every word within a segment must have its exact spoken 'start' and 'end' timestamps in seconds.
@@ -492,8 +493,7 @@ def classify_token_script(token: str, default: str = "arabic") -> str:
 def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0.0) -> Dict[str, Any]:
     """
     Ensures consistent segments, IDs, and word-level timestamps.
-    Partitions mixed-language segments by script boundary (Arabic script vs French/Latin loanwords)
-    so that French terms and Arabic phrases are NEVER mixed in the same subtitle segment.
+    Keeps natural mixed-language phrases intact so French loanwords flow seamlessly with Arabic text.
     """
     segments = data.get("segments", [])
     normalized_segments = []
@@ -515,55 +515,17 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
             seg_counter += 1
             continue
 
-        # Check if segment contains mixed scripts (Arabic vs French/Latin)
-        has_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in words)
-        has_arabic = any(bool(ARABIC_REGEX.search(w.get("word", ""))) for w in words)
-
-        if has_latin and has_arabic:
-            # Partition words into script-homogeneous runs
-            script_runs = []
-            current_run = []
-            current_script = None
-
-            for w in words:
-                token_text = w.get("word", "")
-                script = classify_token_script(token_text, default=current_script or "arabic")
-                if current_script is None or script == current_script:
-                    current_run.append(w)
-                    current_script = script
-                else:
-                    if current_run:
-                        script_runs.append(current_run)
-                    current_run = [w]
-                    current_script = script
-
-            if current_run:
-                script_runs.append(current_run)
-
-            for run in script_runs:
-                run_start = float(run[0]["start"])
-                run_end = float(run[-1]["end"])
-                run_text = " ".join(w["word"] for w in run)
-                normalized_segments.append({
-                    "id": seg_counter,
-                    "start": round(run_start, 2),
-                    "end": round(run_end, 2),
-                    "text": run_text,
-                    "words": run
-                })
-                seg_counter += 1
-        else:
-            start = float(words[0]["start"])
-            end = float(words[-1]["end"])
-            text = seg.get("text", "").strip() or " ".join(w["word"] for w in words)
-            normalized_segments.append({
-                "id": seg_counter,
-                "start": round(start, 2),
-                "end": round(end, 2),
-                "text": text,
-                "words": words
-            })
-            seg_counter += 1
+        seg_start = float(words[0]["start"])
+        seg_end = float(words[-1]["end"])
+        seg_text = seg.get("text", "").strip() or " ".join(w["word"] for w in words)
+        normalized_segments.append({
+            "id": seg_counter,
+            "start": round(seg_start, 2),
+            "end": round(seg_end, 2),
+            "text": seg_text,
+            "words": words
+        })
+        seg_counter += 1
 
     full_text = data.get("text", "")
     if not full_text and normalized_segments:

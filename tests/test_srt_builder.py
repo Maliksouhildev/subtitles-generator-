@@ -90,6 +90,6 @@ def test_srt_script_separation():
     assert "البارح" in srt
     lines = [l.strip() for l in srt.splitlines() if l.strip() and not l.strip().isdigit() and "-->" not in l]
     # Each cue text must not mix Arabic and French
-    assert lines == ["درت", "test", "البارح"]
+    assert lines == ["درت test البارح"]
 
 

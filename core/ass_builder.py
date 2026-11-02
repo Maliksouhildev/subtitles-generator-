@@ -52,53 +52,11 @@ def format_bidi_word(word: str, in_rtl_context: bool = True) -> str:
 
 def resolve_visual_word_order(chunk: List[Dict[str, Any]], in_rtl_context: bool = True) -> List[int]:
     """
-    Resolves physical Left-to-Right visual word indices for rendering in libass.
-
-    Mechanics:
-    - In an LTR context (e.g. English/French speech):
-      Physical layout order matches chronological speech order [0, 1, 2, ...].
-    - In an RTL context (Arabic speech / Algerian Darija):
-      Libass lays out override-tagged chunks from Left to Right across the screen.
-      To ensure the first spoken Arabic word is placed on the far RIGHT and subsequent
-      words flow leftward, Arabic word sequences must be ordered in reverse.
-      However, continuous Latin loanword runs (e.g. ['le', 'premier', 'test']) MUST retain
-      their internal Left-to-Right word order so they are not read backward!
+    With libass Encoding: -1 (FRIBIDI_PAR_ON), FriBidi automatically handles BiDi text layout
+    preserving natural Right-to-Left Arabic reading order and Left-to-Right loanwords.
+    Words maintain their authentic chronological speech order [0, 1, 2, ...].
     """
-    if not in_rtl_context or len(chunk) <= 1:
-        return list(range(len(chunk)))
-
-    runs = []
-    current_run = []
-    current_is_latin = None
-
-    for idx, w in enumerate(chunk):
-        text = w.get("word", "") if isinstance(w, dict) else str(w)
-        is_latin = bool(LATIN_REGEX.search(text))
-        if current_is_latin is None or is_latin == current_is_latin:
-            current_run.append(idx)
-            current_is_latin = is_latin
-        else:
-            runs.append((current_is_latin, current_run))
-            current_run = [idx]
-            current_is_latin = is_latin
-    if current_run:
-        runs.append((current_is_latin, current_run))
-
-    # In an RTL context:
-    # Runs are placed from Right to Left on screen:
-    # Run 0 is on the far right, Run N-1 on the far left.
-    # Because libass places runs on screen sequentially from Left to Right:
-    # The visual file order is: Run N-1, ..., Run 0.
-    visual_indices: List[int] = []
-    for is_latin, run in reversed(runs):
-        if is_latin:
-            # Latin run is read LTR internally: keep original chronological order
-            visual_indices.extend(run)
-        else:
-            # Arabic run is read RTL internally: reverse so earlier spoken word is on the right
-            visual_indices.extend(reversed(run))
-
-    return visual_indices
+    return list(range(len(chunk)))
 
 
 def balance_chunk_sizes(total_words: int, target_size: int) -> List[int]:
@@ -272,7 +230,7 @@ PlayResY: {self.video_height}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{self.font_name},{self.font_size},{pri_ass},{sec_ass},{out_ass},{sha_ass},-1,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},{self.alignment},30,30,{self.margin_v},1
+Style: Default,{self.font_name},{self.font_size},{pri_ass},{sec_ass},{out_ass},{sha_ass},-1,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},{self.alignment},30,30,{self.margin_v},-1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -281,17 +239,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def chunk_words(self, words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """
-        Splits words into balanced, script-isolated chunks based on:
+        Splits words into balanced chunks based on:
         1. Natural speech pauses (> 0.9s).
-        2. Language script transitions (Arabic script vs Latin / French loanwords).
-           Ensures that French terms and Arabic phrases are NEVER mixed in the same subtitle card,
-           providing 100% pure reading direction and visual clarity.
-        3. Pacing control (`words_per_line`) with anti-orphan balancing.
+        2. Pacing control (words_per_line) with anti-orphan balancing.
+        Natural French loanwords and Arabic phrases stay seamlessly unified within the same phrase.
         """
         if not words:
             return []
 
-        # 1. Group words by natural speech pauses > 0.9s
         pause_blocks = []
         current_block = []
         for w in words:
@@ -305,34 +260,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if current_block:
             pause_blocks.append(current_block)
 
-        # 2. Partition each pause block into script-homogeneous runs (Arabic vs French/Latin)
-        script_runs = []
-        for block in pause_blocks:
-            current_run = []
-            current_script = None
-
-            for w in block:
-                text = w.get("word", "")
-                script = classify_token_script(text, default=current_script or "arabic")
-                if current_script is None or script == current_script:
-                    current_run.append(w)
-                    current_script = script
-                else:
-                    if current_run:
-                        script_runs.append((current_script, current_run))
-                    current_run = [w]
-                    current_script = script
-
-            if current_run:
-                script_runs.append((current_script, current_run))
-
-        # 3. Within each script-homogeneous run, balance chunk sizes based on words_per_line
         chunks = []
-        for script, run in script_runs:
-            sizes = balance_chunk_sizes(len(run), self.words_per_line)
+        for block in pause_blocks:
+            sizes = balance_chunk_sizes(len(block), self.words_per_line)
             idx = 0
             for sz in sizes:
-                chunks.append(run[idx:idx + sz])
+                chunks.append(block[idx:idx + sz])
                 idx += sz
 
         return chunks

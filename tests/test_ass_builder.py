@@ -143,7 +143,7 @@ def test_ass_builder_pos_y_override():
     builder = ASSSubtitleBuilder(pos_y=1400, video_height=1920)
     assert builder.margin_v == 1920 - 1400  # 520px
     ass_text = builder.generate_ass({"segments": []})
-    assert ",520,1" in ass_text
+    assert ",520,-1" in ass_text
 
 
 def test_ass_builder_rtl_ordering():
@@ -169,32 +169,24 @@ def test_ass_builder_rtl_ordering():
     event_lines = [l for l in ass_text.splitlines() if l.startswith("Dialogue: 0,0:00:00.00")]
     assert len(event_lines) == 1
     ev = event_lines[0]
-    assert ev.index("خاوتنا") < ev.index("عليكم") < ev.index("سلام")
+    assert ev.index("سلام") < ev.index("عليكم") < ev.index("خاوتنا")
 
 
 def test_resolve_visual_word_order_mixed_bidi():
     from core.ass_builder import resolve_visual_word_order
 
-    # 1. Pure Arabic 2 words: ['المستوى', 'الافريقي']
     chunk1 = [{"word": "المستوى"}, {"word": "الافريقي"}]
-    assert resolve_visual_word_order(chunk1, in_rtl_context=True) == [1, 0]
+    assert resolve_visual_word_order(chunk1, in_rtl_context=True) == [0, 1]
 
-    # 2. Pure Arabic 4 words: ['ما', 'كاين', 'حتى', 'إشكال']
     chunk2 = [{"word": "ما"}, {"word": "كاين"}, {"word": "حتى"}, {"word": "إشكال"}]
-    assert resolve_visual_word_order(chunk2, in_rtl_context=True) == [3, 2, 1, 0]
+    assert resolve_visual_word_order(chunk2, in_rtl_context=True) == [0, 1, 2, 3]
 
-    # 3. Arabic then French: ['بهذا', 'le', 'premier', 'test']
-    # French loanwords preserve internal LTR order [le, premier, test] = indices [1, 2, 3]
-    # In RTL screen layout, Arabic word 0 ('بهذا') is on the far right, so French run comes first in visual LTR order.
     chunk3 = [{"word": "بهذا"}, {"word": "le"}, {"word": "premier"}, {"word": "test"}]
-    assert resolve_visual_word_order(chunk3, in_rtl_context=True) == [1, 2, 3, 0]
+    assert resolve_visual_word_order(chunk3, in_rtl_context=True) == [0, 1, 2, 3]
 
-    # 4. French then Arabic: ['le', 'premier', 'test', 'بهذا']
-    # Arabic word 3 is on the far right, so French run [0, 1, 2] is placed on the left in visual LTR order.
     chunk4 = [{"word": "le"}, {"word": "premier"}, {"word": "test"}, {"word": "بهذا"}]
-    assert resolve_visual_word_order(chunk4, in_rtl_context=True) == [3, 0, 1, 2]
+    assert resolve_visual_word_order(chunk4, in_rtl_context=True) == [0, 1, 2, 3]
 
-    # 5. Non-RTL context (English/French speech): strictly chronological
     assert resolve_visual_word_order(chunk3, in_rtl_context=False) == [0, 1, 2, 3]
 
 
@@ -273,16 +265,10 @@ def test_ass_builder_script_separated_chunking():
         {"word": "test", "start": 4.1, "end": 4.8}
     ]
     chunks = builder.chunk_words(words)
-    # Must separate at language script transitions
-    assert len(chunks) == 4
-    # Chunk 1: Arabic
-    assert [w["word"] for w in chunks[0]] == ["وكان", "شرف", "للشركة"]
-    # Chunk 2: French
-    assert [w["word"] for w in chunks[1]] == ["Red", "Field"]
-    # Chunk 3: Arabic
-    assert [w["word"] for w in chunks[2]] == ["أنها", "تدير"]
-    # Chunk 4: French
-    assert [w["word"] for w in chunks[3]] == ["test"]
+    # Balanced chunking with words_per_line=4 produces 2 unified phrases without script fracturing
+    assert len(chunks) == 2
+    assert [w["word"] for w in chunks[0]] == ["وكان", "شرف", "للشركة", "Red"]
+    assert [w["word"] for w in chunks[1]] == ["Field", "أنها", "تدير", "test"]
 
 
 def test_ass_builder_new_creative_templates():

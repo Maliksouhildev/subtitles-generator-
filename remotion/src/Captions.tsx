@@ -28,6 +28,7 @@ export interface CaptionsCompositionProps {
 
 // Regex to detect French / English loanwords embedded in Arabic text
 const LATIN_REGEX = /[a-zA-Z]/;
+const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 
 // Helper: Anti-orphan balanced chunking so fast audio never flashes 1 isolated word
 function balanceChunkSizes(totalWords: number, targetSize: number): number[] {
@@ -115,40 +116,13 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
     }
     if (currentBlock.length > 0) pauseBlocks.push(currentBlock);
 
-    // Partition by script boundary (Arabic vs French/Latin loanwords)
-    const scriptRuns: WordToken[][] = [];
-    for (const block of pauseBlocks) {
-      let currentRun: WordToken[] = [];
-      let currentScript: "latin" | "arabic" | null = null;
-
-      for (const w of block) {
-        const hasLatin = LATIN_REGEX.test(w.word);
-        const hasArabic = ARABIC_REGEX.test(w.word);
-        const script: "latin" | "arabic" = (hasLatin && !hasArabic)
-          ? "latin"
-          : (hasArabic && !hasLatin)
-          ? "arabic"
-          : (currentScript || "arabic");
-
-        if (currentScript === null || script === currentScript) {
-          currentRun.push(w);
-          currentScript = script;
-        } else {
-          if (currentRun.length > 0) scriptRuns.push(currentRun);
-          currentRun = [w];
-          currentScript = script;
-        }
-      }
-      if (currentRun.length > 0) scriptRuns.push(currentRun);
-    }
-
-    // Apply balanced chunking per script-homogeneous run
+    // Apply balanced chunking per pause block
     const result: Array<{ words: WordToken[]; start: number; end: number }> = [];
-    for (const run of scriptRuns) {
-      const sizes = balanceChunkSizes(run.length, wordsPerLine);
+    for (const block of pauseBlocks) {
+      const sizes = balanceChunkSizes(block.length, wordsPerLine);
       let idx = 0;
       for (const sz of sizes) {
-        const slice = run.slice(idx, idx + sz);
+        const slice = block.slice(idx, idx + sz);
         if (slice.length > 0) {
           result.push({
             words: slice,
@@ -226,10 +200,12 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
           <div
             dir={isChunkRtl ? "rtl" : "ltr"}
             style={{
-              display: "inline-flex",
+              display: "flex",
+              flexDirection: "row",
+              flexWrap: "wrap",
               alignItems: "center",
               justifyContent: "center",
-              flexWrap: "nowrap",
+              textAlign: "center",
               direction: isChunkRtl ? "rtl" : "ltr",
               unicodeBidi: "isolate",
               gap: "14px",

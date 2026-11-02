@@ -79,9 +79,11 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
             const scale = isSpoken ? interpolate(popSpring, [0, 1], [1.0, 1.18]) : 1.0;
             const color = isSpoken ? highlightColor : primaryColor;
 
+            const isLatin = /[a-zA-Z]/.test(w.word);
             return (
               <span
                 key={idx}
+                dir={isLatin ? "ltr" : undefined}
                 style={{
                   fontSize: "64px",
                   fontWeight: 900,
@@ -91,6 +93,8 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
                     "3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0px 4px 12px rgba(0,0,0,0.8)",
                   transition: "color 0.1s ease",
                   display: "inline-block",
+                  direction: isLatin ? "ltr" : undefined,
+                  unicodeBidi: isLatin ? "isolate" : undefined,
                 }}
               >
                 {w.word}
