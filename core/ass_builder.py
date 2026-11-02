@@ -39,13 +39,52 @@ def classify_token_script(token: str, default: str = "arabic") -> str:
         return default
 
 
+ARABIC_PREFIX_ARTICLE_REGEX = re.compile(r'^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$')
+
+
+def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا') to subsequent Latin loanwords
+    (e.g. 'premier test', 'nouvelle'), treating them as a single highlighted token.
+    Prevents awkward isolated article pop on screen and preserves natural bilingual phrasing.
+    """
+    if not words:
+        return []
+    bound: List[Dict[str, Any]] = []
+    i = 0
+    while i < len(words):
+        w = words[i]
+        text_val = str(w.get("word", "")).strip()
+        if ARABIC_PREFIX_ARTICLE_REGEX.match(text_val) and i + 1 < len(words):
+            next_w = words[i + 1]
+            next_text = str(next_w.get("word", "")).strip()
+            if LATIN_REGEX.search(next_text):
+                joint_word = f"{text_val} {next_text}"
+                bound.append({
+                    "word": joint_word,
+                    "start": w.get("start", 0.0),
+                    "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+                })
+                i += 2
+                continue
+        bound.append(w)
+        i += 1
+    return bound
+
+
 def format_bidi_word(word: str, in_rtl_context: bool = True) -> str:
     """
     Wraps Latin/French loanwords in Unicode Left-to-Right Isolates to prevent BiDi collisions
     with adjacent Arabic text in FriBidi / libass.
+    For mixed tokens (e.g. 'الـ premier'), wraps only the Latin portion to keep the Arabic prefix in natural RTL.
     """
-    if in_rtl_context and LATIN_REGEX.search(word):
-        # \u200E (Left-to-Right Mark) forces FriBidi to treat the Latin token as an atomic LTR unit
+    if not in_rtl_context:
+        return word
+    has_latin = bool(LATIN_REGEX.search(word))
+    has_arabic = bool(ARABIC_REGEX.search(word))
+    if has_latin and has_arabic:
+        return re.sub(r'([a-zA-Z0-9_\-]+)', lambda m: f"\u200E{m.group(1)}\u200E", word)
+    elif has_latin:
         return f"\u200E{word}\u200E"
     return word
 
@@ -154,8 +193,8 @@ class ASSSubtitleBuilder:
         highlight_color: str = "#FFE600",
         outline_color: str = "#000000",
         shadow_color: str = "#000000",
-        outline_width: float = 2.4,
-        shadow_depth: float = 2.2,
+        outline_width: float = 6.0,
+        shadow_depth: float = 4.5,
         alignment: int = 2,  # 2: Bottom Center, 5: Middle Center, 8: Top Center
         margin_v: int = 960,  # Center of the screen (960px on 1920h)
         words_per_line: int = 4,
@@ -214,10 +253,10 @@ class ASSSubtitleBuilder:
         else:
             border_style = 1
             out_ass = hex_to_ass_color(self.outline_color)
-            outline_val = self.outline_width
-            # Soft feathered broadcast drop shadow
-            sha_ass = hex_to_ass_color(self.shadow_color, alpha=150)
-            shadow_val = self.shadow_depth
+            outline_val = max(5.5, float(self.outline_width))
+            # Heavy, hard broadcast drop-shadow for separation against noisy video
+            sha_ass = hex_to_ass_color(self.shadow_color, alpha=0)
+            shadow_val = max(4.5, float(self.shadow_depth))
 
         header = f"""[Script Info]
 Title: Darija Subtitles Generator
@@ -242,11 +281,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         Splits words into balanced chunks based on:
         1. Natural speech pauses (> 0.9s).
         2. Pacing control (words_per_line) with anti-orphan balancing.
-        Natural French loanwords and Arabic phrases stay seamlessly unified within the same phrase.
+        3. Automatic binding of orphaned Arabic definite articles ('ال', 'الـ') to Latin words.
         """
         if not words:
             return []
 
+        words = bind_arabic_articles_to_latin(words)
         pause_blocks = []
         current_block = []
         for w in words:

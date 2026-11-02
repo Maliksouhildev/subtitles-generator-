@@ -490,10 +490,44 @@ def classify_token_script(token: str, default: str = "arabic") -> str:
         return default
 
 
+ARABIC_PREFIX_ARTICLE_REGEX = re.compile(r'^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$')
+
+
+def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا') to subsequent Latin loanwords
+    (e.g. 'premier test', 'nouvelle'), treating them as a single highlighted token.
+    Prevents awkward isolated article pop on screen and preserves natural bilingual phrasing.
+    """
+    if not words:
+        return []
+    bound: List[Dict[str, Any]] = []
+    i = 0
+    while i < len(words):
+        w = words[i]
+        text_val = str(w.get("word", "")).strip()
+        if ARABIC_PREFIX_ARTICLE_REGEX.match(text_val) and i + 1 < len(words):
+            next_w = words[i + 1]
+            next_text = str(next_w.get("word", "")).strip()
+            if LATIN_REGEX.search(next_text):
+                joint_word = f"{text_val} {next_text}"
+                bound.append({
+                    "word": joint_word,
+                    "start": w.get("start", 0.0),
+                    "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+                })
+                i += 2
+                continue
+        bound.append(w)
+        i += 1
+    return bound
+
+
 def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0.0) -> Dict[str, Any]:
     """
     Ensures consistent segments, IDs, and word-level timestamps.
     Keeps natural mixed-language phrases intact so French loanwords flow seamlessly with Arabic text.
+    Binds orphaned Arabic articles to subsequent Latin words into unified highlighted tokens.
     """
     segments = data.get("segments", [])
     normalized_segments = []
@@ -501,6 +535,7 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
 
     for seg in segments:
         words = interpolate_word_timestamps(seg)
+        words = bind_arabic_articles_to_latin(words)
         if not words:
             start = float(seg.get("start", 0.0))
             end = float(seg.get("end", start + 2.0))

@@ -2933,13 +2933,13 @@ html, body, :root, *,
 
   color: #FFFFFF;
 
-  -webkit-text-stroke: 1.2px #000;
+  -webkit-text-stroke: 2.8px #000;
 
   stroke-linejoin: round;
 
   paint-order: stroke fill;
 
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 3px 0 #000, 0 5px 12px rgba(0, 0, 0, 0.95);
 
   transition: transform 0.15s ease, color 0.15s ease;
 

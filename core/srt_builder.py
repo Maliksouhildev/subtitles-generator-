@@ -28,6 +28,34 @@ def format_vtt_time(seconds: float) -> str:
 ARABIC_REGEX = re.compile(r"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]")
 LATIN_REGEX = re.compile(r"[a-zA-Z]")
 
+ARABIC_PREFIX_ARTICLE_REGEX = re.compile(r"^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$")
+
+
+def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not words:
+        return []
+    bound: List[Dict[str, Any]] = []
+    i = 0
+    while i < len(words):
+        w = words[i]
+        text_val = str(w.get("word", "")).strip()
+        if ARABIC_PREFIX_ARTICLE_REGEX.match(text_val) and i + 1 < len(words):
+            next_w = words[i + 1]
+            next_text = str(next_w.get("word", "")).strip()
+            if LATIN_REGEX.search(next_text):
+                joint_word = f"{text_val} {next_text}"
+                bound.append({
+                    "word": joint_word,
+                    "start": w.get("start", 0.0),
+                    "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+                })
+                i += 2
+                continue
+        bound.append(w)
+        i += 1
+    return bound
+
+
 
 def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4) -> List[List[Dict[str, Any]]]:
     """
@@ -35,6 +63,7 @@ def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4)
     """
     if not words:
         return []
+    words = bind_arabic_articles_to_latin(words)
 
     pause_blocks = []
     current_block = []

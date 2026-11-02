@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const primaryFonts = isArabic ? ARABIC_FONTS : LATIN_FONTS;
     const secondaryFonts = isArabic ? LATIN_FONTS : ARABIC_FONTS;
 
-    const currentVal = keepFont || fontName.value;
+    const currentVal = keepFont || (fontName ? fontName.value : "Cairo");
     fontName.innerHTML = "";
 
     const group1 = document.createElement("optgroup");
@@ -199,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
             panel.appendChild(groupHeader);
           }
           const optRow = document.createElement("div");
-          optRow.className = `comic-dropdown-option ${opt.value === fontName.value ? "active" : ""}`;
+          optRow.className = `comic-dropdown-option ${opt.value === (fontName ? fontName.value : "") ? "active" : ""}`;
           optRow.dataset.value = opt.value;
           optRow.appendChild(createFontOptionContent(opt));
 
@@ -226,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const activeOpt = fontName.options[fontName.selectedIndex];
         if (activeOpt) {
           labelSpan.innerText = activeOpt.innerText;
-          labelSpan.style.fontFamily = activeOpt.value + ", sans-serif";
+          if (activeOpt && activeOpt.value) labelSpan.style.fontFamily = activeOpt.value + ", sans-serif";
         }
       }
     }
@@ -237,7 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const dialectHint = document.getElementById("dialectHint");
   if (dialectHint) {
     dialectHint.addEventListener("change", () => {
-      const val = dialectHint.value;
+      const val = dialectHint ? dialectHint.value : "General Algerian";
       const isArabic = (val === "General Algerian" || val === "Modern Standard Arabic" || (!val.includes("Latin") && !val.includes("French") && !val.includes("English")));
       updateAdaptiveFontList(isArabic ? "arabic" : "latin");
     });
@@ -1526,7 +1526,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.fontSize && fontSize) {
 
-      fontSize.value = s.fontSize;
+      if (fontSize && s.fontSize) fontSize.value = s.fontSize;
 
       if (fontSizeVal) fontSizeVal.innerText = s.fontSize + "px";
 
@@ -1534,14 +1534,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.primary && primaryColor) {
 
-      primaryColor.value = s.primary;
+      if (primaryColor && s.primary) primaryColor.value = s.primary;
 
       if (primaryColorText) primaryColorText.innerText = s.primary.toUpperCase();
 
     }
 
     if (s.highlight && highlightColor) {
-      highlightColor.value = s.highlight;
+      if (highlightColor && s.highlight) highlightColor.value = s.highlight;
       if (highlightColorText) highlightColorText.innerText = s.highlight.toUpperCase();
     }
 
@@ -1549,7 +1549,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.speed && animSpeed) {
 
-      animSpeed.value = s.speed;
+      if (animSpeed && s.speed) animSpeed.value = s.speed;
 
       updateAnimationSpeed(s.speed);
 
@@ -1559,7 +1559,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const effMargin = (s.margin === 420) ? 960 : s.margin;
 
-      marginV.value = effMargin;
+      if (marginV) marginV.value = effMargin;
 
       let zone = "Custom";
 
@@ -1580,7 +1580,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (s.alignment && alignment) alignment.value = s.alignment;
 
     if (s.dialect && dialectHint) {
-      dialectHint.value = s.dialect;
+      if (dialectHint && s.dialect) dialectHint.value = s.dialect;
       const isArabic = (s.dialect === "General Algerian" || s.dialect === "Modern Standard Arabic" || (!s.dialect.includes("Latin") && !s.dialect.includes("French") && !s.dialect.includes("English")));
       updateAdaptiveFontList(isArabic ? "arabic" : "latin", s.font);
     }
@@ -1589,7 +1589,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.backgroundMode && backgroundMode) {
 
-      backgroundMode.value = s.backgroundMode;
+      if (backgroundMode && s.backgroundMode) backgroundMode.value = s.backgroundMode;
 
       if (customColorGroup) customColorGroup.style.display = (s.backgroundMode === "custom") ? "flex" : "none";
 
@@ -1597,7 +1597,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.customColorHex && customColorHex) {
 
-      customColorHex.value = s.customColorHex;
+      if (customColorHex && s.customColorHex) customColorHex.value = s.customColorHex;
 
       if (customColorText) customColorText.innerText = s.customColorHex.toUpperCase();
 
@@ -1607,7 +1607,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.subBoxColor && subBoxColor) {
 
-      subBoxColor.value = s.subBoxColor;
+      if (subBoxColor && s.subBoxColor) subBoxColor.value = s.subBoxColor;
 
       if (subBoxColorText) subBoxColorText.innerText = s.subBoxColor.toUpperCase();
 
@@ -1615,7 +1615,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (s.subBoxAlpha && subBoxAlpha) {
 
-      subBoxAlpha.value = s.subBoxAlpha;
+      if (subBoxAlpha && s.subBoxAlpha) subBoxAlpha.value = s.subBoxAlpha;
 
       if (subBoxAlphaVal) subBoxAlphaVal.innerText = Math.round(parseFloat(s.subBoxAlpha) * 100) + "%";
 
@@ -1807,7 +1807,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (presetNameInput) {
 
-        presetNameInput.value = "";
+        if (presetNameInput) presetNameInput.value = "";
 
         setTimeout(() => presetNameInput.focus(), 100);
 
@@ -2489,7 +2489,7 @@ document.addEventListener("DOMContentLoaded", () => {
       phoneColorHex.innerText = displayText;
     }
     if (phoneHueSlider && mode === "custom") {
-      phoneHueSlider.value = hexToHue(hex);
+      if (phoneHueSlider) phoneHueSlider.value = hexToHue(hex);
     }
 
     if (phoneColorSwatches) {
@@ -2569,10 +2569,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const segWords = currentTranscription.segments[0].words || [];
 
-      if (segWords.length > 0) {
+      const boundSegWords = [];
+      const prefixArticleRegex = /^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$/;
+      const latinRegex = /[a-zA-Z]/;
+      let bwIdx = 0;
+      while (bwIdx < segWords.length) {
+        const textVal = (segWords[bwIdx].word || "").trim();
+        if (prefixArticleRegex.test(textVal) && bwIdx + 1 < segWords.length) {
+          const nextVal = (segWords[bwIdx + 1].word || "").trim();
+          if (latinRegex.test(nextVal)) {
+            boundSegWords.push({
+              word: `${textVal} ${nextVal}`,
+              start: segWords[bwIdx].start,
+              end: segWords[bwIdx + 1].end || (segWords[bwIdx + 1].start + 0.3)
+            });
+            bwIdx += 2;
+            continue;
+          }
+        }
+        boundSegWords.push(segWords[bwIdx]);
+        bwIdx++;
+      }
 
-        wordList = segWords.slice(0, targetWordCount).map(w => w.word);
-
+      if (boundSegWords.length > 0) {
+        wordList = boundSegWords.slice(0, targetWordCount).map(w => w.word);
       }
 
     }
@@ -2655,7 +2675,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (boxStyle !== "none" && subBoxColor && subBoxAlpha) {
 
-      const hex = subBoxColor.value;
+      const hex = (subBoxColor && subBoxColor.value) ? subBoxColor.value : "#000000";
 
       const r = parseInt(hex.slice(1, 3), 16) || 0;
 
@@ -2663,7 +2683,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const b = parseInt(hex.slice(5, 7), 16) || 0;
 
-      const a = parseFloat(subBoxAlpha.value) || 0.85;
+      const a = parseFloat(subBoxAlpha ? subBoxAlpha.value : 0.85) || 0.85;
 
       liveSubtitleBox.style.setProperty("--sub-box-bg", `rgba(${r}, ${g}, ${b}, ${a})`);
 
@@ -2856,7 +2876,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Position mapping inside simulated phone (based on marginV)
 
-    const marginPixels = parseInt(marginV.value) || 960;
+    const marginPixels = parseInt(marginV ? marginV.value : 960) || 960;
 
     const topPct = Math.max(10, Math.min(88, (1 - (marginPixels / 1920)) * 100));
 
@@ -3006,7 +3026,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (fontSize) {
 
-        fontSize.value = newSize;
+        if (fontSize) fontSize.value = newSize;
 
         if (fontSizeVal) fontSizeVal.innerText = newSize + "px";
 
@@ -3280,7 +3300,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (type === "font" && selectedOpt) {
 
-        labelSpan.style.fontFamily = selectedOpt.value + ", sans-serif";
+        if (selectedOpt && selectedOpt.value) labelSpan.style.fontFamily = selectedOpt.value + ", sans-serif";
 
       }
 
@@ -3563,7 +3583,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (selectId === "fontName") {
 
-          label.style.fontFamily = activeOpt.value + ", sans-serif";
+          if (activeOpt && activeOpt.value) label.style.fontFamily = activeOpt.value + ", sans-serif";
 
         }
 
@@ -3585,7 +3605,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         }
 
-        optRow.classList.toggle("active", val === selectEl.value);
+        optRow.classList.toggle("active", val === (selectEl ? selectEl.value : ""));
 
       });
 
@@ -3597,7 +3617,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (animSelectLabel && animationStyle) {
 
-      const activeAnimRow = document.querySelector(`.anim-option-row[data-value="${animationStyle.value}"]`);
+      const activeStyleVal = (animationStyle && animationStyle.value) ? animationStyle.value : "karaoke_pop";
+      const activeAnimRow = document.querySelector(`.anim-option-row[data-value="${activeStyleVal}"]`);
 
       if (activeAnimRow) {
 
@@ -3661,7 +3682,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.documentElement.style.setProperty("--anim-speed", val);
 
-    document.documentElement.style.setProperty("--highlight-preview", highlightColor.value);
+    document.documentElement.style.setProperty("--highlight-preview", (highlightColor && highlightColor.value) ? highlightColor.value : "#FFE600");
 
 
 
@@ -3804,7 +3825,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   backgroundMode.addEventListener("change", () => {
 
-    if (backgroundMode.value === "custom") {
+    if (backgroundMode && backgroundMode.value === "custom") {
 
       customColorGroup.style.display = "flex";
 
@@ -3940,7 +3961,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isVideo) {
 
-      backgroundMode.value = "original_video";
+      if (backgroundMode) backgroundMode.value = "original_video";
 
       if (phoneVideoBg) {
 
@@ -3954,7 +3975,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } else {
 
-      backgroundMode.value = "green_screen";
+      if (backgroundMode) backgroundMode.value = "green_screen";
 
       if (phoneVideoBg) {
 
@@ -3966,7 +3987,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
-    backgroundMode.dispatchEvent(new Event("change"));
+    if (backgroundMode) backgroundMode.dispatchEvent(new Event("change"));
 
     if (typeof syncAllCustomDropdowns === "function") {
 
@@ -4034,7 +4055,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     currentFile = null;
 
-    fileInput.value = "";
+    if (fileInput) fileInput.value = "";
 
     if (phoneVideoBg) {
 
@@ -4292,7 +4313,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       handleBatchFiles(e.target.files);
 
-      fileInput.value = "";
+      if (fileInput) fileInput.value = "";
 
     }
 
@@ -4625,7 +4646,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     formData.append("api_key", userApiKey);
 
-    formData.append("dialect_hint", dialectHint.value);
+    formData.append("dialect_hint", (dialectHint && dialectHint.value) ? dialectHint.value : "General Algerian");
 
 
 
@@ -4859,8 +4880,8 @@ document.addEventListener("DOMContentLoaded", () => {
       highlight_color: (highlightColor && highlightColor.value) ? highlightColor.value : "#FFE600",
       outline_color: "#000000",
       shadow_color: "#000000",
-      outline_width: 2.4,
-      shadow_depth: 2.2,
+      outline_width: 6.0,
+      shadow_depth: 4.5,
       alignment: parseInt(alignment ? alignment.value : 2) || 2,
       margin_v: parseInt(marginV ? marginV.value : 960) || 960,
       pos_y: Math.max(30, 1920 - (parseInt(marginV ? marginV.value : 960) || 960)),
@@ -4967,7 +4988,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // INITIAL SETUP CALLS
   enhanceSelectsToComicDropdowns();
-  const initIsArabic = !dialectHint || (dialectHint.value === "General Algerian" || dialectHint.value === "Modern Standard Arabic" || (!dialectHint.value.includes("Latin") && !dialectHint.value.includes("French") && !dialectHint.value.includes("English")));
+  const initDh = (dialectHint && dialectHint.value) ? dialectHint.value : "General Algerian";
+  const initIsArabic = (initDh === "General Algerian" || initDh === "Modern Standard Arabic" || (!initDh.includes("Latin") && !initDh.includes("French") && !initDh.includes("English")));
   updateAdaptiveFontList(initIsArabic ? "arabic" : "latin");
   applyLanguage(currentLang);
   applyTheme(currentTheme);

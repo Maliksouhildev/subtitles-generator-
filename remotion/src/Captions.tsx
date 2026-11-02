@@ -1,5 +1,5 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig } from "remotion";
+import { useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
 import {
   WordToken,
   CaptionsStyleProps,
@@ -29,6 +29,34 @@ export interface CaptionsCompositionProps {
 // Regex to detect French / English loanwords embedded in Arabic text
 const LATIN_REGEX = /[a-zA-Z]/;
 const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$/;
+
+export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
+  if (!words || words.length === 0) return [];
+  const bound: WordToken[] = [];
+  let i = 0;
+  while (i < words.length) {
+    const w = words[i];
+    const text = (w.word || "").trim();
+    if (ARABIC_PREFIX_ARTICLE_REGEX.test(text) && i + 1 < words.length) {
+      const nextW = words[i + 1];
+      const nextText = (nextW.word || "").trim();
+      if (LATIN_REGEX.test(nextText)) {
+        bound.push({
+          word: `${text} ${nextText}`,
+          start: w.start,
+          end: nextW.end ?? (nextW.start + 0.3),
+        });
+        i += 2;
+        continue;
+      }
+    }
+    bound.push(w);
+    i += 1;
+  }
+  return bound;
+}
+
 
 // Helper: Anti-orphan balanced chunking so fast audio never flashes 1 isolated word
 function balanceChunkSizes(totalWords: number, targetSize: number): number[] {
@@ -78,7 +106,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
           flattened.push(...seg.words);
         }
       }
-      return flattened;
+      return bindArabicArticlesToLatin(flattened);
     }
     return [];
   }, [transcription]);
@@ -196,6 +224,23 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
         const activeTemplateId = template_id || style.animation_style || DEFAULT_TEMPLATE_ID;
         const TemplateComponent = getTemplateComponent(activeTemplateId);
 
+        // Dynamic block entrance animation driven by Remotion spring()
+        const chunkStartFrame = Math.round(activeChunkInfo.start * fps);
+        const chunkSpring = spring({
+          fps,
+          frame: Math.max(0, frame - chunkStartFrame),
+          config: { damping: 13, mass: 0.45, stiffness: 180 },
+        });
+        const chunkScale = interpolate(chunkSpring, [0, 1], [0.92, 1.0], {
+          extrapolateRight: "clamp",
+        });
+        const chunkTranslateY = interpolate(chunkSpring, [0, 1], [10, 0], {
+          extrapolateRight: "clamp",
+        });
+        const chunkOpacity = interpolate(chunkSpring, [0, 1], [0.25, 1.0], {
+          extrapolateRight: "clamp",
+        });
+
         return (
           <div
             dir={isChunkRtl ? "rtl" : "ltr"}
@@ -208,6 +253,8 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
               textAlign: "center",
               direction: isChunkRtl ? "rtl" : "ltr",
               unicodeBidi: "isolate",
+              transform: `scale(${chunkScale}) translateY(${chunkTranslateY}px)`,
+              opacity: chunkOpacity,
               gap: "14px",
               padding: subBoxStyle === "pill"
                 ? "10px 28px"

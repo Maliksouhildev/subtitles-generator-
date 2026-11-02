@@ -111,7 +111,7 @@ def test_ass_builder_sub_box_styles():
     # 2. None style -> BorderStyle=1
     builder_none = ASSSubtitleBuilder(sub_box_style="none")
     ass_none = builder_none.generate_ass(data)
-    assert ",1,2.4,2.2," in ass_none
+    assert ",1,6.0,4.5," in ass_none
 
     # 3. Deep shadow style -> BorderStyle=1 with shadow 5.0
     builder_shadow = ASSSubtitleBuilder(sub_box_style="shadow", sub_box_color="#000000")
