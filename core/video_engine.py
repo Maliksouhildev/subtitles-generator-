@@ -228,7 +228,11 @@ def render_video(
         if task_id:
             ACTIVE_RENDER_PROCESSES[task_id] = proc
         try:
+            stdout, stderr = proc.communicate(timeout=90)
+        except subprocess.TimeoutExpired:
+            proc.kill()
             stdout, stderr = proc.communicate()
+            raise RuntimeError("FFmpeg rendering timed out after 90 seconds. Please try Green Screen mode for faster rendering.")
         finally:
             if task_id and task_id in ACTIVE_RENDER_PROCESSES:
                 ACTIVE_RENDER_PROCESSES.pop(task_id, None)

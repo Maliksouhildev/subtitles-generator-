@@ -4774,11 +4774,15 @@ document.addEventListener("DOMContentLoaded", () => {
               item.status = "cancelled";
               renderQueueList();
               updateProgress(0, "Cancelled", "Render cancelled by user.", "");
+              setTimeout(() => { if (progressContainer) progressContainer.classList.add("hidden"); }, 2000);
               break;
             }
             console.error("Item processing failed", itemErr);
             item.status = "error";
             renderQueueList();
+            updateProgress(0, "Error", itemErr.message || "Rendering failed. Please refresh or try again.", "Error");
+            alert("Rendering Error: " + (itemErr.message || "Connection disconnected or timed out. Please try again."));
+            setTimeout(() => { if (progressContainer) progressContainer.classList.add("hidden"); }, 3500);
           }
 
         }
