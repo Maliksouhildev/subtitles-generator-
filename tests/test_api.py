@@ -474,12 +474,20 @@ def test_arabic_font_rendering_and_color_slider():
     assert 'id="phoneColorSliderBar"' in html
     assert 'id="phoneHueSlider"' in html
     assert 'id="phoneColorSwatches"' in html
+    assert 'phone-bg-mini-bar' in html
+    assert 'data-mode="green_screen"' in html
 
     with open("web/static/style.css", "r", encoding="utf-8") as f:
         css = f.read()
     assert ".phone-color-slider-bar" in css
     assert ".phone-hue-slider" in css
+    assert "height: 24px;" in css
     assert "font-family: inherit !important;" in css
+
+    with open("web/static/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+    assert "syncPhoneBackgroundUI" in js
+    assert "applyPhoneBackground" in js
 
 
 def test_api_key_required_and_vault_security(client, monkeypatch, tmp_path):

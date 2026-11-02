@@ -1543,7 +1543,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (s.highlight && highlightColor) {
       highlightColor.value = s.highlight;
       if (highlightColorText) highlightColorText.innerText = s.highlight.toUpperCase();
-      syncPhoneColorUI(s.highlight);
     }
 
     if (s.anim && animationStyle) animationStyle.value = s.anim;
@@ -2417,8 +2416,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   
-  // ==========================================================
-  // PHONE PREVIEW CONTINUOUS COLOR SLIDER & SWATCHES
+    // ==========================================================
+  // PHONE PREVIEW ULTRA-COMPACT CANVAS BACKGROUND STRIP & SYNC
   // ==========================================================
   const phoneHueSlider = document.getElementById("phoneHueSlider");
   const phoneColorDot = document.getElementById("phoneColorDot");
@@ -2437,7 +2436,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function hexToHue(hex) {
-    if (!hex) return 54;
+    if (!hex) return 0;
     hex = hex.replace("#", "");
     if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
     const r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -2455,20 +2454,47 @@ document.addEventListener("DOMContentLoaded", () => {
     return h;
   }
 
-  function syncPhoneColorUI(newHex) {
-    if (!newHex) return;
-    newHex = newHex.toUpperCase();
-    if (phoneColorHex) phoneColorHex.innerText = newHex;
+  function syncPhoneBackgroundUI(mode, hex) {
+    mode = mode || (backgroundMode ? backgroundMode.value : "transparent");
+    hex = (hex || (customColorHex ? customColorHex.value : "#0B0B0E")).toUpperCase();
+
+    let effectiveBg = "#0B0B0E";
+    let displayText = "#0B0B0E";
+
+    if (mode === "green_screen") {
+      effectiveBg = "#00FF00";
+      displayText = "#00FF00";
+    } else if (mode === "blue") {
+      effectiveBg = "#0000FF";
+      displayText = "#0000FF";
+    } else if (mode === "black") {
+      effectiveBg = "#000000";
+      displayText = "#000000";
+    } else if (mode === "custom") {
+      effectiveBg = hex;
+      displayText = hex;
+    } else {
+      effectiveBg = "#0B0B0E";
+      displayText = "#0B0B0E";
+    }
+
+    if (phoneDevice) {
+      phoneDevice.style.backgroundColor = effectiveBg;
+      phoneDevice.style.setProperty("--phone-bg", effectiveBg);
+    }
     if (phoneColorDot) {
-      phoneColorDot.style.backgroundColor = newHex;
-      phoneColorDot.style.boxShadow = `0 0 8px ${newHex}`;
+      phoneColorDot.style.backgroundColor = effectiveBg;
     }
-    if (phoneHueSlider) {
-      phoneHueSlider.value = hexToHue(newHex);
+    if (phoneColorHex) {
+      phoneColorHex.innerText = displayText;
     }
+    if (phoneHueSlider && mode === "custom") {
+      phoneHueSlider.value = hexToHue(hex);
+    }
+
     if (phoneColorSwatches) {
       phoneColorSwatches.querySelectorAll(".phone-swatch-dot").forEach(dot => {
-        if (dot.dataset.color.toUpperCase() === newHex) {
+        if (dot.dataset.mode === mode) {
           dot.classList.add("active");
         } else {
           dot.classList.remove("active");
@@ -2477,12 +2503,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function applyHighlightColor(newHex) {
-    newHex = newHex.toUpperCase();
-    if (highlightColor) highlightColor.value = newHex;
-    if (highlightColorText) highlightColorText.innerText = newHex;
-    syncPhoneColorUI(newHex);
-    updateLiveSubtitlePreview();
+  function applyPhoneBackground(mode, hex, updateForm = true) {
+    hex = (hex || "#0B0B0E").toUpperCase();
+    if (updateForm && backgroundMode && backgroundMode.value !== mode) {
+      backgroundMode.value = mode;
+      if (customColorGroup) {
+        customColorGroup.style.display = (mode === "custom") ? "flex" : "none";
+      }
+      if (typeof syncAllCustomDropdowns === "function") {
+        syncAllCustomDropdowns();
+      }
+    }
+    if (mode === "custom" && customColorHex) {
+      customColorHex.value = hex;
+      if (customColorText) customColorText.innerText = hex;
+    }
+    syncPhoneBackgroundUI(mode, hex);
     autoSaveSettings();
   }
 
@@ -2490,14 +2526,16 @@ document.addEventListener("DOMContentLoaded", () => {
     phoneHueSlider.addEventListener("input", (e) => {
       const hue = parseInt(e.target.value) || 0;
       const hex = hslToHex(hue, 100, 50);
-      applyHighlightColor(hex);
+      applyPhoneBackground("custom", hex, true);
     });
   }
 
   if (phoneColorSwatches) {
     phoneColorSwatches.querySelectorAll(".phone-swatch-dot").forEach(dot => {
       dot.addEventListener("click", () => {
-        applyHighlightColor(dot.dataset.color);
+        const mode = dot.dataset.mode || "custom";
+        const color = dot.dataset.color || "#0B0B0E";
+        applyPhoneBackground(mode, color, true);
       });
     });
   }
@@ -3724,7 +3762,6 @@ document.addEventListener("DOMContentLoaded", () => {
   highlightColor.addEventListener("input", (e) => {
     const val = e.target.value.toUpperCase();
     highlightColorText.innerText = val;
-    syncPhoneColorUI(val);
     updateLiveSubtitlePreview();
     autoSaveSettings();
   });
@@ -4950,6 +4987,12 @@ document.addEventListener("DOMContentLoaded", () => {
   applyLanguage(currentLang);
   applyTheme(currentTheme);
   renderCustomPresets();
+  if (typeof syncPhoneBackgroundUI === "function") {
+    syncPhoneBackgroundUI(
+      backgroundMode ? backgroundMode.value : "transparent",
+      customColorHex ? customColorHex.value : "#1A1A24"
+    );
+  }
 
   // Kinetic subtitle easing default
   document.documentElement.style.setProperty("--anim-ease", "cubic-bezier(0.34, 1.56, 0.64, 1.00)");
