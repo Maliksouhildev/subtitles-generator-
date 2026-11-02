@@ -2520,7 +2520,7 @@ html, body, :root, *,
 
   padding: 5px 6px;
 
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.4) 75%, transparent 100%);
+  background: transparent !important;
 
   color: #fff;
 
@@ -2535,6 +2535,8 @@ html, body, :root, *,
   text-align: left;
 
   pointer-events: none;
+
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 2px #000;
 
 }
 
@@ -6074,6 +6076,8 @@ html, body, :root, *,
 
 
 
+.ease-live-preview-pill.anim-comic_bounce,
+
 .ease-live-preview-pill.anim-bouncy_spring {
 
   animation: animBouncySpring calc(1.05s / var(--anim-speed, 1)) var(--anim-ease) infinite !important;
@@ -6097,6 +6101,8 @@ html, body, :root, *,
 }
 
 
+
+.ease-live-preview-pill.anim-badge_invert,
 
 .ease-live-preview-pill.anim-box_highlight {
 
@@ -6130,6 +6136,8 @@ html, body, :root, *,
 
 
 
+.ease-live-preview-pill.anim-fade_editorial,
+
 .ease-live-preview-pill.anim-classic_fade {
 
   animation: animClassicFade calc(1.35s / var(--anim-speed, 1)) var(--anim-ease) infinite !important;
@@ -6145,6 +6153,8 @@ html, body, :root, *,
 }
 
 
+
+.ease-live-preview-pill.anim-cumulative_fill,
 
 .ease-live-preview-pill.anim-cumulative_pop,
 

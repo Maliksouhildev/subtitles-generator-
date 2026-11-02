@@ -434,3 +434,17 @@ def test_fixed_phone_preview_and_ae_graph_integration():
     assert req.ease_p1 == [0.25, 1.0]
     assert req.cubic_bezier == "cubic-bezier(0.25, 1.00, 0.50, 1.00)"
 
+    # Phone bottom overlay transparent and default TikTok UI in HTML
+    assert "background: transparent !important;" in css
+    assert "anim-comic_bounce" in css
+    assert "anim-cumulative_fill" in css
+    assert "anim-fade_editorial" in css
+    assert "anim-badge_invert" in css
+
+    with open("web/static/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    assert "tiktok-top-nav" in html
+    assert "sidebar-avatar-wrap" in html
+    assert "@creator_pro" in html
+    assert "app.js?v=2.9.0" in html
+

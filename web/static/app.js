@@ -2998,7 +2998,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         updateLiveSubtitlePreview();
 
+        if (typeof updateEaseLivePreview === "function") {
+          updateEaseLivePreview();
+        }
+
         syncAllCustomDropdowns();
+
+        autoSaveSettings();
 
       });
 
@@ -3544,6 +3550,10 @@ document.addEventListener("DOMContentLoaded", () => {
   animationStyle.addEventListener("change", () => {
 
     updateLiveSubtitlePreview();
+
+    if (typeof updateEaseLivePreview === "function") {
+      updateEaseLivePreview();
+    }
 
     restartPreviewCycle();
 
@@ -4787,28 +4797,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const padX = 30;
-  const padY = 16;
+  const padX = 26;
+  const padY = 14;
   const minY = -0.55;
   const maxY = 1.65;
 
-  function toCanvasCoords(nx, ny, w, h, dpr = 1) {
-    const px = padX * dpr;
-    const py = padY * dpr;
-    const plotW = w - px * 2;
-    const plotH = h - py * 2;
-    const cx = px + nx * plotW;
-    const cy = py + plotH - ((ny - minY) / (maxY - minY)) * plotH;
+  function toCanvasCoords(nx, ny, w, h) {
+    const plotW = Math.max(10, w - padX * 2);
+    const plotH = Math.max(10, h - padY * 2);
+    const cx = padX + nx * plotW;
+    const cy = padY + plotH - ((ny - minY) / (maxY - minY)) * plotH;
     return { cx, cy };
   }
 
-  function fromCanvasCoords(cx, cy, w, h, dpr = 1) {
-    const px = padX * dpr;
-    const py = padY * dpr;
-    const plotW = w - px * 2;
-    const plotH = h - py * 2;
-    const nx = Math.max(0, Math.min(1, (cx - px) / plotW));
-    const ny = Math.max(minY, Math.min(maxY, minY + (1 - (cy - py) / plotH) * (maxY - minY)));
+  function fromCanvasCoords(cx, cy, w, h) {
+    const plotW = Math.max(10, w - padX * 2);
+    const plotH = Math.max(10, h - padY * 2);
+    const nx = Math.max(0, Math.min(1, (cx - padX) / plotW));
+    const ny = Math.max(minY, Math.min(maxY, minY + (1 - (cy - padY) / plotH) * (maxY - minY)));
     return { x: parseFloat(nx.toFixed(2)), y: parseFloat(ny.toFixed(2)) };
   }
 
@@ -4866,7 +4872,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateEaseLivePreview() {
     if (!easeLivePreviewWord) return;
-    const activeAnim = animationStyle ? (animationStyle.value || "bouncy_spring") : "bouncy_spring";
+    const activeAnim = animationStyle ? (animationStyle.value || "karaoke_pop") : "karaoke_pop";
     const isArabic = dialectHint && (dialectHint.value === "General Algerian" || dialectHint.value === "Modern Standard Arabic" || (!dialectHint.value.includes("Latin") && !dialectHint.value.includes("French") && !dialectHint.value.includes("English")));
     const previewWord = isArabic ? "فيديو" : "VIRAL";
 
@@ -4891,183 +4897,193 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function drawEaseGraph() {
     if (!easeCanvas) return;
-    const rect = easeCanvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      requestAnimationFrame(drawEaseGraph);
-      return;
-    }
-    const dpr = window.devicePixelRatio || 1;
-    const targetW = Math.round(rect.width * dpr);
-    const targetH = Math.round(rect.height * dpr);
-    if (easeCanvas.width !== targetW || easeCanvas.height !== targetH) {
-      easeCanvas.width = targetW;
-      easeCanvas.height = targetH;
-    }
+    try {
+      const rect = easeCanvas.getBoundingClientRect();
+      const w = Math.round(rect.width) || 300;
+      const h = Math.round(rect.height) || 98;
+      const dpr = window.devicePixelRatio || 1;
+      const pixelW = Math.round(w * dpr);
+      const pixelH = Math.round(h * dpr);
 
-    const ctx = easeCanvas.getContext("2d");
-    const w = easeCanvas.width;
-    const h = easeCanvas.height;
-    ctx.clearRect(0, 0, w, h);
+      if (easeCanvas.width !== pixelW || easeCanvas.height !== pixelH) {
+        easeCanvas.width = pixelW;
+        easeCanvas.height = pixelH;
+      }
 
-    // After Effects Graph Editor Dark Background
-    ctx.fillStyle = "#07090C";
-    ctx.fillRect(0, 0, w, h);
-
-    // AE Value & Speed Grid Lines
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-    ctx.lineWidth = 1 * dpr;
-    [0.25, 0.50, 0.75].forEach(tx => {
-      const p = toCanvasCoords(tx, 0, w, h, dpr);
-      ctx.beginPath();
-      ctx.moveTo(p.cx, padY * dpr);
-      ctx.lineTo(p.cx, h - padY * dpr);
-      ctx.stroke();
-    });
-
-    [-0.5, 0.5, 1.5].forEach(ty => {
-      const p = toCanvasCoords(0, ty, w, h, dpr);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
-      ctx.beginPath();
-      ctx.moveTo(padX * dpr, p.cy);
-      ctx.lineTo(w - padX * dpr, p.cy);
-      ctx.stroke();
-    });
-
-    // Reference lines: 0% (Baseline) and 100% (Target Value)
-    const p0 = toCanvasCoords(0, 0, w, h, dpr);
-    const p1 = toCanvasCoords(0, 1, w, h, dpr);
-
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
-    ctx.lineWidth = 1.2 * dpr;
-    ctx.setLineDash([4 * dpr, 4 * dpr]);
-
-    ctx.beginPath();
-    ctx.moveTo(padX * dpr, p0.cy);
-    ctx.lineTo(w - padX * dpr, p0.cy);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(padX * dpr, p1.cy);
-    ctx.lineTo(w - padX * dpr, p1.cy);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // AE Value markings
-    ctx.font = `${Math.round(8 * dpr)}px monospace`;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
-    ctx.fillText("0%", 6 * dpr, p0.cy + 3 * dpr);
-    ctx.fillText("100%", 4 * dpr, p1.cy + 3 * dpr);
-
-    // Coordinates of Start (0,0), End (1,1), and Tangent Handles (K1, K2)
-    const pStart = toCanvasCoords(0, 0, w, h, dpr);
-    const pEnd = toCanvasCoords(1, 1, w, h, dpr);
-    const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h, dpr);
-    const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h, dpr);
-
-    // Tangent Arm 1: Start (0,0) -> K1 (easeP1) in Cyan
-    ctx.strokeStyle = "rgba(0, 240, 255, 0.85)";
-    ctx.lineWidth = 1.8 * dpr;
-    ctx.beginPath();
-    ctx.moveTo(pStart.cx, pStart.cy);
-    ctx.lineTo(pK1.cx, pK1.cy);
-    ctx.stroke();
-
-    // Tangent Arm 2: End (1,1) -> K2 (easeP2) in Amber
-    ctx.strokeStyle = "rgba(255, 230, 0, 0.85)";
-    ctx.lineWidth = 1.8 * dpr;
-    ctx.beginPath();
-    ctx.moveTo(pEnd.cx, pEnd.cy);
-    ctx.lineTo(pK2.cx, pK2.cy);
-    ctx.stroke();
-
-    // Draw Cubic Bezier Curve
-    const steps = 64;
-    ctx.beginPath();
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const pt = evalCubicBezier(t, easeP1, easeP2);
-      const cp = toCanvasCoords(pt.x, pt.y, w, h, dpr);
-      if (i === 0) ctx.moveTo(cp.cx, cp.cy);
-      else ctx.lineTo(cp.cx, cp.cy);
-    }
-    ctx.strokeStyle = "#FFE600";
-    ctx.lineWidth = 2.4 * dpr;
-    ctx.shadowColor = "rgba(255, 230, 0, 0.5)";
-    ctx.shadowBlur = 8 * dpr;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Fill under curve down to baseline
-    ctx.lineTo(pEnd.cx, p0.cy);
-    ctx.lineTo(pStart.cx, p0.cy);
-    ctx.closePath();
-    const grad = ctx.createLinearGradient(0, p1.cy, 0, p0.cy);
-    grad.addColorStop(0, "rgba(255, 230, 0, 0.20)");
-    grad.addColorStop(1, "rgba(255, 230, 0, 0.00)");
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // AE Keyframe Diamonds at (0,0) and (1,1)
-    function drawKeyframeDiamond(cx, cy, size, color) {
+      const ctx = easeCanvas.getContext("2d");
       ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = color;
-      ctx.strokeStyle = "#FFFFFF";
-      ctx.lineWidth = 1.2 * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      // 1. Dark AE graph editor canvas background
+      ctx.fillStyle = "#07090C";
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. Grid lines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.lineWidth = 1;
+      [0.2, 0.4, 0.6, 0.8].forEach(tx => {
+        const p = toCanvasCoords(tx, 0, w, h);
+        ctx.beginPath();
+        ctx.moveTo(p.cx, padY);
+        ctx.lineTo(p.cx, h - padY);
+        ctx.stroke();
+      });
+
+      [-0.25, 0.25, 0.5, 0.75, 1.25, 1.5].forEach(ty => {
+        const p = toCanvasCoords(0, ty, w, h);
+        ctx.beginPath();
+        ctx.moveTo(padX, p.cy);
+        ctx.lineTo(w - padX, p.cy);
+        ctx.stroke();
+      });
+
+      // 3. Reference lines: 0% (Baseline) and 100% (Target)
+      const p0 = toCanvasCoords(0, 0, w, h);
+      const p1 = toCanvasCoords(0, 1, w, h);
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 4]);
+
+      // 0% Baseline
       ctx.beginPath();
-      ctx.rect(-size / 2, -size / 2, size, size);
-      ctx.fill();
+      ctx.moveTo(padX, p0.cy);
+      ctx.lineTo(w - padX, p0.cy);
       ctx.stroke();
+
+      // 100% Target
+      ctx.beginPath();
+      ctx.moveTo(padX, p1.cy);
+      ctx.lineTo(w - padX, p1.cy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Baseline markings
+      ctx.font = "8px monospace";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+      ctx.fillText("0%", 6, p0.cy + 3);
+      ctx.fillText("100%", 4, p1.cy + 3);
+
+      // Coordinates
+      const pStart = toCanvasCoords(0, 0, w, h);
+      const pEnd = toCanvasCoords(1, 1, w, h);
+      const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h);
+      const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h);
+
+      // 4. Tangent arms (After Effects keyframe handles)
+      // Tangent Arm 1: Start (0,0) -> K1 (easeP1) in Cyan
+      ctx.strokeStyle = "rgba(0, 240, 255, 0.85)";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(pStart.cx, pStart.cy);
+      ctx.lineTo(pK1.cx, pK1.cy);
+      ctx.stroke();
+
+      // Tangent Arm 2: End (1,1) -> K2 (easeP2) in Amber
+      ctx.strokeStyle = "rgba(255, 230, 0, 0.85)";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(pEnd.cx, pEnd.cy);
+      ctx.lineTo(pK2.cx, pK2.cy);
+      ctx.stroke();
+
+      // 5. Cubic Bezier Curve (Glowing Gold)
+      const steps = 60;
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const pt = evalCubicBezier(t, easeP1, easeP2);
+        const cp = toCanvasCoords(pt.x, pt.y, w, h);
+        if (i === 0) ctx.moveTo(cp.cx, cp.cy);
+        else ctx.lineTo(cp.cx, cp.cy);
+      }
+      ctx.strokeStyle = "#FFE600";
+      ctx.lineWidth = 2.4;
+      ctx.shadowColor = "rgba(255, 230, 0, 0.6)";
+      ctx.shadowBlur = 6;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Fill under curve down to baseline
+      ctx.lineTo(pEnd.cx, p0.cy);
+      ctx.lineTo(pStart.cx, p0.cy);
+      ctx.closePath();
+      try {
+        const grad = ctx.createLinearGradient(0, p1.cy, 0, p0.cy);
+        grad.addColorStop(0, "rgba(255, 230, 0, 0.18)");
+        grad.addColorStop(1, "rgba(255, 230, 0, 0.00)");
+        ctx.fillStyle = grad;
+        ctx.fill();
+      } catch (err) {}
+
+      // 6. AE Keyframe Diamonds at Start (0,0) and End (1,1)
+      function drawKeyframeDiamond(cx, cy, size, color) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = color;
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.rect(-size / 2, -size / 2, size, size);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      drawKeyframeDiamond(pStart.cx, pStart.cy, 7, "#FFA500");
+      drawKeyframeDiamond(pEnd.cx, pEnd.cy, 7, "#FFA500");
+
+      // 7. Draggable Keyframe Handles
+      // K1 Handle (Cyan Knob)
+      ctx.beginPath();
+      ctx.arc(pK1.cx, pK1.cy, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#00F0FF";
+      ctx.shadowColor = "rgba(0, 240, 255, 0.85)";
+      ctx.shadowBlur = 6;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      ctx.font = "bold 9px sans-serif";
+      ctx.fillStyle = "#00F0FF";
+      ctx.fillText("K1", pK1.cx + 8, pK1.cy - 3);
+
+      // K2 Handle (Amber Knob)
+      ctx.beginPath();
+      ctx.arc(pK2.cx, pK2.cy, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFE600";
+      ctx.shadowColor = "rgba(255, 230, 0, 0.85)";
+      ctx.shadowBlur = 6;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      ctx.fillStyle = "#FFE600";
+      ctx.fillText("K2", pK2.cx + 8, pK2.cy - 3);
+
+      // 8. Dynamic Tracer Particle
+      const spd = parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0;
+      easeTracerT = (easeTracerT + 0.015 * spd) % 1;
+      const tracerPt = evalCubicBezier(easeTracerT, easeP1, easeP2);
+      const tracerCp = toCanvasCoords(tracerPt.x, tracerPt.y, w, h);
+
+      ctx.beginPath();
+      ctx.arc(tracerCp.cx, tracerCp.cy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "#00F0FF";
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
       ctx.restore();
+    } catch (e) {
+      console.error("[EaseGraph] Draw error:", e);
     }
-    drawKeyframeDiamond(pStart.cx, pStart.cy, 7 * dpr, "#FFA500");
-    drawKeyframeDiamond(pEnd.cx, pEnd.cy, 7 * dpr, "#FFA500");
-
-    // Keyframe 1 Handle (Cyan Knob)
-    ctx.beginPath();
-    ctx.arc(pK1.cx, pK1.cy, 5.5 * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = "#00F0FF";
-    ctx.shadowColor = "rgba(0, 240, 255, 0.8)";
-    ctx.shadowBlur = 6 * dpr;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 1.8 * dpr;
-    ctx.stroke();
-
-    ctx.font = `bold ${Math.round(9 * dpr)}px sans-serif`;
-    ctx.fillStyle = "#00F0FF";
-    ctx.fillText("K1", pK1.cx + 8 * dpr, pK1.cy - 3 * dpr);
-
-    // Keyframe 2 Handle (Amber Knob)
-    ctx.beginPath();
-    ctx.arc(pK2.cx, pK2.cy, 5.5 * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = "#FFE600";
-    ctx.shadowColor = "rgba(255, 230, 0, 0.8)";
-    ctx.shadowBlur = 6 * dpr;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 1.8 * dpr;
-    ctx.stroke();
-
-    ctx.fillStyle = "#FFE600";
-    ctx.fillText("K2", pK2.cx + 8 * dpr, pK2.cy - 3 * dpr);
-
-    // Dynamic Tracer Particle
-    const spd = parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0;
-    easeTracerT = (easeTracerT + 0.015 * spd) % 1;
-    const tracerPt = evalCubicBezier(easeTracerT, easeP1, easeP2);
-    const tracerCp = toCanvasCoords(tracerPt.x, tracerPt.y, w, h, dpr);
-
-    ctx.beginPath();
-    ctx.arc(tracerCp.cx, tracerCp.cy, 4 * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "#00F0FF";
-    ctx.shadowBlur = 8 * dpr;
-    ctx.fill();
-    ctx.shadowBlur = 0;
 
     requestAnimationFrame(drawEaseGraph);
   }
@@ -5077,31 +5093,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const rect = easeCanvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const scaleX = easeCanvas.width / rect.width;
-      const scaleY = easeCanvas.height / rect.height;
       return {
-        cx: (clientX - rect.left) * scaleX,
-        cy: (clientY - rect.top) * scaleY
+        cx: clientX - rect.left,
+        cy: clientY - rect.top
       };
     }
 
     function onPointerDown(e) {
       const pos = getCanvasPos(e);
-      const w = easeCanvas.width;
-      const h = easeCanvas.height;
-      const dpr = window.devicePixelRatio || 1;
-      const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h, dpr);
-      const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h, dpr);
+      const rect = easeCanvas.getBoundingClientRect();
+      const w = Math.round(rect.width) || 300;
+      const h = Math.round(rect.height) || 98;
+      const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h);
+      const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h);
 
       const d1 = Math.hypot(pos.cx - pK1.cx, pos.cy - pK1.cy);
       const d2 = Math.hypot(pos.cx - pK2.cx, pos.cy - pK2.cy);
 
-      const hitRadius = 24 * dpr;
-      if (d1 < hitRadius) {
-        activeDragHandle = "P1";
-      } else if (d2 < hitRadius) {
-        activeDragHandle = "P2";
+      if (d1 < 24 || d2 < 24) {
+        activeDragHandle = (d1 <= d2) ? "P1" : "P2";
       } else {
+        // Nearest handle
         activeDragHandle = (d1 <= d2) ? "P1" : "P2";
       }
 
@@ -5111,22 +5123,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function onPointerMove(e) {
-      const w = easeCanvas.width;
-      const h = easeCanvas.height;
-      const dpr = window.devicePixelRatio || 1;
+      const rect = easeCanvas.getBoundingClientRect();
+      const w = Math.round(rect.width) || 300;
+      const h = Math.round(rect.height) || 98;
       const pos = getCanvasPos(e);
 
       if (!activeDragHandle) {
         // Hover cursor cue
-        const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h, dpr);
-        const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h, dpr);
+        const pK1 = toCanvasCoords(easeP1.x, easeP1.y, w, h);
+        const pK2 = toCanvasCoords(easeP2.x, easeP2.y, w, h);
         const d1 = Math.hypot(pos.cx - pK1.cx, pos.cy - pK1.cy);
         const d2 = Math.hypot(pos.cx - pK2.cx, pos.cy - pK2.cy);
-        easeCanvas.style.cursor = (d1 < 24 * dpr || d2 < 24 * dpr) ? "grab" : "crosshair";
+        easeCanvas.style.cursor = (d1 < 24 || d2 < 24) ? "grab" : "crosshair";
         return;
       }
 
-      const norm = fromCanvasCoords(pos.cx, pos.cy, w, h, dpr);
+      const norm = fromCanvasCoords(pos.cx, pos.cy, w, h);
 
       if (activeDragHandle === "P1") {
         easeP1 = { x: norm.x, y: norm.y };

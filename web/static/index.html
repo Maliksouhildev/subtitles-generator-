@@ -16,7 +16,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@700;900&family=Almarai:wght@700;800&family=Amiri:wght@700&family=Anton&family=Archivo+Black&family=Aref+Ruqaa:wght@700&family=Baloo+Bhaijaan+2:wght@700;800&family=Bangers&family=Bebas+Neue&family=Black+Han+Sans&family=Cairo:wght@700;900&family=Changa:wght@700;800&family=El+Messiri:wght@700&family=Epilogue:wght@800;900&family=Harmattan:wght@700&family=IBM+Plex+Sans+Arabic:wght@700&family=Inter:wght@700;900&family=Kanit:wght@700;900&family=Lalezar&family=Lemonada:wght@700&family=Lexend:wght@700;800&family=Mada:wght@700;900&family=Marhey:wght@700&family=Montserrat:wght@800;900&family=Noto+Kufi+Arabic:wght@700;900&family=Noto+Sans+Arabic:wght@700;900&family=Oswald:wght@700&family=Outfit:wght@700;900&family=Plus+Jakarta+Sans:wght@700;800;900&family=Poppins:wght@700;800;900&family=Raleway:wght@800;900&family=Readex+Pro:wght@700&family=Reem+Kufi:wght@700&family=Righteous&family=Rubik:wght@700;900&family=Syne:wght@700;800&family=Tajawal:wght@700;900&family=Titan+One&family=Urbanist:wght@800;900&family=Work+Sans:wght@800;900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=2.8.1">
+  <link rel="stylesheet" href="style.css?v=2.9.0">
 
 </head>
 
@@ -766,13 +766,44 @@
 
                   <!-- Platform Top Navigation Bar (Dynamically updated for TikTok, Reels, Shorts) -->
 
-                  <div class="platform-top-bar" id="platformTopBar"></div>
+                  <div class="platform-top-bar" id="platformTopBar">
+                    <div class="tiktok-top-nav">
+                      <span class="top-nav-link">Live</span>
+                      <span class="top-nav-link">Following</span>
+                      <span class="top-nav-link active">For You</span>
+                      <svg class="top-nav-search" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </div>
+                  </div>
 
 
 
                   <!-- Platform Sidebar Engagement Icons (Dynamically updated) -->
 
-                  <div class="phone-sidebar" id="phoneSidebar"></div>
+                  <div class="phone-sidebar" id="phoneSidebar">
+                    <div class="sidebar-avatar-wrap">
+                      <div class="sidebar-avatar" style="background:#FF0050"></div>
+                      <div class="sidebar-follow-plus">+</div>
+                    </div>
+                    <div class="sidebar-action-btn">
+                      <svg class="action-icon" width="20" height="20" viewBox="0 0 24 24" fill="#FE2C55"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                      <span class="action-count">142K</span>
+                    </div>
+                    <div class="sidebar-action-btn">
+                      <svg class="action-icon" width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+                      <span class="action-count">2.3K</span>
+                    </div>
+                    <div class="sidebar-action-btn">
+                      <svg class="action-icon" width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                      <span class="action-count">9.8K</span>
+                    </div>
+                    <div class="sidebar-action-btn">
+                      <svg class="action-icon" width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+                      <span class="action-count">18K</span>
+                    </div>
+                    <div class="sidebar-music-disc">
+                      <div class="disc-inner"></div>
+                    </div>
+                  </div>
 
 
 
@@ -822,7 +853,17 @@
 
                   <!-- Bottom Safe Zone Info (Username, Subscribe/Follow button, Description, Sound) -->
 
-                  <div class="phone-bottom-overlay" id="phoneBottomOverlay"></div>
+                  <div class="phone-bottom-overlay" id="phoneBottomOverlay">
+                    <div class="creator-row">
+                      <span class="creator-tag">@creator_pro</span>
+                      <button type="button" class="btn-sub-badge">Follow</button>
+                    </div>
+                    <p class="creator-desc">Keep captions safely above this section so UI never covers them!</p>
+                    <div class="creator-sound">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                      <span>Trending AI Voice • Original Audio</span>
+                    </div>
+                  </div>
 
                 </div>
 
@@ -1971,7 +2012,7 @@
 
 
 
-  <script src="app.js?v=2.8.1"></script>
+  <script src="app.js?v=2.9.0"></script>
 
 </body>
 
