@@ -1455,62 +1455,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-  // Sync custom presets with backend server (zero-auth persistence)
-
-  async function fetchServerPresets() {
-
-    try {
-
-      const res = await fetch("/api/presets");
-
-      if (res.ok) {
-
-        const srv = await res.json();
-
-        if (Array.isArray(srv) && srv.length > 0) {
-
-          const idMap = new Map();
-
-          customPresets.forEach(p => idMap.set(p.id, p));
-
-          srv.forEach(p => idMap.set(p.id, p));
-
-          customPresets = Array.from(idMap.values());
-
-          localStorage.setItem("dz_subtitles_custom_presets", JSON.stringify(customPresets));
-
-          renderCustomPresets();
-
-        }
-
-      }
-
-    } catch (e) {}
-
-  }
-
-  fetchServerPresets();
-
-
-
+  // INDIVIDUAL PRIVATE PRESETS (100% scoped to this browser - never shared with other users)
   function syncPresetsToDisk() {
-
     try {
-
       localStorage.setItem("dz_subtitles_custom_presets", JSON.stringify(customPresets));
-
-      fetch("/api/presets", {
-
-        method: "POST",
-
-        headers: { "Content-Type": "application/json" },
-
-        body: JSON.stringify(customPresets)
-
-      }).catch(() => {});
-
     } catch (e) {}
-
   }
 
 
