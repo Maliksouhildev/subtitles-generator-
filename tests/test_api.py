@@ -177,8 +177,8 @@ def test_custom_dropdowns_and_rtl_preview():
     assert ".comic-dropdown-option" in css_content
     assert ".custom-select-wrap" in css_content
 
-    # Verify Ease graph, After Effects and letter animation components
-    assert "easeCanvas" in html_content
+    # Verify After Effects and letter animation components
+    assert "easeCanvas" not in html_content
     assert "sub-resize-handle" in html_content
     assert "downloadAeBtn" in html_content
     assert ".opt-box-demo" in css_content
@@ -242,22 +242,17 @@ def test_keyframe_ease_editor_and_letter_animations():
         assert f'data-value="{anim}"' in html, f"Animation {anim} missing from animDropdownPanel"
         assert f'value="{anim}"' in html, f"Animation {anim} missing from animationStyle select"
 
-    # 2. Verify interactive After Effects Style Ease Graph & Live Preview
-    assert 'id="easeCanvas"' in html
-    assert 'id="easeLivePreviewWord"' in html
-    assert 'id="easeCoordsReadout"' in html
-    assert 'id="easeGraphContainer"' in html
-    assert 'grid-col-full' in html
+    # 2. Verify keyframe ease graph removed as per user requirement
+    assert 'id="easeGraphContainer"' not in html
+    assert 'id="easeCanvas"' not in html
 
     # 3. Verify Phone Simulation is aligned at top without dead space
     assert 'align-items: flex-start;' in css
     assert '.phone-frame-wrapper' in css
 
-    # 4. Verify JS handles draggable keyframes and updates --anim-ease
-    assert 'evalCubicBezier' in js
+    # 4. Verify JS maintains kinetic subtitle easing
+    assert '--anim-ease' in js
     assert 'updateAnimEaseProperty' in js
-    assert 'easeP1' in js and 'easeP2' in js
-    assert 'fromCanvasCoords' in js
 
     # 5. Verify Remotion Template registry maps word_reveal
     assert '"word_reveal":' in remotion
@@ -393,7 +388,6 @@ def test_fixed_phone_preview_and_ae_graph_integration():
     assert "overflow: hidden" in css
     assert "--anim-ease:" in css
     assert "var(--anim-ease" in css
-    assert "ease-canvas-wrap" in css
     assert "anim-bouncy_spring" in css
 
     # AE Script Builder KeyframeEase influence
@@ -444,7 +438,8 @@ def test_fixed_phone_preview_and_ae_graph_integration():
     with open("web/static/index.html", "r", encoding="utf-8") as f:
         html = f.read()
     assert "tiktok-top-nav" in html
-    assert "sidebar-avatar-wrap" in html
+    assert "side-item" in html
     assert "@creator_pro" in html
-    assert "app.js?v=2.9.0" in html
+    assert "app.js?v=2.9.1" in html
+    assert "ease-graph-container" not in html
 
