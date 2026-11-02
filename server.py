@@ -13,7 +13,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import Response, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -64,7 +64,7 @@ tasks_db: Dict[str, Dict[str, Any]] = {}
 
 
 class RenderRequest(BaseModel):
-    task_id: str
+    task_id: str = "default"
     template_id: Optional[str] = None
     transcription_data: Optional[Dict[str, Any]] = None
     font_name: str = "Cairo"
@@ -90,6 +90,9 @@ class RenderRequest(BaseModel):
     ease_p1: Optional[List[float]] = None
     ease_p2: Optional[List[float]] = None
     cubic_bezier: Optional[str] = None
+    comp_width: int = 1080
+    comp_height: int = 1920
+    fps: float = 30.0
 
 
 @app.get("/api/health")
@@ -191,6 +194,16 @@ async def transcribe_media(
         with open(transcript_json_path, "w", encoding="utf-8") as f:
             json.dump(transcription_result, f, ensure_ascii=False, indent=2)
 
+        # Pre-generate After Effects JSX and Timestamps Text immediately after transcription
+        ae_builder = AfterEffectsScriptBuilder()
+        ae_script_content = ae_builder.generate_jsx(transcription_result, total_duration=duration or 30.0)
+        with open(task_folder / "subtitles_after_effects.jsx", "w", encoding="utf-8") as f:
+            f.write(ae_script_content)
+
+        txt_content = ae_builder.generate_timestamped_text(transcription_result)
+        with open(task_folder / "subtitles_timestamps.txt", "w", encoding="utf-8") as f:
+            f.write(txt_content)
+
         tasks_db[task_id] = {
             "task_id": task_id,
             "filename": file.filename,
@@ -206,7 +219,10 @@ async def transcribe_media(
             "task_id": task_id,
             "is_video": is_video,
             "duration": duration,
-            "transcription": transcription_result
+            "transcription": transcription_result,
+            "ae_url": f"/api/download/{task_id}/subtitles_after_effects.jsx",
+            "txt_url": f"/api/download/{task_id}/subtitles_timestamps.txt",
+            "json_url": f"/api/download/{task_id}/transcript.json"
         }
 
     except HTTPException:
@@ -344,9 +360,22 @@ async def render_subtitles(req: RenderRequest):
             ease_p1=req.ease_p1,
             ease_p2=req.ease_p2
         )
-        ae_script_content = ae_builder.generate_jsx(transcription)
+        duration = float(task_info.get("duration") or 0.0)
+        if duration <= 0.0 and os.path.exists(media_path):
+            try:
+                duration = get_audio_duration(media_path)
+            except Exception:
+                duration = 30.0
+        if duration <= 0.0:
+            duration = 30.0
+
+        ae_script_content = ae_builder.generate_jsx(transcription, total_duration=duration)
         with open(task_folder / "subtitles_after_effects.jsx", "w", encoding="utf-8") as f:
             f.write(ae_script_content)
+
+        txt_content = ae_builder.generate_timestamped_text(transcription)
+        with open(task_folder / "subtitles_timestamps.txt", "w", encoding="utf-8") as f:
+            f.write(txt_content)
 
         # 4. Render Output Video
         output_video_ext = ".webm" if req.background_mode == "transparent" else ".mp4"
@@ -372,7 +401,8 @@ async def render_subtitles(req: RenderRequest):
             "vtt_url": f"/api/download/{task_id}/subtitles.vtt",
             "json_url": f"/api/download/{task_id}/transcript.json",
             "remotion_url": f"/api/download/{task_id}/remotion_props.json",
-            "ae_url": f"/api/download/{task_id}/subtitles_after_effects.jsx"
+            "ae_url": f"/api/download/{task_id}/subtitles_after_effects.jsx",
+            "txt_url": f"/api/download/{task_id}/subtitles_timestamps.txt"
         }
 
     except Exception as e:
@@ -463,9 +493,96 @@ async def download_file(task_id: str, file_name: str):
         media_type = "application/json"
     elif file_name.endswith(".jsx"):
         media_type = "text/javascript; charset=utf-8"
+    elif file_name.endswith(".txt"):
+        media_type = "text/plain; charset=utf-8"
 
     return FileResponse(path=str(file_path), media_type=media_type, filename=file_name)
 
+
+
+@app.post("/api/export_ae")
+async def export_after_effects_endpoint(req: RenderRequest):
+    """
+    Generates and returns an After Effects .jsx script for the given transcription and style.
+    Allows instant download without waiting for video render.
+    """
+    transcription = req.transcription_data
+    task_id = req.task_id or "default"
+    if not transcription and task_id != "default":
+        task_folder = OUTPUT_DIR / task_id
+        if (task_folder / "transcript.json").exists():
+            with open(task_folder / "transcript.json", "r", encoding="utf-8") as f:
+                transcription = json.load(f)
+
+    if not transcription:
+        raise HTTPException(status_code=400, detail="Transcription data is required for After Effects export.")
+
+    pos_y = req.pos_y if req.pos_y is not None else max(30, 1920 - req.margin_v)
+    ae_builder = AfterEffectsScriptBuilder(
+        font_name=req.font_name,
+        font_size=req.font_size,
+        primary_color=req.primary_color,
+        highlight_color=req.highlight_color,
+        animation_style=req.animation_style or req.template_id or "letter_pop",
+        words_per_line=req.words_per_line,
+        comp_width=req.comp_width,
+        comp_height=req.comp_height,
+        fps=req.fps,
+        pos_y=pos_y,
+        stroke_width=req.outline_width,
+        ease_p1=req.ease_p1,
+        ease_p2=req.ease_p2
+    )
+
+    duration = 30.0
+    task_info = tasks_db.get(task_id, {})
+    if task_info.get("duration"):
+        duration = float(task_info["duration"])
+
+    jsx_content = ae_builder.generate_jsx(transcription, total_duration=duration)
+    if task_id != "default":
+        task_folder = OUTPUT_DIR / task_id
+        os.makedirs(task_folder, exist_ok=True)
+        with open(task_folder / "subtitles_after_effects.jsx", "w", encoding="utf-8") as f:
+            f.write(jsx_content)
+
+    return Response(
+        content=jsx_content,
+        media_type="text/javascript; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="subtitles_{task_id}.jsx"'}
+    )
+
+
+@app.post("/api/export_text")
+async def export_text_timestamps_endpoint(req: RenderRequest):
+    """
+    Generates and returns structured plain text with exact timecodes for After Effects and editing software.
+    """
+    transcription = req.transcription_data
+    task_id = req.task_id or "default"
+    if not transcription and task_id != "default":
+        task_folder = OUTPUT_DIR / task_id
+        if (task_folder / "transcript.json").exists():
+            with open(task_folder / "transcript.json", "r", encoding="utf-8") as f:
+                transcription = json.load(f)
+
+    if not transcription:
+        raise HTTPException(status_code=400, detail="Transcription data is required for text export.")
+
+    ae_builder = AfterEffectsScriptBuilder(words_per_line=req.words_per_line)
+    txt_content = ae_builder.generate_timestamped_text(transcription)
+
+    if task_id != "default":
+        task_folder = OUTPUT_DIR / task_id
+        os.makedirs(task_folder, exist_ok=True)
+        with open(task_folder / "subtitles_timestamps.txt", "w", encoding="utf-8") as f:
+            f.write(txt_content)
+
+    return Response(
+        content=txt_content,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="subtitles_timestamps_{task_id}.txt"'}
+    )
 
 # Serve Static UI files
 if STATIC_DIR.exists():

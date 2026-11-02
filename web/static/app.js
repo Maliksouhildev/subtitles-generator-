@@ -59,6 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadRemotionBtn = document.getElementById("downloadRemotionBtn");
 
   const downloadAeBtn = document.getElementById("downloadAeBtn");
+  const downloadTxtBtn = document.getElementById("downloadTxtBtn");
+  const editorExportAeBtn = document.getElementById("editorExportAeBtn");
+  const editorExportTxtBtn = document.getElementById("editorExportTxtBtn");
 
 
 
@@ -461,6 +464,9 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_remotion: "Remotion (React)",
 
       dl_ae: "After Effects (.JSX)",
+      dl_txt: "Text & Times (.txt)",
+      btn_export_ae: "AE Script (.jsx)",
+      btn_export_txt: "Text & Times (.txt)",
 
       empty_title: "Ready to Generate Viral Captions",
 
@@ -719,6 +725,9 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_remotion: "Remotion (React)",
 
       dl_ae: "After Effects (.JSX)",
+      dl_txt: "Text & Times (.txt)",
+      btn_export_ae: "AE Script (.jsx)",
+      btn_export_txt: "Text & Times (.txt)",
 
       empty_title: "Prêt à créer des sous-titres viraux",
 
@@ -977,6 +986,9 @@ document.addEventListener("DOMContentLoaded", () => {
       dl_remotion: "ريموشن (React)",
 
       dl_ae: "أفتر إفكتس (JSX)",
+      dl_txt: "نص وتوقيتات (.txt)",
+      btn_export_ae: "أفتر إفكتس (.jsx)",
+      btn_export_txt: "نص وتوقيتات (.txt)",
 
       empty_title: "جاهز لتوليد ترجمات متحركة احترافية",
 
@@ -4825,6 +4837,90 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // RE-RENDER WITH EDITED SUBTITLES
+
+  
+  // DIRECT EXPORT AFTER EFFECTS SCRIPT & TIMESTAMPS TEXT HANDLERS
+  if (editorExportAeBtn) {
+    editorExportAeBtn.addEventListener("click", async () => {
+      if (!currentTranscription) {
+        alert("Please upload and transcribe an audio or video file first!");
+        return;
+      }
+      try {
+        editorExportAeBtn.disabled = true;
+        const payload = {
+          task_id: currentTaskId || "default",
+          transcription_data: currentTranscription,
+          font_name: (fontName && fontName.value) ? fontName.value : "Cairo",
+          font_size: parseInt(fontSize ? fontSize.value : 56) || 56,
+          primary_color: (primaryColor && primaryColor.value) ? primaryColor.value : "#FFFFFF",
+          highlight_color: (highlightColor && highlightColor.value) ? highlightColor.value : "#FFE600",
+          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3,
+          animation_style: (animationStyle && animationStyle.value) ? animationStyle.value : "letter_pop",
+          pos_y: Math.max(30, 1920 - (parseInt(marginV ? marginV.value : 960) || 960)),
+          ease_p1: [easeP1 ? easeP1.x : 0.34, easeP1 ? easeP1.y : 1.56],
+          ease_p2: [easeP2 ? easeP2.x : 0.64, easeP2 ? easeP2.y : 1.00]
+        };
+
+        const res = await fetch("/api/export_ae", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("Failed to export After Effects script.");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `subtitles_${currentTaskId || "ae"}.jsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert("After Effects Export Error: " + err.message);
+      } finally {
+        editorExportAeBtn.disabled = false;
+      }
+    });
+  }
+
+  if (editorExportTxtBtn) {
+    editorExportTxtBtn.addEventListener("click", async () => {
+      if (!currentTranscription) {
+        alert("Please upload and transcribe an audio or video file first!");
+        return;
+      }
+      try {
+        editorExportTxtBtn.disabled = true;
+        const payload = {
+          task_id: currentTaskId || "default",
+          transcription_data: currentTranscription,
+          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3
+        };
+
+        const res = await fetch("/api/export_text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("Failed to export timestamps text file.");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `subtitles_timestamps_${currentTaskId || "text"}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert("Text Export Error: " + err.message);
+      } finally {
+        editorExportTxtBtn.disabled = false;
+      }
+    });
+  }
 
   reRenderBtn.addEventListener("click", async () => {
 

@@ -542,3 +542,50 @@ def test_cancel_render_endpoint_and_ui(client):
     assert "btn_cancel_render" in js
     assert "currentAbortController" in js
     assert "/api/cancel/" in js
+
+
+def test_export_ae_and_text_endpoints(client):
+    """Verify /api/export_ae and /api/export_text endpoints without needing video render."""
+    payload = {
+        "task_id": "test_direct_export",
+        "transcription_data": {
+            "segments": [
+                {
+                    "start": 0.0,
+                    "end": 2.5,
+                    "text": "\u0635\u062d\u0627 \u062e\u0648\u064a\u0627 \u0627\u0644\u0639\u0632\u064a\u0632",
+                    "words": [
+                        {"word": "\u0635\u062d\u0627", "start": 0.0, "end": 0.7},
+                        {"word": "\u062e\u0648\u064a\u0627", "start": 0.7, "end": 1.4},
+                        {"word": "\u0627\u0644\u0639\u0632\u064a\u0632", "start": 1.4, "end": 2.5}
+                    ]
+                }
+            ]
+        },
+        "font_name": "Cairo",
+        "font_size": 60,
+        "primary_color": "#FFFFFF",
+        "highlight_color": "#FFE600",
+        "words_per_line": 3
+    }
+
+    # 1. Test /api/export_ae
+    ae_res = client.post("/api/export_ae", json=payload)
+    assert ae_res.status_code == 200
+    assert "text/javascript" in ae_res.headers.get("content-type", "")
+    assert 'attachment; filename="subtitles_test_direct_export.jsx"' in ae_res.headers.get("content-disposition", "")
+    assert "DZ_Subtitles_Viral" in ae_res.text
+    assert "00_MASTER_SUBTITLES" in ae_res.text
+    assert "Letter Pop Animator" in ae_res.text
+    assert "KeyframeInterpolationType.HOLD" in ae_res.text
+
+    # 2. Test /api/export_text
+    txt_res = client.post("/api/export_text", json=payload)
+    assert txt_res.status_code == 200
+    assert "text/plain" in txt_res.headers.get("content-type", "")
+    assert 'attachment; filename="subtitles_timestamps_test_direct_export.txt"' in txt_res.headers.get("content-disposition", "")
+    assert "SECTION 1: SUBTITLES BY PHRASE" in txt_res.text
+    assert "SECTION 2: TAB-SEPARATED VALUES" in txt_res.text
+    assert "SECTION 3: DETAILED WORD-BY-WORD" in txt_res.text
+    assert "SECTION 4: PURE CLEAN TEXT" in txt_res.text
+    assert "00:00.000" in txt_res.text

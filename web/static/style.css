@@ -6372,3 +6372,18 @@ html, body, :root, *,
 .comic-btn-cancel-render:active {
   transform: translateY(1px);
 }
+
+/* Editor Action Buttons Row */
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .editor-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 6px;
+  }
+}
