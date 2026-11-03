@@ -179,10 +179,12 @@ def test_bind_arabic_articles_to_latin():
         {"word": "premier", "start": 1.2, "end": 1.6},
         {"word": "test", "start": 1.6, "end": 2.0},
         {"word": "\u0644\u0640", "start": 2.2, "end": 2.4},
-        {"word": "Redfield", "start": 2.4, "end": 3.0}
+        {"word": "Redfield", "start": 2.4, "end": 3.0},
+        {"word": "\u0627\u0644", "start": 3.2, "end": 3.4},
+        {"word": "premier test", "start": 3.4, "end": 4.0}
     ]
     bound = bind_arabic_articles_to_latin(words)
-    assert len(bound) == 3
+    assert len(bound) == 4
     assert bound[0]["word"] == "\u0627\u0644\u0640 premier"
     assert bound[0]["start"] == 1.0
     assert bound[0]["end"] == 1.6
@@ -190,3 +192,6 @@ def test_bind_arabic_articles_to_latin():
     assert bound[2]["word"] == "\u0644\u0640 Redfield"
     assert bound[2]["start"] == 2.2
     assert bound[2]["end"] == 3.0
+    assert bound[3]["word"] == "\u0627\u0644 premier test"
+    assert bound[3]["start"] == 3.2
+    assert bound[3]["end"] == 4.0

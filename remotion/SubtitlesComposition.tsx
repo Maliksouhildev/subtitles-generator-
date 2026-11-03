@@ -15,7 +15,7 @@ export interface SubtitlesProps {
   wordsPerChunk?: number;
 }
 
-const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$/;
+const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:\u0648?\u0627\u0644\u0640?|\u0648?\u0627\u0644-|\u0648?\u0627\u0644|\u0644\u0640?|\u0644-|\u0644\u0644\u0640?|\u0644\u0644-|\u0641\u0640?|\u0641-|\u0628\u0640?|\u0628-|\u0644\u0627)$/;
 const LATIN_REGEX = /[a-zA-Z]/;
 
 function bindArabicArticlesToLatin(words: WordData[]): WordData[] {
@@ -28,7 +28,7 @@ function bindArabicArticlesToLatin(words: WordData[]): WordData[] {
     if (ARABIC_PREFIX_ARTICLE_REGEX.test(text) && i + 1 < words.length) {
       const nextW = words[i + 1];
       const nextText = (nextW.word || "").trim();
-      if (LATIN_REGEX.test(nextText)) {
+      if (nextText.length > 0) {
         bound.push({
           word: `${text} ${nextText}`,
           start: w.start,

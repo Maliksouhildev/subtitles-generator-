@@ -2582,14 +2582,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const segWords = currentTranscription.segments[0].words || [];
 
       const boundSegWords = [];
-      const prefixArticleRegex = /^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$/;
-      const latinRegex = /[a-zA-Z]/;
+      const prefixArticleRegex = /^(?:\u0648?\u0627\u0644\u0640?|\u0648?\u0627\u0644-|\u0648?\u0627\u0644|\u0644\u0640?|\u0644-|\u0644\u0644\u0640?|\u0644\u0644-|\u0641\u0640?|\u0641-|\u0628\u0640?|\u0628-|\u0644\u0627)$/;
       let bwIdx = 0;
       while (bwIdx < segWords.length) {
         const textVal = (segWords[bwIdx].word || "").trim();
         if (prefixArticleRegex.test(textVal) && bwIdx + 1 < segWords.length) {
           const nextVal = (segWords[bwIdx + 1].word || "").trim();
-          if (latinRegex.test(nextVal)) {
+          if (nextVal.length > 0) {
             boundSegWords.push({
               word: `${textVal} ${nextVal}`,
               start: segWords[bwIdx].start,
@@ -2643,11 +2642,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const sampleText = wordList.join(" ");
 
+    const activeDialect = (dialectHint && dialectHint.value) ? dialectHint.value : "General Algerian";
+
     const isArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(sampleText) || 
 
-                     (dialectHint.value.includes("Algerian") && !dialectHint.value.includes("Latin")) || 
+                     (activeDialect.includes("Algerian") && !activeDialect.includes("Latin")) || 
 
-                     dialectHint.value.includes("Arabic");
+                     activeDialect.includes("Arabic");
 
 
 
@@ -3188,7 +3189,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const val = row.dataset.value;
 
-        animationStyle.value = val;
+        if (animationStyle) animationStyle.value = val;
 
         animOptionRows.forEach(r => r.classList.remove("active"));
 
@@ -3656,13 +3657,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Dialect change handler: update preview text and RTL direction
 
-  dialectHint.addEventListener("change", () => {
-
-    updateLiveSubtitlePreview();
-
-    syncAllCustomDropdowns();
-
-  });
+  if (dialectHint) {
+    dialectHint.addEventListener("change", () => {
+      updateLiveSubtitlePreview();
+      syncAllCustomDropdowns();
+    });
+  }
 
 
 
@@ -3752,7 +3752,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (animSpeed) {
 
-        animSpeed.value = chip.dataset.speed;
+        if (animSpeed && chip.dataset.speed) animSpeed.value = chip.dataset.speed;
 
         updateAnimationSpeed(chip.dataset.speed);
 
@@ -3813,13 +3813,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (target === "primary") {
 
-        primaryColor.value = color;
+        if (primaryColor) primaryColor.value = color;
 
         primaryColorText.innerText = color;
 
       } else if (target === "highlight") {
 
-        highlightColor.value = color;
+        if (highlightColor) highlightColor.value = color;
 
         highlightColorText.innerText = color;
 

@@ -490,7 +490,7 @@ def classify_token_script(token: str, default: str = "arabic") -> str:
         return default
 
 
-ARABIC_PREFIX_ARTICLE_REGEX = re.compile(r'^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$')
+ARABIC_PREFIX_ARTICLE_REGEX = re.compile(r'^(?:\u0648?\u0627\u0644\u0640?|\u0648?\u0627\u0644-|\u0648?\u0627\u0644|\u0644\u0640?|\u0644-|\u0644\u0644\u0640?|\u0644\u0644-|\u0641\u0640?|\u0641-|\u0628\u0640?|\u0628-|\u0644\u0627)$')
 
 
 def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -509,7 +509,7 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
         if ARABIC_PREFIX_ARTICLE_REGEX.match(text_val) and i + 1 < len(words):
             next_w = words[i + 1]
             next_text = str(next_w.get("word", "")).strip()
-            if LATIN_REGEX.search(next_text):
+            if next_text:
                 joint_word = f"{text_val} {next_text}"
                 bound.append({
                     "word": joint_word,

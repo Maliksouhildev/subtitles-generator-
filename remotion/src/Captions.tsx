@@ -29,7 +29,7 @@ export interface CaptionsCompositionProps {
 // Regex to detect French / English loanwords embedded in Arabic text
 const LATIN_REGEX = /[a-zA-Z]/;
 const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
-const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:و?الـ?|و?ال-|و?ال|لـ?|ل-|للـ?|لل-|فـ?|ف-|بـ?|ب-|لا)$/;
+const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:\u0648?\u0627\u0644\u0640?|\u0648?\u0627\u0644-|\u0648?\u0627\u0644|\u0644\u0640?|\u0644-|\u0644\u0644\u0640?|\u0644\u0644-|\u0641\u0640?|\u0641-|\u0628\u0640?|\u0628-|\u0644\u0627)$/;
 
 export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
   if (!words || words.length === 0) return [];
@@ -41,7 +41,7 @@ export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
     if (ARABIC_PREFIX_ARTICLE_REGEX.test(text) && i + 1 < words.length) {
       const nextW = words[i + 1];
       const nextText = (nextW.word || "").trim();
-      if (LATIN_REGEX.test(nextText)) {
+      if (nextText.length > 0) {
         bound.push({
           word: `${text} ${nextText}`,
           start: w.start,
@@ -97,7 +97,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
   // Extract flat list of all word tokens with valid timestamps
   const allWords: WordToken[] = React.useMemo(() => {
     if (transcription?.words && transcription.words.length > 0) {
-      return transcription.words;
+      return bindArabicArticlesToLatin(transcription.words);
     }
     if (transcription?.segments && transcription.segments.length > 0) {
       const flattened: WordToken[] = [];
