@@ -195,3 +195,28 @@ def test_bind_arabic_articles_to_latin():
     assert bound[3]["word"] == "\u0627\u0644 premier test"
     assert bound[3]["start"] == 3.2
     assert bound[3]["end"] == 4.0
+
+
+def test_bind_darija_prefixes_multitoken():
+    from core.transcriber import bind_arabic_articles_to_latin
+    # Exactly replicating review issue: "دير ال premier test بهاد لا nouvelle"
+    words = [
+        {"word": "دير", "start": 0.0, "end": 0.4},
+        {"word": "ال", "start": 0.4, "end": 0.7},
+        {"word": "premier", "start": 0.7, "end": 1.2},
+        {"word": "test", "start": 1.2, "end": 1.6},
+        {"word": "بهاد", "start": 1.6, "end": 1.9},
+        {"word": "لا", "start": 1.9, "end": 2.2},
+        {"word": "nouvelle", "start": 2.2, "end": 2.8}
+    ]
+    bound = bind_arabic_articles_to_latin(words)
+    # "ال" attaches to "premier", "بهاد" and "لا" attach to "nouvelle"
+    assert len(bound) == 4
+    assert bound[0]["word"] == "دير"
+    assert bound[1]["word"] == "ال premier"
+    assert bound[1]["start"] == 0.4
+    assert bound[1]["end"] == 1.2
+    assert bound[2]["word"] == "test"
+    assert bound[3]["word"] == "بهاد لا nouvelle"
+    assert bound[3]["start"] == 1.6
+    assert bound[3]["end"] == 2.8

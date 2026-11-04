@@ -68,48 +68,32 @@ export interface TemplateProps {
 
 }
 
+const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 const LATIN_REGEX = /[a-zA-Z]/;
 
 // Helper: group continuous words into Latin vs Arabic runs to preserve correct BiDi boundary isolation
-
 function groupScriptRuns(words: WordToken[]) {
-
   const runs: Array<{ isLatin: boolean; words: WordToken[] }> = [];
-
   let currentRun: WordToken[] = [];
-
   let currentIsLatin: boolean | null = null;
-
   for (const w of words) {
-
-    const isLatin = LATIN_REGEX.test(w.word);
-
+    const hasLatin = LATIN_REGEX.test(w.word);
+    const hasArabic = ARABIC_REGEX.test(w.word);
+    // A token belongs to a pure Latin run only if it has Latin chars and NO Arabic chars
+    const isLatin = hasLatin && !hasArabic;
     if (currentIsLatin === null || isLatin === currentIsLatin) {
-
       currentRun.push(w);
-
       currentIsLatin = isLatin;
-
     } else {
-
       runs.push({ isLatin: currentIsLatin, words: currentRun });
-
       currentRun = [w];
-
       currentIsLatin = isLatin;
-
     }
-
   }
-
   if (currentRun.length > 0 && currentIsLatin !== null) {
-
     runs.push({ isLatin: currentIsLatin, words: currentRun });
-
   }
-
   return runs;
-
 }
 
 // 1. Hormozi Pop Template (Viral, high bounce, punchy highlight)
@@ -166,33 +150,34 @@ export const HormoziPopTemplate: React.FC<TemplateProps> = ({
           const wordStartFrame = Math.round(w.start * fps);
           const wordEndFrame = Math.round(w.end * fps);
 
-          // Snappy Remotion spring pop with fast attack
+          // Snappy Remotion spring pop with fast attack for the viral Hormozi look
           const popSpring = spring({
             fps,
             frame: Math.max(0, (frame - wordStartFrame) * spd),
-            config: { damping: 11, mass: 0.4, stiffness: 220 },
+            config: { damping: 10, mass: 0.4, stiffness: 220 },
           });
 
           // Smooth decay when active word finishes
           const decaySpring = spring({
             fps,
             frame: Math.max(0, (frame - wordEndFrame) * spd),
-            config: { damping: 14, mass: 0.5, stiffness: 180 },
+            config: { damping: 14, mass: 0.45, stiffness: 190 },
           });
 
-          // Active word pops up to 1.25 -> recoils -> settles at 1.15 (115% scale modifier requested)
+          // Active word physically pops up to 1.28 on impact -> settles at 1.15
           const activeScale = interpolate(
             popSpring,
-            [0, 0.35, 0.7, 1.0],
-            [1.0, 1.25, 1.12, 1.15],
-            { extrapolateRight: "clamp" }
+            [0, 0.4, 0.75, 1.0],
+            [1.0, 1.28, 1.12, 1.15],
+            { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
           );
 
           let scale = 1.0;
           if (currentTime >= w.start && currentTime <= w.end) {
             scale = activeScale;
-          } else if (currentTime > w.end && frame - wordEndFrame < 8) {
+          } else if (currentTime > w.end && frame - wordEndFrame < 10) {
             scale = interpolate(decaySpring, [0, 1], [1.15, 1.0], {
+              extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             });
           }
@@ -259,7 +244,22 @@ export const HormoziPopTemplate: React.FC<TemplateProps> = ({
 
         }
 
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
 
       })}
 
@@ -391,7 +391,22 @@ export const MinimalSlideTemplate: React.FC<TemplateProps> = ({
 
         }
 
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
 
       })}
 
@@ -519,7 +534,22 @@ export const CyberGlitchTemplate: React.FC<TemplateProps> = ({
 
         }
 
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
 
       })}
 
@@ -657,7 +687,22 @@ export const ComicBounceTemplate: React.FC<TemplateProps> = ({
 
         }
 
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
 
       })}
 
@@ -781,7 +826,22 @@ export const ViralPunchTemplate: React.FC<TemplateProps> = ({
 
         }
 
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
 
       })}
 
@@ -832,31 +892,23 @@ export const FadeEditorialTemplate: React.FC<TemplateProps> = ({
           const wordStartFrame = Math.round(w.start * fps);
 
           const springProgress = spring({
-
             fps,
-
             frame: Math.max(0, (frame - wordStartFrame) * spd),
-
-            config: { stiffness: 120, damping: 18, mass: 1.0 },
-
+            config: { stiffness: 180, damping: 12, mass: 0.5 },
           });
 
           const opacity = isSpoken ? interpolate(springProgress, [0, 1], [0.35, 1.0]) : 0.7;
-
+          const scale = isSpoken ? interpolate(springProgress, [0, 0.4, 1], [1.0, 1.22, 1.08]) : 1.0;
           const color = isSpoken ? highlightColor : primaryColor;
 
           return (
-
             <span
-
               key={wIdx}
-
               style={{
-
                 display: "inline-block",
-
+                transform: `scale(${scale})`,
+                transformOrigin: "center bottom",
                 opacity,
-
                 color,
 
                 fontSize: `${fontSize}px`,
@@ -901,7 +953,22 @@ export const FadeEditorialTemplate: React.FC<TemplateProps> = ({
 
         }
 
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
 
       })}
 
@@ -1051,7 +1118,22 @@ export const BadgeInvertTemplate: React.FC<TemplateProps> = ({
 
         }
 
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
 
       })}
 
@@ -1250,7 +1332,22 @@ export const CumulativeFillTemplate: React.FC<TemplateProps> = ({
             </span>
           );
         }
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
       })}
     </>
   );
@@ -1364,7 +1461,22 @@ export const LetterPopTemplate: React.FC<TemplateProps> = ({
             </span>
           );
         }
-        return <React.Fragment key={rIdx}>{wordsContent}</React.Fragment>;
+        return (
+          <span
+            key={rIdx}
+            dir="rtl"
+            style={{
+              display: "inline-flex",
+              direction: "rtl",
+              unicodeBidi: "isolate",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 4px",
+            }}
+          >
+            {wordsContent}
+          </span>
+        );
       })}
     </>
   );

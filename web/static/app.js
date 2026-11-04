@@ -2571,9 +2571,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-    // 1. Determine words list based on wordsPerLine setting (2, 3, 4, 5 words)
-
-    const targetWordCount = parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3;
+    // 1. Determine words list based on wordsPerLine setting (strictly 3 to 4 words max)
+    const targetWordCount = Math.min(4, Math.max(2, parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3));
 
     let wordList = [];
 
@@ -2582,13 +2581,36 @@ document.addEventListener("DOMContentLoaded", () => {
       const segWords = currentTranscription.segments[0].words || [];
 
       const boundSegWords = [];
-      const prefixArticleRegex = /^(?:\u0648?\u0627\u0644\u0640?|\u0648?\u0627\u0644-|\u0648?\u0627\u0644|\u0644\u0640?|\u0644-|\u0644\u0644\u0640?|\u0644\u0644-|\u0641\u0640?|\u0641-|\u0628\u0640?|\u0628-|\u0644\u0627)$/;
+      const prefixArticleRegex = /^(?:[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644[\u0640\-]+|[\u0648]?\u0644\u0627[\u0640\-]*|[\u0648]?\u0644\u0648[\u0640\-]*|[\u0648]?\u0644\u064a[\u0640\-]*|[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|[\u0648]?\u062f\u064a[\u0640\-]*|[\u0648]?\u062f\u0648[\u0640\-]*|[\u0648]?\u062f[\u0640\-]+|[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|[\u0648]?\u0645\u0627[\u0640\-]*|[\u0648]?\u064a\u0627[\u0640\-]*|[\u0648]?\u0647\u0627[\u0640\-]*|[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*)$/;
+
+      function isPrefix(strVal) {
+        const clean = (strVal || "").replace(/^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$/g, "").trim();
+        if (!clean) return false;
+        return prefixArticleRegex.test(clean) || (strVal || "").trim().endsWith("-") || (strVal || "").trim().endsWith("ـ");
+      }
+
       let bwIdx = 0;
       while (bwIdx < segWords.length) {
         const textVal = (segWords[bwIdx].word || "").trim();
-        if (prefixArticleRegex.test(textVal) && bwIdx + 1 < segWords.length) {
-          const nextVal = (segWords[bwIdx + 1].word || "").trim();
-          if (nextVal.length > 0) {
+        if (isPrefix(textVal) && bwIdx + 1 < segWords.length) {
+          const chain = [segWords[bwIdx]];
+          let j = bwIdx + 1;
+          while (j < segWords.length && isPrefix(segWords[j].word || "")) {
+            chain.push(segWords[j]);
+            j++;
+          }
+          if (j < segWords.length) {
+            const targetWord = segWords[j];
+            const jointText = chain.map((item) => (item.word || "").trim()).join(" ") + " " + (targetWord.word || "").trim();
+            boundSegWords.push({
+              word: jointText.trim(),
+              start: chain[0].start,
+              end: targetWord.end || (targetWord.start + 0.3)
+            });
+            bwIdx = j + 1;
+            continue;
+          } else {
+            const nextVal = (segWords[bwIdx + 1].word || "").trim();
             boundSegWords.push({
               word: `${textVal} ${nextVal}`,
               start: segWords[bwIdx].start,
@@ -2742,147 +2764,125 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-    // Dynamically render word spans
-
+    // Dynamically render word spans grouped by script runs to prevent BiDi flex fragmentation
     liveSubtitleBox.innerHTML = "";
 
+    const scriptRuns = [];
+    let currentRun = [];
+    let currentIsLatin = null;
+
     wordList.forEach((wordText, idx) => {
-
-      const w = document.createElement("span");
-      w.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
-
-      const isLatin = /[a-zA-Z]/.test(wordText);
-
-      const bidiClass = (isArabic && isLatin) ? " bidi-isolate" : "";
-
-      if (isArabic && isLatin) {
-
-        w.setAttribute("dir", "ltr");
-
-        w.style.unicodeBidi = "isolate";
-
+      const hasLatin = /[a-zA-Z]/.test(wordText);
+      const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(wordText);
+      const isLatin = hasLatin && !hasArabic;
+      if (currentIsLatin === null || isLatin === currentIsLatin) {
+        currentRun.push({ wordText, idx });
+        currentIsLatin = isLatin;
+      } else {
+        scriptRuns.push({ isLatin: currentIsLatin, items: currentRun });
+        currentRun = [{ wordText, idx }];
+        currentIsLatin = isLatin;
       }
+    });
+    if (currentRun.length > 0 && currentIsLatin !== null) {
+      scriptRuns.push({ isLatin: currentIsLatin, items: currentRun });
+    }
 
+    scriptRuns.forEach((run, rIdx) => {
+      const runSpan = document.createElement("span");
+      runSpan.className = run.isLatin ? "bidi-latin-group" : "bidi-arabic-group";
+      runSpan.setAttribute("dir", run.isLatin ? "ltr" : "rtl");
+      runSpan.style.display = "inline-flex";
+      runSpan.style.direction = run.isLatin ? "ltr" : "rtl";
+      runSpan.style.unicodeBidi = "isolate";
+      runSpan.style.alignItems = "center";
+      runSpan.style.gap = "8px";
+      runSpan.style.margin = "0 4px";
 
+      run.items.forEach(({ wordText, idx }) => {
+        const w = document.createElement("span");
+        w.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
 
-      const isCumulative = activeAnim.startsWith("cumulative_") || activeAnim === "cumulative_fill";
+        const isLatin = /[a-zA-Z]/.test(wordText);
+        const bidiClass = (isArabic && isLatin) ? " bidi-isolate" : "";
 
+        const isCumulative = activeAnim.startsWith("cumulative_") || activeAnim === "cumulative_fill";
 
-
-      if (isCumulative && idx < previewActiveIdx) {
-
-        // Words that have been spoken in this line REMAIN colored!
-
-        w.className = `sub-word spoken cumulative-filled${bidiClass}`;
-
-        w.innerText = wordText;
-
-        w.style.background = "none";
-
-        w.style.color = hlVal;
-
-        w.style.webkitTextStroke = "1.2px #000";
-
-        w.style.textShadow = "0 2px 8px rgba(255, 230, 0, 0.45)";
-
-        w.style.padding = "0";
-
-        w.style.boxShadow = "none";
-
-      } else if (idx === previewActiveIdx) {
-
-        w.className = `sub-word active anim-${activeAnim}${bidiClass}`;
-
-
-
-        // Letter-by-letter rendering with contextual Arabic cursive preservation
-        if (activeAnim.startsWith("letter_")) {
-          w.innerHTML = "";
-          const isArabicWord = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(wordText);
-          const letterList = isArabicWord ? shapeArabicWordToLetters(wordText) : Array.from(wordText);
-          letterList.forEach((ch, cIdx) => {
-            const letSpan = document.createElement("span");
-            letSpan.className = "sub-letter" + (isArabicWord ? " arabic-letter" : "");
-            letSpan.innerText = ch;
-            letSpan.style.setProperty("--letter-idx", cIdx);
-            letSpan.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
-            w.appendChild(letSpan);
-          });
+        if (isCumulative && idx < previewActiveIdx) {
+          // Words that have been spoken in this line REMAIN colored!
+          w.className = `sub-word spoken cumulative-filled${bidiClass}`;
+          w.innerText = wordText;
           w.style.background = "none";
           w.style.color = hlVal;
           w.style.webkitTextStroke = "1.2px #000";
-          w.style.textShadow = "0 2px 6px rgba(0, 0, 0, 0.85)";
+          w.style.textShadow = "0 2px 8px rgba(255, 230, 0, 0.45)";
           w.style.padding = "0";
           w.style.boxShadow = "none";
-        } else if (activeAnim === "box_highlight" || activeAnim === "badge_invert") {
-          w.innerText = wordText;
-          w.style.background = hlVal;
-          w.style.color = badgeContrast;
-          w.style.webkitTextStroke = "0px transparent";
-          w.style.textShadow = "none";
-          w.style.fontWeight = isArabic ? "normal" : "700";
-          w.style.letterSpacing = isArabic ? "0px" : "0.35px";
+        } else if (idx === previewActiveIdx) {
+          w.className = `sub-word active anim-${activeAnim}${bidiClass}`;
+          w.style.transform = "scale(1.15)";
+          w.style.transformOrigin = "center bottom";
 
-          w.style.padding = "1.5px 6.5px";
-
-          w.style.borderRadius = "5px";
-
-          w.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.35)";
-
+          // Letter-by-letter rendering with contextual Arabic cursive preservation
+          if (activeAnim.startsWith("letter_")) {
+            w.innerHTML = "";
+            const isArabicWord = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(wordText);
+            const letterList = isArabicWord ? shapeArabicWordToLetters(wordText) : Array.from(wordText);
+            letterList.forEach((ch, cIdx) => {
+              const letSpan = document.createElement("span");
+              letSpan.className = "sub-letter" + (isArabicWord ? " arabic-letter" : "");
+              letSpan.innerText = ch;
+              letSpan.style.setProperty("--letter-idx", cIdx);
+              letSpan.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
+              w.appendChild(letSpan);
+            });
+            w.style.background = "none";
+            w.style.color = hlVal;
+            w.style.webkitTextStroke = "1.2px #000";
+            w.style.textShadow = "0 2px 6px rgba(0, 0, 0, 0.85)";
+            w.style.padding = "0";
+            w.style.boxShadow = "none";
+          } else if (activeAnim === "box_highlight" || activeAnim === "badge_invert") {
+            w.innerText = wordText;
+            w.style.background = hlVal;
+            w.style.color = badgeContrast;
+            w.style.webkitTextStroke = "0px transparent";
+            w.style.textShadow = "none";
+            w.style.fontWeight = isArabic ? "normal" : "700";
+            w.style.letterSpacing = isArabic ? "0px" : "0.35px";
+            w.style.padding = "1.5px 6.5px";
+            w.style.borderRadius = "5px";
+            w.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.35)";
+          } else {
+            w.innerText = wordText;
+            w.style.background = "none";
+            w.style.color = hlVal;
+            w.style.webkitTextStroke = "1.2px #000";
+            w.style.textShadow = "0 2px 6px rgba(0, 0, 0, 0.85)";
+            w.style.fontWeight = "";
+            w.style.letterSpacing = "";
+            w.style.padding = "0";
+            w.style.borderRadius = "";
+            w.style.boxShadow = "none";
+          }
         } else {
-
+          w.className = `sub-word${bidiClass}`;
           w.innerText = wordText;
-
           w.style.background = "none";
-
-          w.style.color = hlVal;
-
+          w.style.color = primaryColor ? primaryColor.value : "#FFFFFF";
           w.style.webkitTextStroke = "1.2px #000";
-
-          w.style.textShadow = "0 2px 6px rgba(0, 0, 0, 0.85)";
-
+          w.style.textShadow = "0 2px 4px rgba(0, 0, 0, 0.7)";
           w.style.fontWeight = "";
-
           w.style.letterSpacing = "";
-
           w.style.padding = "0";
-
           w.style.borderRadius = "";
-
           w.style.boxShadow = "none";
-
         }
 
-      } else {
+        runSpan.appendChild(w);
+      });
 
-        w.className = `sub-word${bidiClass}`;
-
-        w.innerText = wordText;
-
-        w.style.background = "none";
-
-        w.style.color = primaryColor ? primaryColor.value : "#FFFFFF";
-
-        w.style.webkitTextStroke = "1.2px #000";
-
-        w.style.textShadow = "0 2px 4px rgba(0, 0, 0, 0.7)";
-
-        w.style.fontWeight = "";
-
-        w.style.letterSpacing = "";
-
-        w.style.padding = "0";
-
-        w.style.borderRadius = "";
-
-        w.style.boxShadow = "none";
-
-      }
-
-
-
-      liveSubtitleBox.appendChild(w);
-
+      liveSubtitleBox.appendChild(runSpan);
     });
 
 

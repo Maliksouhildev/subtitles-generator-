@@ -10,7 +10,7 @@ import base64
 import logging
 import tempfile
 import subprocess
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 import requests
 
@@ -490,14 +490,41 @@ def classify_token_script(token: str, default: str = "arabic") -> str:
         return default
 
 
-ARABIC_PREFIX_ARTICLE_REGEX = re.compile(r'^(?:\u0648?\u0627\u0644\u0640?|\u0648?\u0627\u0644-|\u0648?\u0627\u0644|\u0644\u0640?|\u0644-|\u0644\u0644\u0640?|\u0644\u0644-|\u0641\u0640?|\u0641-|\u0628\u0640?|\u0628-|\u0644\u0627)$')
+ARABIC_PREFIX_ARTICLE_REGEX = re.compile(
+    r'^(?:'
+    r'[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|'  # ال, وال, بال, فال, كال, أَل, إل, آل with optional tatweel/hyphen
+    r'[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|'                              # لل, ولل, فلل, بلل
+    r'[\u0648\u0641\u0628]?\u0644[\u0640\-]+|'                                    # لـ, ولـ, فلـ, بلـ
+    r'[\u0648]?\u0644\u0627[\u0640\-]*|'                                          # لا, ولا (French 'la' particle / Arabic neg/art)
+    r'[\u0648]?\u0644\u0648[\u0640\-]*|'                                          # لو, ولو (French 'le')
+    r'[\u0648]?\u0644\u064a[\u0640\-]*|'                                          # لي, ولي (French 'les' / Darija li)
+    r'[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|'                              # اللي, واللي (Darija relative pronoun)
+    r'[\u0648]?\u062f\u064a[\u0640\-]*|'                                          # دي, ودي (French 'des')
+    r'[\u0648]?\u062f\u0648[\u0640\-]*|'                                          # دو, ودو (French 'du')
+    r'[\u0648]?\u062f[\u0640\-]+|'                                                # دـ, ودـ (Darija genitive d-)
+    r'[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|'                                  # بـ, فـ, كـ
+    r'[\u0648]?\u0645\u0627[\u0640\-]*|'                                          # ما, وما
+    r'[\u0648]?\u064a\u0627[\u0640\-]*|'                                          # يا, ويا
+    r'[\u0648]?\u0647\u0627[\u0640\-]*|'                                          # ها, وها
+    r'[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*'                               # بهاد, فهاد, هاد
+    r')$'
+)
+
+
+def is_prefix_token(token: str) -> bool:
+    """Checks if a token is an orphaned Arabic article/particle prefix."""
+    clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(token).strip())
+    if not clean:
+        return False
+    return bool(ARABIC_PREFIX_ARTICLE_REGEX.match(clean)) or token.strip().endswith(("-", "ـ"))
 
 
 def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا') to subsequent Latin loanwords
-    (e.g. 'premier test', 'nouvelle'), treating them as a single highlighted token.
+    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا', 'بهاد') to subsequent Latin loanwords
+    (e.g. 'premier', 'nouvelle'), treating them as a single highlighted token.
     Prevents awkward isolated article pop on screen and preserves natural bilingual phrasing.
+    Supports chained prefixes (e.g. 'و' + 'لا' + 'nouvelle').
     """
     if not words:
         return []
@@ -506,18 +533,36 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     while i < len(words):
         w = words[i]
         text_val = str(w.get("word", "")).strip()
-        if ARABIC_PREFIX_ARTICLE_REGEX.match(text_val) and i + 1 < len(words):
-            next_w = words[i + 1]
-            next_text = str(next_w.get("word", "")).strip()
-            if next_text:
-                joint_word = f"{text_val} {next_text}"
+
+        if is_prefix_token(text_val) and i + 1 < len(words):
+            # Accumulate chained prefixes if present
+            chain = [w]
+            j = i + 1
+            while j < len(words) and is_prefix_token(words[j].get("word", "")):
+                chain.append(words[j])
+                j += 1
+
+            if j < len(words):
+                target_word = words[j]
+                joint_text = " ".join(str(item.get("word", "")).strip() for item in chain) + " " + str(target_word.get("word", "")).strip()
                 bound.append({
-                    "word": joint_word,
+                    "word": joint_text.strip(),
+                    "start": chain[0].get("start", 0.0),
+                    "end": target_word.get("end", target_word.get("start", 0.0) + 0.3)
+                })
+                i = j + 1
+                continue
+            else:
+                next_w = words[i + 1]
+                joint_text = f"{text_val} {str(next_w.get('word', '')).strip()}"
+                bound.append({
+                    "word": joint_text,
                     "start": w.get("start", 0.0),
                     "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
                 })
                 i += 2
                 continue
+
         bound.append(w)
         i += 1
     return bound

@@ -39,7 +39,7 @@ class AfterEffectsScriptBuilder:
         self.primary_color = primary_color
         self.highlight_color = highlight_color
         self.animation_style = animation_style
-        self.words_per_line = words_per_line
+        self.words_per_line = min(4, max(2, words_per_line))
         self.comp_width = comp_width
         self.comp_height = comp_height
         self.fps = fps

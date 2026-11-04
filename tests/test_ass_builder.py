@@ -313,3 +313,40 @@ def test_ass_builder_new_creative_templates():
 
 
 
+
+
+def test_strict_chunking_limit_and_rlm_embedding():
+    # Enforces max 4 words even if requested 7
+    builder = ASSSubtitleBuilder(words_per_line=7, animation_style="hormozi-pop")
+    assert builder.words_per_line <= 4
+
+    words = [
+        {"word": "دير", "start": 0.0, "end": 0.4},
+        {"word": "ال", "start": 0.4, "end": 0.7},
+        {"word": "premier", "start": 0.7, "end": 1.2},
+        {"word": "test", "start": 1.2, "end": 1.6},
+        {"word": "بهاد", "start": 1.6, "end": 1.9},
+        {"word": "لا", "start": 1.9, "end": 2.2},
+        {"word": "nouvelle", "start": 2.2, "end": 2.8}
+    ]
+    chunks = builder.chunk_words(words)
+    # The 7 raw tokens get bound and all chunks are <= 4 words
+    assert all(len(c) <= 4 for c in chunks)
+
+    # Mixed script ASS contains RLM marker \u200F for RTL embedding
+    data = {
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 2.8,
+                "text": "دير ال premier test بهاد لا nouvelle",
+                "words": words
+            }
+        ]
+    }
+    ass_content = builder.generate_ass(data)
+    dialogues = [line for line in ass_content.splitlines() if line.startswith("Dialogue:")]
+    assert len(dialogues) > 0
+    # Every dialogue line containing Arabic clause starts with \u200F
+    assert any("\u200f" in d for d in dialogues)

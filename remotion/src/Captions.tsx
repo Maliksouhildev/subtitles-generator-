@@ -29,7 +29,13 @@ export interface CaptionsCompositionProps {
 // Regex to detect French / English loanwords embedded in Arabic text
 const LATIN_REGEX = /[a-zA-Z]/;
 const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
-const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:\u0648?\u0627\u0644\u0640?|\u0648?\u0627\u0644-|\u0648?\u0627\u0644|\u0644\u0640?|\u0644-|\u0644\u0644\u0640?|\u0644\u0644-|\u0641\u0640?|\u0641-|\u0628\u0640?|\u0628-|\u0644\u0627)$/;
+const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644[\u0640\-]+|[\u0648]?\u0644\u0627[\u0640\-]*|[\u0648]?\u0644\u0648[\u0640\-]*|[\u0648]?\u0644\u064a[\u0640\-]*|[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|[\u0648]?\u062f\u064a[\u0640\-]*|[\u0648]?\u062f\u0648[\u0640\-]*|[\u0648]?\u062f[\u0640\-]+|[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|[\u0648]?\u0645\u0627[\u0640\-]*|[\u0648]?\u064a\u0627[\u0640\-]*|[\u0648]?\u0647\u0627[\u0640\-]*|[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*)$/;
+
+function isPrefixToken(token: string): boolean {
+  const clean = token.replace(/^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$/g, "").trim();
+  if (!clean) return false;
+  return ARABIC_PREFIX_ARTICLE_REGEX.test(clean) || token.trim().endsWith("-") || token.trim().endsWith("ـ");
+}
 
 export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
   if (!words || words.length === 0) return [];
@@ -38,12 +44,27 @@ export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
   while (i < words.length) {
     const w = words[i];
     const text = (w.word || "").trim();
-    if (ARABIC_PREFIX_ARTICLE_REGEX.test(text) && i + 1 < words.length) {
-      const nextW = words[i + 1];
-      const nextText = (nextW.word || "").trim();
-      if (nextText.length > 0) {
+    if (isPrefixToken(text) && i + 1 < words.length) {
+      const chain = [w];
+      let j = i + 1;
+      while (j < words.length && isPrefixToken(words[j].word || "")) {
+        chain.push(words[j]);
+        j++;
+      }
+      if (j < words.length) {
+        const targetWord = words[j];
+        const jointText = chain.map((item) => (item.word || "").trim()).join(" ") + " " + (targetWord.word || "").trim();
         bound.push({
-          word: `${text} ${nextText}`,
+          word: jointText.trim(),
+          start: chain[0].start,
+          end: targetWord.end ?? (targetWord.start + 0.3),
+        });
+        i = j + 1;
+        continue;
+      } else {
+        const nextW = words[i + 1];
+        bound.push({
+          word: `${text} ${(nextW.word || "").trim()}`,
           start: w.start,
           end: nextW.end ?? (nextW.start + 0.3),
         });
@@ -57,26 +78,26 @@ export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
   return bound;
 }
 
-
-// Helper: Anti-orphan balanced chunking so fast audio never flashes 1 isolated word
+// Helper: Anti-orphan balanced chunking enforcing strict 3-to-4 word limit per chunk
 function balanceChunkSizes(totalWords: number, targetSize: number): number[] {
-  if (totalWords <= targetSize) return [totalWords];
-  const numChunks = Math.ceil(totalWords / targetSize);
-  if (totalWords % targetSize === 1 && numChunks > 1) {
+  const effectiveTarget = Math.min(4, Math.max(2, targetSize || 3));
+  if (totalWords <= effectiveTarget) return [totalWords];
+  const numChunks = Math.ceil(totalWords / effectiveTarget);
+  if (totalWords % effectiveTarget === 1 && numChunks > 1) {
     const baseSize = Math.floor(totalWords / numChunks);
     const remainder = totalWords % numChunks;
-    return Array.from({ length: numChunks }, (_, k) => baseSize + (k < remainder ? 1 : 0));
+    return Array.from({ length: numChunks }, (_, k) => Math.min(4, baseSize + (k < remainder ? 1 : 0)));
   }
   const sizes: number[] = [];
   let remaining = totalWords;
   while (remaining > 0) {
-    if (remaining === targetSize + 1) {
+    if (remaining === effectiveTarget + 1) {
       const half = Math.floor(remaining / 2);
-      sizes.push(remaining - half);
-      sizes.push(half);
+      sizes.push(Math.min(4, remaining - half));
+      sizes.push(Math.min(4, half));
       break;
     }
-    const take = Math.min(targetSize, remaining);
+    const take = Math.min(4, Math.min(effectiveTarget, remaining));
     sizes.push(take);
     remaining -= take;
   }
@@ -119,7 +140,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
   const outlineColor = style.outline_color || "#000000";
   const outlineWidth = style.outline_width ?? 2.4;
   const marginV = style.margin_v ?? 960;
-  const wordsPerLine = style.words_per_line ?? 4;
+  const wordsPerLine = Math.min(4, Math.max(2, style.words_per_line ?? 3));
   const subBoxStyle = style.sub_box_style || "none";
   const subBoxColor = style.sub_box_color || "#000000";
   const subBoxAlpha = style.sub_box_alpha ?? 0.85;

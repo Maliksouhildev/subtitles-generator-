@@ -39,14 +39,41 @@ def classify_token_script(token: str, default: str = "arabic") -> str:
         return default
 
 
-ARABIC_PREFIX_ARTICLE_REGEX = re.compile(r'^(?:\u0648?\u0627\u0644\u0640?|\u0648?\u0627\u0644-|\u0648?\u0627\u0644|\u0644\u0640?|\u0644-|\u0644\u0644\u0640?|\u0644\u0644-|\u0641\u0640?|\u0641-|\u0628\u0640?|\u0628-|\u0644\u0627)$')
+ARABIC_PREFIX_ARTICLE_REGEX = re.compile(
+    r'^(?:'
+    r'[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|'  # ال, وال, بال, فال, كال, أَل, إل, آل with optional tatweel/hyphen
+    r'[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|'                              # لل, ولل, فلل, بلل
+    r'[\u0648\u0641\u0628]?\u0644[\u0640\-]+|'                                    # لـ, ولـ, فلـ, بلـ
+    r'[\u0648]?\u0644\u0627[\u0640\-]*|'                                          # لا, ولا (French 'la' particle / Arabic neg/art)
+    r'[\u0648]?\u0644\u0648[\u0640\-]*|'                                          # لو, ولو (French 'le')
+    r'[\u0648]?\u0644\u064a[\u0640\-]*|'                                          # لي, ولي (French 'les' / Darija li)
+    r'[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|'                              # اللي, واللي (Darija relative pronoun)
+    r'[\u0648]?\u062f\u064a[\u0640\-]*|'                                          # دي, ودي (French 'des')
+    r'[\u0648]?\u062f\u0648[\u0640\-]*|'                                          # دو, ودو (French 'du')
+    r'[\u0648]?\u062f[\u0640\-]+|'                                                # دـ, ودـ (Darija genitive d-)
+    r'[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|'                                  # بـ, فـ, كـ
+    r'[\u0648]?\u0645\u0627[\u0640\-]*|'                                          # ما, وما
+    r'[\u0648]?\u064a\u0627[\u0640\-]*|'                                          # يا, ويا
+    r'[\u0648]?\u0647\u0627[\u0640\-]*|'                                          # ها, وها
+    r'[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*'                               # بهاد, فهاد, هاد
+    r')$'
+)
+
+
+def is_prefix_token(token: str) -> bool:
+    """Checks if a token is an orphaned Arabic article/particle prefix."""
+    clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(token).strip())
+    if not clean:
+        return False
+    return bool(ARABIC_PREFIX_ARTICLE_REGEX.match(clean)) or token.strip().endswith(("-", "ـ"))
 
 
 def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا') to subsequent Latin loanwords
-    (e.g. 'premier test', 'nouvelle'), treating them as a single highlighted token.
+    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا', 'بهاد') to subsequent Latin loanwords
+    (e.g. 'premier', 'nouvelle'), treating them as a single highlighted token.
     Prevents awkward isolated article pop on screen and preserves natural bilingual phrasing.
+    Supports chained prefixes (e.g. 'و' + 'لا' + 'nouvelle').
     """
     if not words:
         return []
@@ -55,13 +82,27 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     while i < len(words):
         w = words[i]
         text_val = str(w.get("word", "")).strip()
-        if ARABIC_PREFIX_ARTICLE_REGEX.match(text_val) and i + 1 < len(words):
-            next_w = words[i + 1]
-            next_text = str(next_w.get("word", "")).strip()
-            if next_text:
-                joint_word = f"{text_val} {next_text}"
+        if is_prefix_token(text_val) and i + 1 < len(words):
+            chain = [w]
+            j = i + 1
+            while j < len(words) and is_prefix_token(words[j].get("word", "")):
+                chain.append(words[j])
+                j += 1
+            if j < len(words):
+                target_word = words[j]
+                joint_text = " ".join(str(item.get("word", "")).strip() for item in chain) + " " + str(target_word.get("word", "")).strip()
                 bound.append({
-                    "word": joint_word,
+                    "word": joint_text.strip(),
+                    "start": chain[0].get("start", 0.0),
+                    "end": target_word.get("end", target_word.get("start", 0.0) + 0.3)
+                })
+                i = j + 1
+                continue
+            else:
+                next_w = words[i + 1]
+                joint_text = f"{text_val} {str(next_w.get('word', '')).strip()}"
+                bound.append({
+                    "word": joint_text,
                     "start": w.get("start", 0.0),
                     "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
                 })
@@ -98,27 +139,30 @@ def resolve_visual_word_order(chunk: List[Dict[str, Any]], in_rtl_context: bool 
     return list(range(len(chunk)))
 
 
-def balance_chunk_sizes(total_words: int, target_size: int) -> List[int]:
+def balance_chunk_sizes(total_words: int, target_size: int = 3) -> List[int]:
     """
-    Calculates balanced chunk sizes preventing awkward 1-word orphan lines.
+    Calculates balanced chunk sizes preventing awkward 1-word orphan lines
+    and strictly enforcing a 3-to-4 word limit per chunk for mobile legibility.
     For example: 4 words with target=3 splits into [2, 2], not [3, 1].
+    A chunk never exceeds 4 words.
     """
-    if total_words <= target_size:
+    effective_target = min(4, max(2, target_size))
+    if total_words <= effective_target:
         return [total_words]
-    num_chunks = math.ceil(total_words / target_size)
-    if total_words % target_size == 1 and num_chunks > 1:
+    num_chunks = math.ceil(total_words / effective_target)
+    if total_words % effective_target == 1 and num_chunks > 1:
         base_size = total_words // num_chunks
         remainder = total_words % num_chunks
-        return [base_size + (1 if k < remainder else 0) for k in range(num_chunks)]
+        return [min(4, base_size + (1 if k < remainder else 0)) for k in range(num_chunks)]
     sizes = []
     remaining = total_words
     while remaining > 0:
-        if remaining == target_size + 1:
+        if remaining == effective_target + 1:
             half = remaining // 2
-            sizes.append(remaining - half)
-            sizes.append(half)
+            sizes.append(min(4, remaining - half))
+            sizes.append(min(4, half))
             break
-        take = min(target_size, remaining)
+        take = min(4, min(effective_target, remaining))
         sizes.append(take)
         remaining -= take
     return sizes
@@ -221,7 +265,7 @@ class ASSSubtitleBuilder:
             self.margin_v = max(30, video_height - pos_y)
         else:
             self.margin_v = margin_v
-        self.words_per_line = max(1, words_per_line)
+        self.words_per_line = min(4, max(2, words_per_line))
         self.animation_style = animation_style
         self.video_width = video_width
         self.video_height = video_height
@@ -374,6 +418,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         formatted_words.append(f"{{{pri_tag}{norm_scale}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -510,6 +556,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         formatted_words.append(f"{{{pri_tag}\\blur1.8{reset_box}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -570,6 +618,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         formatted_words.append(f"{{{pri_tag}\\blur1.8{norm_tag}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -628,6 +678,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         formatted_words.append(f"{{{pri_tag}{reset_neon}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -684,6 +736,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         formatted_words.append(f"{{{norm_tag}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -755,6 +809,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         formatted_words.append(f"{{{pri_tag}\\alpha&H88&\\blur0.8{reset_tag}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -828,6 +884,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         formatted_words.append(f"{{{pri_tag}\\blur0.8{norm_tag}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
