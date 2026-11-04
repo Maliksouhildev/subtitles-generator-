@@ -37,6 +37,54 @@ function isPrefixToken(token: string): boolean {
   return ARABIC_PREFIX_ARTICLE_REGEX.test(clean) || token.trim().endsWith("-") || token.trim().endsWith("ـ");
 }
 
+
+export function splitFusedScriptTokens(words: WordToken[]): WordToken[] {
+  if (!words || words.length === 0) return [];
+  const result: WordToken[] = [];
+  const latinThenArabic = /^([a-zA-Z0-9_\-]+)([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF].*)$/;
+  const arabicThenLatin = /^([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+[^\w\s\u0640\-]*)([a-zA-Z].*)$/;
+
+  for (const w of words) {
+    const text = (w.word || "").trim();
+    const dur = Math.max(0.1, (w.end ?? (w.start + 0.3)) - w.start);
+
+    const m1 = text.match(latinThenArabic);
+    if (m1 && !text.endsWith("-") && !text.endsWith("ـ")) {
+      const p1 = m1[1];
+      const p2 = m1[2];
+      const mid = Number((w.start + (p1.length / Math.max(1, p1.length + p2.length)) * dur).toFixed(2));
+      result.push({ word: p1, start: w.start, end: mid });
+      result.push({ word: p2, start: mid, end: w.end });
+      continue;
+    }
+
+    const m2 = text.match(arabicThenLatin);
+    if (m2 && !m2[1].endsWith("-") && !m2[1].endsWith("ـ")) {
+      const p1 = m2[1];
+      const p2 = m2[2];
+      const mid = Number((w.start + (p1.length / Math.max(1, p1.length + p2.length)) * dur).toFixed(2));
+      result.push({ word: p1, start: w.start, end: mid });
+      result.push({ word: p2, start: mid, end: w.end });
+      continue;
+    }
+
+    result.push(w);
+  }
+  return result;
+}
+
+const NON_TERMINAL_PARTICLES = new Set([
+  "و", "ف", "ب", "ل", "في", "على", "من", "عن", "مع", "إلى", "الى",
+  "ما", "لا", "لي", "اللي", "دي", "دو", "يا", "ها", "بهاد", "فهاد", "هاد",
+  "la", "le", "les", "un", "une", "des", "du", "de", "d'", "et", "ou",
+  "en", "au", "aux", "par", "pour", "avec", "dans", "sur"
+]);
+
+function isNonTerminalToken(token: string): boolean {
+  const clean = (token || "").replace(/^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$/g, "").toLowerCase().trim();
+  return NON_TERMINAL_PARTICLES.has(clean) || (token || "").trim().endsWith("-") || (token || "").trim().endsWith("ـ");
+}
+
 export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
   if (!words || words.length === 0) return [];
   const bound: WordToken[] = [];
@@ -118,7 +166,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
   // Extract flat list of all word tokens with valid timestamps
   const allWords: WordToken[] = React.useMemo(() => {
     if (transcription?.words && transcription.words.length > 0) {
-      return bindArabicArticlesToLatin(transcription.words);
+      return bindArabicArticlesToLatin(splitFusedScriptTokens(transcription.words));
     }
     if (transcription?.segments && transcription.segments.length > 0) {
       const flattened: WordToken[] = [];
@@ -127,13 +175,13 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
           flattened.push(...seg.words);
         }
       }
-      return bindArabicArticlesToLatin(flattened);
+      return bindArabicArticlesToLatin(splitFusedScriptTokens(flattened));
     }
     return [];
   }, [transcription]);
 
   // Extract style configuration with fallback defaults
-  const fontName = style.font_name || "Lalezar";
+  const fontName = style.font_name || "Cairo";
   const fontSize = style.font_size || 58;
   const primaryColor = style.primary_color || "#FFFFFF";
   const highlightColor = style.highlight_color || "#FFE600";
@@ -165,13 +213,33 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
     }
     if (currentBlock.length > 0) pauseBlocks.push(currentBlock);
 
-    // Apply balanced chunking per pause block
+    // Apply balanced chunking per pause block with grammatical cohesion
     const result: Array<{ words: WordToken[]; start: number; end: number }> = [];
     for (const block of pauseBlocks) {
       const sizes = balanceChunkSizes(block.length, wordsPerLine);
       let idx = 0;
+      const blockChunks: WordToken[][] = [];
       for (const sz of sizes) {
-        const slice = block.slice(idx, idx + sz);
+        blockChunks.push(block.slice(idx, idx + sz));
+        idx += sz;
+      }
+
+      // Grammatical cohesion pass: prevent stranding non-terminal particles at chunk ends
+      for (let cI = 0; cI < blockChunks.length - 1; cI++) {
+        const currC = blockChunks[cI];
+        const nextC = blockChunks[cI + 1];
+        if (currC.length > 0 && isNonTerminalToken(currC[currC.length - 1].word)) {
+          if (currC.length > 2) {
+            const moved = currC.pop()!;
+            nextC.unshift(moved);
+          } else if (currC.length < 4 && nextC.length > 0) {
+            const moved = nextC.shift()!;
+            currC.push(moved);
+          }
+        }
+      }
+
+      for (const slice of blockChunks) {
         if (slice.length > 0) {
           result.push({
             words: slice,
@@ -179,7 +247,6 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
             end: slice[slice.length - 1].end,
           });
         }
-        idx += sz;
       }
     }
     return result;

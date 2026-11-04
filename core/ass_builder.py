@@ -210,35 +210,47 @@ FONT_FAMILY_MAP = {
     "Changa": "Changa",
     "El Messiri": "El Messiri",
     "Readex Pro": "Readex Pro",
-    "Rubik": "Rubik Light",
+    "Rubik": "Rubik",
     "IBM Plex Sans Arabic": "IBM Plex Sans Arabic",
     "Reem Kufi": "Reem Kufi",
     "Alexandria": "Alexandria",
     "Baloo Bhaijaan 2": "Baloo Bhaijaan 2",
     "Aref Ruqaa": "Aref Ruqaa",
-    "Marhey": "Marhey Light",
+    "Marhey": "Marhey",
     "Noto Sans Arabic": "Noto Sans Arabic",
     "Noto Kufi Arabic": "Noto Kufi Arabic",
     "Lemonada": "Lemonada",
     "Mada": "Mada",
     "Harmattan": "Harmattan",
-    "Montserrat": "Montserrat Thin",
+    "Montserrat": "Montserrat",
     "Anton": "Anton",
     "Bebas Neue": "Bebas Neue",
-    "Outfit": "Outfit Thin",
+    "Outfit": "Outfit",
+    "Poppins": "Poppins",
 }
+
+NON_TERMINAL_PARTICLES = {
+    "و", "ف", "ب", "ل", "في", "على", "من", "عن", "مع", "إلى", "الى",
+    "ما", "لا", "لي", "اللي", "دي", "دو", "يا", "ها", "بهاد", "فهاد", "هاد",
+    "la", "le", "les", "un", "une", "des", "du", "de", "d'", "et", "ou",
+    "en", "au", "aux", "par", "pour", "avec", "dans", "sur"
+}
+
+def is_non_terminal_token(token: str) -> bool:
+    clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(token).strip().lower())
+    return clean in NON_TERMINAL_PARTICLES or token.strip().endswith(("-", "ـ"))
 
 class ASSSubtitleBuilder:
     def __init__(
         self,
-        font_name: str = "Lalezar",
+        font_name: str = "Cairo",
         font_size: int = 56,
         primary_color: str = "#FFFFFF",
         highlight_color: str = "#FFE600",
         outline_color: str = "#000000",
         shadow_color: str = "#000000",
-        outline_width: float = 6.0,
-        shadow_depth: float = 4.5,
+        outline_width: float = 3.5,
+        shadow_depth: float = 2.5,
         alignment: int = 2,  # 2: Bottom Center, 5: Middle Center, 8: Top Center
         margin_v: int = 960,  # Center of the screen (960px on 1920h)
         words_per_line: int = 4,
@@ -297,10 +309,10 @@ class ASSSubtitleBuilder:
         else:
             border_style = 1
             out_ass = hex_to_ass_color(self.outline_color)
-            outline_val = max(5.5, float(self.outline_width))
-            # Heavy, hard broadcast drop-shadow for separation against noisy video
-            sha_ass = hex_to_ass_color(self.shadow_color, alpha=0)
-            shadow_val = max(4.5, float(self.shadow_depth))
+            outline_val = max(1.5, min(6.0, float(self.outline_width)))
+            # Clean, high-legibility mobile shadow with soft ambient blur
+            sha_ass = hex_to_ass_color(self.shadow_color, alpha=35)
+            shadow_val = max(0.0, min(5.0, float(self.shadow_depth)))
 
         header = f"""[Script Info]
 Title: Darija Subtitles Generator
@@ -326,6 +338,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         1. Natural speech pauses (> 0.9s).
         2. Pacing control (words_per_line) with anti-orphan balancing.
         3. Automatic binding of orphaned Arabic definite articles ('ال', 'الـ') to Latin words.
+        4. Grammatical cohesion: avoids stranding non-terminal particles ('la', 'و', 'ما') across chunk breaks.
         """
         if not words:
             return []
@@ -348,9 +361,26 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         for block in pause_blocks:
             sizes = balance_chunk_sizes(len(block), self.words_per_line)
             idx = 0
+            block_chunks = []
             for sz in sizes:
-                chunks.append(block[idx:idx + sz])
+                block_chunks.append(list(block[idx:idx + sz]))
                 idx += sz
+
+            # Grammatical cohesion: prevent stranding non-terminal particles at the end of a line
+            for c_i in range(len(block_chunks) - 1):
+                curr_c = block_chunks[c_i]
+                next_c = block_chunks[c_i + 1]
+                if curr_c and is_non_terminal_token(curr_c[-1].get("word", "")):
+                    if len(curr_c) > 2:
+                        moved = curr_c.pop()
+                        next_c.insert(0, moved)
+                    elif len(curr_c) < 4 and next_c:
+                        moved = next_c.pop(0)
+                        curr_c.append(moved)
+
+            for c in block_chunks:
+                if c:
+                    chunks.append(c)
 
         return chunks
 

@@ -111,7 +111,7 @@ def test_ass_builder_sub_box_styles():
     # 2. None style -> BorderStyle=1
     builder_none = ASSSubtitleBuilder(sub_box_style="none")
     ass_none = builder_none.generate_ass(data)
-    assert ",1,6.0,4.5," in ass_none
+    assert ",1,3.5,2.5," in ass_none
 
     # 3. Deep shadow style -> BorderStyle=1 with shadow 5.0
     builder_shadow = ASSSubtitleBuilder(sub_box_style="shadow", sub_box_color="#000000")
@@ -350,3 +350,16 @@ def test_strict_chunking_limit_and_rlm_embedding():
     assert len(dialogues) > 0
     # Every dialogue line containing Arabic clause starts with \u200F
     assert any("\u200f" in d for d in dialogues)
+
+
+def test_grammatical_cohesion_anti_dangling_particles():
+    builder = ASSSubtitleBuilder(words_per_line=3, animation_style="karaoke_pop")
+    words = [
+        {"word": "داخل", "start": 3.81, "end": 3.94},
+        {"word": "la", "start": 3.94, "end": 3.95},
+        {"word": "tôle", "start": 4.00, "end": 4.10},
+        {"word": "شوف", "start": 4.10, "end": 4.66}
+    ]
+    chunks = builder.chunk_words(words)
+    # 'la' must not be stranded at end of chunk; 'la' and 'tôle' must stay together
+    assert any("la" in [w["word"] for w in ch] and "tôle" in [w["word"] for w in ch] for ch in chunks)

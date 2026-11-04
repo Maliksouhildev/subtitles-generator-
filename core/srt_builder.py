@@ -97,9 +97,22 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
 
 
 
+NON_TERMINAL_PARTICLES = {
+    "و", "ف", "ب", "ل", "في", "على", "من", "عن", "مع", "إلى", "الى",
+    "ما", "لا", "لي", "اللي", "دي", "دو", "يا", "ها", "بهاد", "فهاد", "هاد",
+    "la", "le", "les", "un", "une", "des", "du", "de", "d'", "et", "ou",
+    "en", "au", "aux", "par", "pour", "avec", "dans", "sur"
+}
+
+def is_non_terminal_token(token: str) -> bool:
+    clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(token).strip().lower())
+    return clean in NON_TERMINAL_PARTICLES or token.strip().endswith(("-", "ـ"))
+
+
 def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4) -> List[List[Dict[str, Any]]]:
     """
-    Chunks words respecting speech pauses, keeping Arabic phrases and Latin loanwords unified.
+    Chunks words respecting speech pauses, keeping Arabic phrases and Latin loanwords unified
+    and avoiding stranding non-terminal particles at the end of chunks.
     """
     if not words:
         return []
@@ -118,9 +131,28 @@ def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4)
         pause_blocks.append(current_block)
 
     chunks = []
+    w_target = min(4, max(2, words_per_chunk))
     for block in pause_blocks:
-        for i in range(0, len(block), words_per_chunk):
-            chunks.append(block[i:i + words_per_chunk])
+        block_chunks = []
+        for i in range(0, len(block), w_target):
+            block_chunks.append(list(block[i:i + w_target]))
+
+        # Grammatical cohesion
+        for c_i in range(len(block_chunks) - 1):
+            curr_c = block_chunks[c_i]
+            next_c = block_chunks[c_i + 1]
+            if curr_c and is_non_terminal_token(curr_c[-1].get("word", "")):
+                if len(curr_c) > 2:
+                    moved = curr_c.pop()
+                    next_c.insert(0, moved)
+                elif len(curr_c) < 4 and next_c:
+                    moved = next_c.pop(0)
+                    curr_c.append(moved)
+
+        for c in block_chunks:
+            if c:
+                chunks.append(c)
+
     return chunks
 
 

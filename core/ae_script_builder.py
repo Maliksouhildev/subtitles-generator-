@@ -30,7 +30,7 @@ class AfterEffectsScriptBuilder:
         comp_height: int = 1920,
         fps: float = 30.0,
         pos_y: int = 960,
-        stroke_width: float = 6.0,
+        stroke_width: float = 3.5,
         ease_p1: Optional[List[float]] = None,
         ease_p2: Optional[List[float]] = None
     ):
@@ -44,7 +44,7 @@ class AfterEffectsScriptBuilder:
         self.comp_height = comp_height
         self.fps = fps
         self.pos_y = pos_y
-        self.stroke_width = max(4.0, float(stroke_width))
+        self.stroke_width = max(2.0, float(stroke_width))
         self.ease_p1 = ease_p1 or [0.34, 1.56]
         self.ease_p2 = ease_p2 or [0.64, 1.00]
 

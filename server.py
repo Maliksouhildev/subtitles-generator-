@@ -73,8 +73,8 @@ class RenderRequest(BaseModel):
     highlight_color: str = "#FFE600"
     outline_color: str = "#000000"
     shadow_color: str = "#000000"
-    outline_width: float = 6.0
-    shadow_depth: float = 4.5
+    outline_width: float = 3.5
+    shadow_depth: float = 2.5
     alignment: int = 2
     margin_v: int = 960
     pos_y: Optional[int] = None

@@ -220,3 +220,22 @@ def test_bind_darija_prefixes_multitoken():
     assert bound[3]["word"] == "بهاد لا nouvelle"
     assert bound[3]["start"] == 1.6
     assert bound[3]["end"] == 2.8
+
+
+def test_split_fused_script_tokens():
+    from core.transcriber import split_fused_script_tokens, GEMINI_MODELS
+    # Prioritizes active transcribe models
+    assert GEMINI_MODELS[0] == "gemini-3.1-flash-lite"
+    assert "gemini-3.1-flash-lite" in GEMINI_MODELS
+
+    words = [
+        {"word": "komunه", "start": 6.42, "end": 6.84},
+        {"word": "مع", "start": 6.84, "end": 8.78},
+        {"word": "تشوف", "start": 8.78, "end": 9.5}
+    ]
+    split = split_fused_script_tokens(words)
+    assert len(split) == 4
+    assert split[0]["word"] == "komun"
+    assert split[1]["word"] == "ه"
+    assert split[2]["word"] == "مع"
+    assert split[3]["word"] == "تشوف"

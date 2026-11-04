@@ -19,12 +19,12 @@ logging.basicConfig(level=logging.INFO)
 
 # Gemini models with free-tier access ordered by speed, transcription accuracy & JSON mode support
 GEMINI_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-flash-latest",
-    "gemini-2.5-flash-lite",
-    "gemini-3.5-flash",
     "gemini-3.1-flash-lite",
-    "gemini-2.5-pro",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-flash-lite-latest",
+    "gemini-3.8-flash",
+    "gemini-flash-latest",
 ]
 
 DARIJA_SYSTEM_PROMPT = """
@@ -568,11 +568,48 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     return bound
 
 
+def split_fused_script_tokens(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Splits accidentally fused Latin-Arabic or Arabic-Latin tokens (e.g. 'komunه' -> 'komun', 'ه').
+    Prevents BiDi layout inversions where a single word mixes scripts without boundary isolation.
+    """
+    if not words:
+        return []
+    result = []
+    pattern_latin_then_arabic = re.compile(r'^([a-zA-Z0-9_\-]+)([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF].*)$')
+    pattern_arabic_then_latin = re.compile(r'^([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+[^\w\s\u0640\-]*)([a-zA-Z].*)$')
+
+    for w in words:
+        word_text = str(w.get("word", "")).strip()
+        w_start = float(w.get("start", 0.0))
+        w_end = float(w.get("end", w_start + 0.3))
+        w_dur = max(0.1, w_end - w_start)
+
+        m1 = pattern_latin_then_arabic.match(word_text)
+        if m1 and not word_text.endswith(("-", "ـ")):
+            p1, p2 = m1.group(1), m1.group(2)
+            mid = round(w_start + (len(p1) / max(1, len(p1) + len(p2))) * w_dur, 2)
+            result.append({"word": p1, "start": w_start, "end": mid})
+            result.append({"word": p2, "start": mid, "end": w_end})
+            continue
+
+        m2 = pattern_arabic_then_latin.match(word_text)
+        if m2 and not m2.group(1).endswith(("-", "ـ")):
+            p1, p2 = m2.group(1), m2.group(2)
+            mid = round(w_start + (len(p1) / max(1, len(p1) + len(p2))) * w_dur, 2)
+            result.append({"word": p1, "start": w_start, "end": mid})
+            result.append({"word": p2, "start": mid, "end": w_end})
+            continue
+
+        result.append(w)
+    return result
+
+
 def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0.0) -> Dict[str, Any]:
     """
     Ensures consistent segments, IDs, and word-level timestamps.
     Keeps natural mixed-language phrases intact so French loanwords flow seamlessly with Arabic text.
-    Binds orphaned Arabic articles to subsequent Latin words into unified highlighted tokens.
+    Splits fused mixed-script tokens and binds orphaned Arabic articles to subsequent Latin words.
     """
     segments = data.get("segments", [])
     normalized_segments = []
@@ -580,6 +617,7 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
 
     for seg in segments:
         words = interpolate_word_timestamps(seg)
+        words = split_fused_script_tokens(words)
         words = bind_arabic_articles_to_latin(words)
         if not words:
             start = float(seg.get("start", 0.0))
@@ -691,7 +729,7 @@ def transcribe_with_gemini(
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
         logger.info(f"Attempting Gemini transcription with model: {model_name}...")
         try:
-            response = requests.post(url, json=payload, timeout=30)
+            response = requests.post(url, json=payload, timeout=60)
             if response.status_code == 200:
                 resp_json = response.json()
                 candidates = resp_json.get("candidates", [])
@@ -744,13 +782,19 @@ def transcribe_with_faster_whisper(audio_path: str, dialect_hint: str = "General
     processed_audio = extract_audio(audio_path)
     audio_duration = get_audio_duration(processed_audio)
 
-    # Use small or base model for fast execution on CPU
+    # Anti-hallucination configuration: condition_on_previous_text=False prevents repetition loops
     model = WhisperModel("base", device="cpu", compute_type="int8")
     segments_gen, info = model.transcribe(
         processed_audio,
         language=whisper_lang,
         initial_prompt=whisper_prompt,
-        word_timestamps=True
+        word_timestamps=True,
+        condition_on_previous_text=False,
+        vad_filter=True,
+        vad_parameters=dict(min_silence_duration_ms=450),
+        temperature=[0.0, 0.2, 0.4],
+        compression_ratio_threshold=2.2,
+        no_speech_threshold=0.6,
     )
 
     segments = []

@@ -23,7 +23,7 @@ const defaultSampleProps: CaptionsCompositionProps = {
   },
   template_id: "hormozi-pop",
   style: {
-    font_name: "Lalezar",
+    font_name: "Cairo",
     font_size: 62,
     primary_color: "#FFFFFF",
     highlight_color: "#FFE600",

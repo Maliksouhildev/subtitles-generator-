@@ -132,18 +132,15 @@ export const HormoziPopTemplate: React.FC<TemplateProps> = ({
 
       {runs.map((run, rIdx) => {
 
-        const strokeWidth = Math.max(7.5, Math.round(fontSize * 0.11));
-        const textStroke = `${strokeWidth}px ${outlineColor}`;
-        const textShadow = `
-          -${strokeWidth}px -${strokeWidth}px 0 ${outlineColor},
-           ${strokeWidth}px -${strokeWidth}px 0 ${outlineColor},
-          -${strokeWidth}px  ${strokeWidth}px 0 ${outlineColor},
-           ${strokeWidth}px  ${strokeWidth}px 0 ${outlineColor},
-           0px ${strokeWidth + 3}px 0 #000000,
-           3px ${strokeWidth + 4}px 0 #000000,
-          -3px ${strokeWidth + 4}px 0 #000000,
-           0px ${strokeWidth + 8}px 18px rgba(0, 0, 0, 0.95)
-        `;
+        const strokeWidth = style.outline_width ?? Math.max(3.0, Math.min(4.5, Math.round(fontSize * 0.065)));
+        const textStroke = ${strokeWidth}px ;
+        const textShadow = 
+          -px -px 0 ,
+           px -px 0 ,
+          -px  px 0 ,
+           px  px 0 ,
+           0px 3px 6px rgba(0, 0, 0, 0.65)
+        ;
 
         const wordsContent = run.words.map((w, wIdx) => {
           const isSpoken = currentTime >= w.start && currentTime <= w.end;

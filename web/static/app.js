@@ -183,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fontExists && (keepFont || primaryFonts.some(f => f.id === currentVal))) {
       fontName.value = currentVal;
     } else {
-      fontName.value = isArabic ? "Lalezar" : "Montserrat";
+      fontName.value = isArabic ? "Cairo" : "Montserrat";
     }
 
     const wrap = document.querySelector('.comic-enhanced-select[data-select-id="fontName"]');
@@ -1486,7 +1486,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return {
 
-      font: fontName ? fontName.value : "Lalezar",
+      font: fontName ? fontName.value : "Cairo",
 
       fontSize: fontSize ? (parseInt(fontSize.value) || 56) : 56,
 
@@ -2560,7 +2560,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Font styling & proportional responsive size
 
-    const activeFont = (fontName && fontName.value) ? fontName.value : "Lalezar";
+    const activeFont = (fontName && fontName.value) ? fontName.value : "Cairo";
     liveSubtitleBox.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
 
     const currentFs = parseInt(fontSize ? fontSize.value : 56) || 56;
@@ -4976,8 +4976,8 @@ document.addEventListener("DOMContentLoaded", () => {
       highlight_color: (highlightColor && highlightColor.value) ? highlightColor.value : "#FFE600",
       outline_color: "#000000",
       shadow_color: "#000000",
-      outline_width: 6.0,
-      shadow_depth: 4.5,
+      outline_width: 3.5,
+      shadow_depth: 2.5,
       alignment: parseInt(alignment ? alignment.value : 2) || 2,
       margin_v: parseInt(marginV ? marginV.value : 960) || 960,
       pos_y: Math.max(30, 1920 - (parseInt(marginV ? marginV.value : 960) || 960)),

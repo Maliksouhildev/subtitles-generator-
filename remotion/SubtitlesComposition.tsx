@@ -153,16 +153,13 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
     return currentTime >= start && currentTime <= end + 0.25;
   });
 
-  const strokeWidth = 8;
+  const strokeWidth = 3.5;
   const textShadow = `
     -${strokeWidth}px -${strokeWidth}px 0 #000,
      ${strokeWidth}px -${strokeWidth}px 0 #000,
     -${strokeWidth}px  ${strokeWidth}px 0 #000,
      ${strokeWidth}px  ${strokeWidth}px 0 #000,
-     0px 10px 0px #000,
-     3px 10px 0px #000,
-    -3px 10px 0px #000,
-     0px 14px 22px rgba(0, 0, 0, 0.95)
+     0px 3px 6px rgba(0, 0, 0, 0.65)
   `;
 
   return (
