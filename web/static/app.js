@@ -646,7 +646,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       opt_words_4: "4 Words",
 
-      opt_words_5: "5 Words",
+      opt_words_5: "5 Words (Natural Phrase - Recommended)",
+      opt_words_6: "6 Words (Full Clause)",
 
       opt_aspect_916: "9:16 (Shorts / Reels / TikTok)",
 
@@ -907,7 +908,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       opt_words_4: "4 Mots",
 
-      opt_words_5: "5 Mots",
+      opt_words_5: "5 Mots (Naturel - Recommandé)",
+      opt_words_6: "6 Mots (Phrase Complète)",
 
       opt_aspect_916: "9:16 (Shorts / Reels / TikTok)",
 
@@ -1168,7 +1170,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       opt_words_4: "4 كلمات",
 
-      opt_words_5: "5 كلمات",
+      opt_words_5: "5 كلمات (طبيعي - مستحسن)",
+      opt_words_6: "6 كلمات (جملة كاملة)",
 
       opt_aspect_916: "9:16 (شورتس / ريلز / تيك توك)",
 
@@ -1500,7 +1503,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       margin: marginV ? (parseInt(marginV.value) || 960) : 960,
 
-      wordsPerLine: wordsPerLine ? (parseInt(wordsPerLine.value) || 3) : 3,
+      wordsPerLine: wordsPerLine ? (parseInt(wordsPerLine.value) || 5) : 5,
 
       alignment: alignment ? (parseInt(alignment.value) || 2) : 2,
 
@@ -2584,7 +2587,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // 1. Determine words list based on wordsPerLine setting (strictly 3 to 4 words max)
-    const targetWordCount = Math.min(4, Math.max(2, parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3));
+    const targetWordCount = Math.min(6, Math.max(3, parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5));
 
     let wordList = [];
 
@@ -2620,6 +2623,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Bind multi-word French loan expressions (e.g. "par" + "rapport")
         if (textVal.toLowerCase() === "par" && nextVal.toLowerCase().startsWith("rapport")) {
+          boundSegWords.push({
+            word: `${textVal} ${nextVal}`,
+            start: segWords[bwIdx].start,
+            end: segWords[bwIdx + 1].end || (segWords[bwIdx + 1].start + 0.3)
+          });
+          bwIdx += 2;
+          continue;
+        }
+
+        // Bind French/Darija expressions: e.g. "c'est" + "bon", "سي" + "بون"
+        if (["c'est", "سي"].includes(textVal.toLowerCase()) && (nextVal.toLowerCase().startsWith("bon") || nextVal.toLowerCase().startsWith("بون"))) {
+          boundSegWords.push({
+            word: `${textVal} ${nextVal}`,
+            start: segWords[bwIdx].start,
+            end: segWords[bwIdx + 1].end || (segWords[bwIdx + 1].start + 0.3)
+          });
+          bwIdx += 2;
+          continue;
+        }
+
+        // Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle"
+        const cleanTv = textVal.replace(/^[^\w]+|[^\w]+$/g, '').toLowerCase();
+        if (["la", "le", "les", "un", "une", "des", "du"].includes(cleanTv) && /[a-zA-Z]/.test(nextVal)) {
           boundSegWords.push({
             word: `${textVal} ${nextVal}`,
             start: segWords[bwIdx].start,
@@ -2980,7 +3006,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function stepPreviewCycle() {
 
-    const wordCount = parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3;
+    const wordCount = parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5;
 
     previewActiveIdx = (previewActiveIdx + 1) % wordCount;
 
@@ -4900,7 +4926,7 @@ document.addEventListener("DOMContentLoaded", () => {
           font_size: parseInt(fontSize ? fontSize.value : 56) || 56,
           primary_color: (primaryColor && primaryColor.value) ? primaryColor.value : "#FFFFFF",
           highlight_color: (highlightColor && highlightColor.value) ? highlightColor.value : "#FFE600",
-          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3,
+          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5,
           animation_style: (animationStyle && animationStyle.value) ? animationStyle.value : "letter_pop",
           pos_y: Math.max(30, 1920 - (parseInt(marginV ? marginV.value : 960) || 960)),
           ease_p1: [easeP1 ? easeP1.x : 0.34, easeP1 ? easeP1.y : 1.56],
@@ -4941,7 +4967,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const payload = {
           task_id: currentTaskId || "default",
           transcription_data: currentTranscription,
-          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 3) || 3
+          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5
         };
 
         const res = await fetch("/api/export_text", {
@@ -5026,7 +5052,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alignment: parseInt(alignment ? alignment.value : 2) || 2,
       margin_v: parseInt(marginV ? marginV.value : 960) || 960,
       pos_y: Math.max(30, 1920 - (parseInt(marginV ? marginV.value : 960) || 960)),
-      words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 4) || 4,
+      words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5,
       template_id: (animationStyle && animationStyle.value) ? animationStyle.value : "karaoke_pop",
       animation_style: (animationStyle && animationStyle.value) ? animationStyle.value : "karaoke_pop",
       animation_speed: parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0,

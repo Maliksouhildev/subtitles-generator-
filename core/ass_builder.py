@@ -142,6 +142,29 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
             i += 2
             continue
 
+        # Bind French/Darija expressions: e.g. "c'est" + "bon", "سي" + "بون"
+        if text_val.lower() in ("c'est", "سي") and next_w_val and str(next_w_val).strip().lower().startswith(("bon", "بون")):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
+
+        # Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle"
+        clean_tv = re.sub(r'^[^\w]+|[^\w]+$', '', text_val).lower()
+        if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
+
         if is_prefix_token(text_val, next_w_val) and i + 1 < len(words):
             chain = [w]
             j = i + 1
@@ -205,32 +228,27 @@ def resolve_visual_word_order(chunk: List[Dict[str, Any]], in_rtl_context: bool 
     return list(range(len(chunk)))
 
 
-def balance_chunk_sizes(total_words: int, target_size: int = 3) -> List[int]:
+def balance_chunk_sizes(total_words: int, target_size: int = 5) -> List[int]:
     """
     Calculates balanced chunk sizes preventing awkward 1-word orphan lines
-    and strictly enforcing a 3-to-4 word limit per chunk for mobile legibility.
-    For example: 4 words with target=3 splits into [2, 2], not [3, 1].
-    A chunk never exceeds 4 words.
+    and enforcing a 4-to-6 word sliding window for mobile legibility.
+    For example: 9 words splits into [5, 4], 7 words into [4, 3].
+    A chunk never exceeds 6 words.
     """
-    effective_target = min(4, max(2, target_size))
+    effective_target = min(6, max(3, target_size))
     if total_words <= effective_target:
         return [total_words]
-    num_chunks = math.ceil(total_words / effective_target)
-    if total_words % effective_target == 1 and num_chunks > 1:
+    if target_size >= 4 and total_words <= 6:
+        return [total_words]
+    num_chunks = max(1, math.ceil(total_words / effective_target))
+    base_size = total_words // num_chunks
+    remainder = total_words % num_chunks
+    sizes = [base_size + (1 if k < remainder else 0) for k in range(num_chunks)]
+    while any(s > 6 for s in sizes):
+        num_chunks += 1
         base_size = total_words // num_chunks
         remainder = total_words % num_chunks
-        return [min(4, base_size + (1 if k < remainder else 0)) for k in range(num_chunks)]
-    sizes = []
-    remaining = total_words
-    while remaining > 0:
-        if remaining == effective_target + 1:
-            half = remaining // 2
-            sizes.append(min(4, remaining - half))
-            sizes.append(min(4, half))
-            break
-        take = min(4, min(effective_target, remaining))
-        sizes.append(take)
-        remaining -= take
+        sizes = [base_size + (1 if k < remainder else 0) for k in range(num_chunks)]
     return sizes
 
 
@@ -298,6 +316,7 @@ FONT_FAMILY_MAP = {
 NON_TERMINAL_PARTICLES = {
     "و", "ف", "ب", "ل", "في", "على", "من", "عن", "مع", "إلى", "الى",
     "ما", "لا", "لي", "اللي", "دي", "دو", "يا", "ها", "بهاد", "فهاد", "هاد",
+    "يعني", "كيما", "باش", "باشما", "علاش", "كيفاش", "وين", "وقتاش",
     "la", "le", "les", "un", "une", "des", "du", "de", "d'", "et", "ou",
     "en", "au", "aux", "par", "pour", "avec", "dans", "sur"
 }
@@ -343,7 +362,7 @@ class ASSSubtitleBuilder:
             self.margin_v = max(30, video_height - pos_y)
         else:
             self.margin_v = margin_v
-        self.words_per_line = min(4, max(2, words_per_line))
+        self.words_per_line = min(6, max(3, words_per_line))
         self.animation_style = animation_style
         self.video_width = video_width
         self.video_height = video_height
@@ -413,14 +432,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def chunk_words(self, words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """
-        Splits words into balanced, readable bilingual subtitle chunks:
-        - Maintains natural Darija clause flow (Arabic words and French loanwords appear together naturally).
-        - Strictly enforces 2 to 4 words per chunk for mobile legibility.
-        - Splits on punctuation marks (،, ., ,, !, ?, ؛, :).
-        - Splits on speech pauses (> 0.65s).
-        - Splits if character length exceeds 32 characters.
-        - Applies anti-orphan balancing (e.g. 5 words -> [3, 2] instead of [4, 1]).
-        - Protects non-terminal particles from dangling at chunk ends.
+        Splits words into balanced, readable bilingual subtitle chunks following a 4-to-6 word sliding window:
+        - Groups words into natural phrases of 4 to 6 words.
+        - Never creates 1-word or 2-word orphan screens.
+        - Splits on natural speech pauses (> 1.2s silence gap, or > 0.85s gap if chunk already has >= 4 words).
+        - Splits on sentence-ending punctuation (., !, ?) when chunk has >= 3 words.
+        - Protects non-terminal particles (و, في, يعني, la, etc.) from dangling at chunk ends.
         """
         if not words:
             return []
@@ -429,9 +446,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not words:
             return []
 
-        target_size = min(4, max(2, self.words_per_line))
+        target_size = min(6, max(3, self.words_per_line))
 
-        # Partition into clause blocks by punctuation and silence pauses
         clauses: List[List[Dict[str, Any]]] = []
         current_clause: List[Dict[str, Any]] = []
 
@@ -445,9 +461,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 prev_end = float(prev_w.get("end", prev_w.get("start", 0.0) + 0.3))
                 pause_gap = float(w.get("start", 0.0)) - prev_end
                 prev_text = str(prev_w.get("word", "")).strip()
-                has_punct = any(prev_text.endswith(p) for p in (",", "،", ".", "!", "?", "؛", ":"))
+                has_major_stop = any(prev_text.endswith(p) for p in (".", "!", "?"))
+                curr_chars = sum(len(str(x.get("word", ""))) + 1 for x in current_clause)
 
-                if pause_gap > 0.65 or has_punct:
+                should_break = False
+                if pause_gap > 1.2:
+                    should_break = True
+                elif pause_gap > 0.85 and len(current_clause) >= 4:
+                    should_break = True
+                elif has_major_stop and len(current_clause) >= 3:
+                    should_break = True
+
+                if should_break:
                     clauses.append(current_clause)
                     current_clause = []
 
@@ -456,17 +481,19 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if current_clause:
             clauses.append(current_clause)
 
-        # Sub-chunk each clause respecting words_per_line and character budget
+        # Sub-chunk clauses respecting target_size
         chunks: List[List[Dict[str, Any]]] = []
         for clause in clauses:
             if not clause:
                 continue
 
             if len(clause) <= target_size:
-                total_len = sum(len(str(w.get("word", ""))) for w in clause)
-                if total_len <= 34 or len(clause) <= 2:
-                    chunks.append(clause)
-                    continue
+                chunks.append(clause)
+                continue
+
+            if target_size >= 4 and len(clause) <= target_size + 1 and len(clause) <= 6:
+                chunks.append(clause)
+                continue
 
             sizes = balance_chunk_sizes(len(clause), target_size)
             idx = 0
@@ -483,13 +510,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     if len(curr_c) > 2:
                         moved = curr_c.pop()
                         next_c.insert(0, moved)
-                    elif len(curr_c) < 4 and next_c:
+                    elif len(curr_c) < 6 and next_c:
                         moved = next_c.pop(0)
                         curr_c.append(moved)
 
             for sc in subchunks:
                 if sc:
                     chunks.append(sc)
+
+        # Anti-orphan merge pass: merge fragments < 3 words into previous chunk if combined <= 6 words
+        if len(chunks) > 1 and len(chunks[-1]) < 3 and (len(chunks[-2]) + len(chunks[-1]) <= 6):
+            chunks[-2].extend(chunks.pop())
 
         return chunks
 

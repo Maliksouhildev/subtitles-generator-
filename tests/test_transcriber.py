@@ -283,4 +283,4 @@ def test_sanitize_transcription_text_and_verb_prefixes():
     }
     norm = normalize_transcription_data(raw_data)
     assert norm["text"] == "سي بون خلاص هكذا"
-    assert norm["segments"][0]["words"][3]["word"] == "هكذا"
+    assert norm["segments"][0]["words"][2]["word"] == "هكذا"

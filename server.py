@@ -78,7 +78,7 @@ class RenderRequest(BaseModel):
     alignment: int = 2
     margin_v: int = 960
     pos_y: Optional[int] = None
-    words_per_line: int = 3
+    words_per_line: int = 5
     animation_style: str = "karaoke_pop"
     animation_speed: float = 1.0
     sub_box_style: str = "none"

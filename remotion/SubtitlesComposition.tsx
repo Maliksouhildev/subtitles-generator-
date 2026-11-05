@@ -112,26 +112,17 @@ function groupScriptRuns(words: WordData[]): Array<{ isLatin: boolean; words: Wo
 
 // Helper: Anti-orphan balanced chunking enforcing strict 3-to-4 word limit per chunk
 function balanceChunkSizes(totalWords: number, targetSize: number): number[] {
-  const effectiveTarget = Math.min(4, Math.max(2, targetSize || 3));
-  if (totalWords <= effectiveTarget) return [totalWords];
-  const numChunks = Math.ceil(totalWords / effectiveTarget);
-  if (totalWords % effectiveTarget === 1 && numChunks > 1) {
-    const baseSize = Math.floor(totalWords / numChunks);
-    const remainder = totalWords % numChunks;
-    return Array.from({ length: numChunks }, (_, k) => Math.min(4, baseSize + (k < remainder ? 1 : 0)));
-  }
-  const sizes: number[] = [];
-  let remaining = totalWords;
-  while (remaining > 0) {
-    if (remaining === effectiveTarget + 1) {
-      const half = Math.floor(remaining / 2);
-      sizes.push(Math.min(4, remaining - half));
-      sizes.push(Math.min(4, half));
-      break;
-    }
-    const take = Math.min(4, Math.min(effectiveTarget, remaining));
-    sizes.push(take);
-    remaining -= take;
+  const effectiveTarget = Math.min(6, Math.max(3, targetSize || 5));
+  if (totalWords <= effectiveTarget + 1 && totalWords <= 6) return [totalWords];
+  let numChunks = Math.max(1, Math.ceil(totalWords / effectiveTarget));
+  let baseSize = Math.floor(totalWords / numChunks);
+  let remainder = totalWords % numChunks;
+  let sizes = Array.from({ length: numChunks }, (_, k) => baseSize + (k < remainder ? 1 : 0));
+  while (sizes.some(s => s > 6)) {
+    numChunks++;
+    baseSize = Math.floor(totalWords / numChunks);
+    remainder = totalWords % numChunks;
+    sizes = Array.from({ length: numChunks }, (_, k) => baseSize + (k < remainder ? 1 : 0));
   }
   return sizes;
 }

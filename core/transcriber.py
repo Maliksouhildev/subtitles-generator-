@@ -28,32 +28,42 @@ GEMINI_MODELS = [
 ]
 
 DARIJA_SYSTEM_PROMPT = """
-You are an expert transcriber specialized in Algerian Arabic (الدارجة الجزائرية - Darija).
-Your task is to listen to the provided audio and generate an accurate, word-by-word transcription in authentic Algerian Darija written in clean ARABIC SCRIPT.
+You are an expert verbatim audio transcriber specialized in Algerian Arabic (الدارجة الجزائرية - Darija) and Franco-Algerian code-switching.
+Your mission is to transcribe the audio with 100% VERBATIM ACCURACY (word-for-word exactly as spoken).
 
-DIALECT & LINGUISTIC RULES:
-1. Write in Arabic script (الخط العربي). Do NOT use Arabizi (Latin numbers like 3, 7, 9) unless it's a specific brand or English technical term.
-2. Accurately capture authentic Algerian vocabulary, slang, and expressions:
-   - "واش", "واشنو", "علاش", "كيفاش", "وقتاش", "وينتا", "راني", "راك", "راهو", "راهي", "حنا", "نتوما"
-   - "برك", "بزاف", "شوية", "مليح", "قع", "كامل", "دير", "حاب", "باغي", "خلاص", "صحة", "خويا", "ختي", "كاش", "هكذا", "هاكا"
-3. FRENCH & FOREIGN LOANWORD SPELLING (CRITICAL):
-   - NEVER phonetically transliterate French, English, or foreign loanwords into Arabic letters (e.g. do NOT write 'برومي' for 'premier', do NOT write 'نوفيل' for 'nouvelle', do NOT write 'تيست' for 'test', do NOT write 'ريدفيلد' for 'Redfield', do NOT write 'دوزيام' for 'deuxième').
-   - Always write established French, English, or foreign brand names, technical terms, and loanwords in their authentic standard LATIN script (e.g. "premier", "nouvelle", "test", "Redfield", "rendez-vous", "projet", "voiture", "normal", "c'est bon", "la tôle", "PPF", "vinyle", "par rapport", "percer").
-   - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: e.g. "الـ PPF", "يـ percer", "تـ tester", "نـ changer".
-   - This ensures professional, native-grade bilingual subtitling.
-4. AUTHENTIC DARIJA SPELLING (NO BOGUS HAMZAS):
+STRICT VERBATIM TRANSLATION & SPELLING RULES:
+1. NEVER TRANSLATE French loanwords into Modern Standard Arabic!
+   - If the speaker says "la différence", you MUST write "la différence" (NEVER translate to "الفرق").
+   - If the speaker says "la tôle", you MUST write "la tôle" (NEVER translate to "الـ tôle" or "الصاج").
+   - If the speaker says "par rapport", you MUST write "par rapport" (in Latin letters, NEVER translate to "مقارنة").
+   - If the speaker says "vraiment", you MUST write "vraiment" (in Latin letters, NEVER transliterate as "فريمون").
+   - If the speaker says "percer", write "percer" (in Latin letters, e.g. "يـ percer").
+   - If the speaker says "PPF", write "PPF" (or "الـ PPF", "للـ PPF").
+   - If the speaker says "c'est bon" or "سي بون", write "c'est bon" or "سي بون".
+   - Always write French and foreign loanwords/technical terms in Latin script (e.g. "premier", "nouvelle", "test", "Redfield", "voiture", "projet", "normal").
+   - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: "الـ PPF", "للـ PPF", "يـ percer", "تـ tester".
+
+2. NEVER PARAPHRASE, "STANDARDIZE", OR "CORRECT" ALGERIAN DARIJA:
+   - If the speaker says "خويا يدخل", write EXACTLY "خويا يدخل" (NEVER change to "راهو يدخل").
+   - If the speaker says "سي بون خلاص هكذا", write ALL THREE: "سي بون", "خلاص", "هكذا" (DO NOT drop "سي بون" or "هكذا").
+   - If the speaker says "ولا روح منّا", write "ولا روح منّا" (NEVER omit the verb or write "ولا ما منّا").
+   - Accurately capture authentic Algerian vocabulary: "واش", "واشنو", "علاش", "كيفاش", "وقتاش", "وينتا", "راني", "راك", "راهو", "حنا", "برك", "بزاف", "شوية", "مليح", "دير", "خلاص", "صحة", "خويا", "هكذا".
+
+3. NO OMISSIONS OR DROPPED WORDS:
+   - Transcribe every single word uttered, from the very first syllable at 0.0s to the final breath.
+   - Do NOT omit quiet, rapid, or filler words.
    - NEVER add an unneeded trailing hamza 'ء' to Darija words: always write 'هكذا' or 'هكدا' (NEVER 'هكذاء'), 'صحة' (NEVER 'صحاء'), 'خلاص' (NEVER 'خلاصء').
-5. COMPLETE SPEECH COVERAGE & PRECISE TIMESTAMPS:
+
+4. ACCURATE CONTINUOUS TIMESTAMPS:
    - Every segment must have 'start' and 'end' in seconds (float).
    - Every word within a segment must have its exact spoken 'start' and 'end' timestamps in seconds.
-   - Timestamps must correspond to the exact moment the speaker pronounces the word.
-   - Transcribe ALL spoken words across the full audio timeline without dropping quiet or rapid speech.
+   - Distribute timestamps naturally matching the spoken syllables across the timeline without compressing into early seconds or looping.
 
 STRICT JSON OUTPUT FORMAT ONLY:
 Return ONLY valid JSON matching this schema with NO markdown code fences, NO explanation, NO introduction:
 {
   "language": "ar-DZ",
-  "text": "Full transcript in Algerian Darija Arabic script",
+  "text": "Full verbatim transcript",
   "segments": [
     {
       "id": 0,
@@ -427,8 +437,20 @@ def interpolate_word_timestamps(segment: Dict[str, Any]) -> List[Dict[str, Any]]
     """
     words_data = segment.get("words", [])
     text = segment.get("text", "").strip()
+
+    if words_data:
+        valid = all("start" in w and "end" in w and str(w.get("word", "")).strip() for w in words_data)
+        if valid:
+            if not text:
+                segment["text"] = " ".join(str(w.get("word", "")).strip() for w in words_data)
+            return [dict(w) for w in words_data]
+
     if not text:
-        return []
+        if words_data:
+            text = " ".join(str(w.get("word", "")).strip() for w in words_data)
+            segment["text"] = text
+        else:
+            return []
 
     words = text.split()
     if not words:
@@ -570,6 +592,29 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
 
         # Bind multi-word French loan expressions: e.g. "par" + "rapport"
         if text_val.lower() == "par" and next_w_val and str(next_w_val).strip().lower().startswith("rapport"):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
+
+        # Bind French/Darija expressions: e.g. "c'est" + "bon", "سي" + "بون"
+        if text_val.lower() in ("c'est", "سي") and next_w_val and str(next_w_val).strip().lower().startswith(("bon", "بون")):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
+
+        # Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle"
+        clean_tv = re.sub(r'^[^\w]+|[^\w]+$', '', text_val).lower()
+        if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
             next_w = words[i + 1]
             bound.append({
                 "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
@@ -743,11 +788,7 @@ def transcribe_with_gemini(
         pass
 
     prompt = get_system_prompt(dialect_hint)
-    timing_hint = f"\nCRITICAL ACOUSTIC WAVEFORM TIMINGS:\n- Exact Total Duration: {audio_duration:.2f} seconds.\n"
-    if intervals:
-        int_strs = [f"[{start:.2f}s - {end:.2f}s]" for start, end in intervals]
-        timing_hint += f"- Ground-Truth Active Spoken Intervals: {', '.join(int_strs)}\n"
-        timing_hint += "You MUST map your transcribed words to accurately cover these spoken intervals without compressing or ending early.\n"
+    timing_hint = f"\nAUDIO TIMING SPECIFICATION:\n- Total Audio Duration: {audio_duration:.2f} seconds.\n- Accurately distribute word-level start and end timestamps across this timeline matching the authentic spoken syllables without compressing into early seconds.\n"
     prompt += timing_hint
 
     payload = {

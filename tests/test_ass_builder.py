@@ -283,12 +283,11 @@ def test_ass_builder_verb_prefix_binding_and_spelling():
         {"word": "شوف", "start": 7.3, "end": 7.6}
     ]
     chunks = builder.chunk_words(words)
-    # Verb prefix "يـ" binds with "percer" into "يـ percer"
+    # Verb prefix "يـ" binds with "percer" into "يـ percer", and "la" binds with "tôle" into "la tôle"
     assert chunks[0][0]["word"] == "يـ percer"
-    # Anti-orphan balanced chunking groups 5 tokens into [2, 3]
-    assert len(chunks) == 2
-    assert [w["word"] for w in chunks[0]] == ["يـ percer", "داخل"]
-    assert [w["word"] for w in chunks[1]] == ["la", "tôle", "شوف"]
+    # Anti-orphan merge pass keeps 4 bound tokens in a single readable screen
+    assert len(chunks) == 1
+    assert [w["word"] for w in chunks[0]] == ["يـ percer", "داخل", "la tôle", "شوف"]
 
 
 def test_ass_builder_new_creative_templates():
@@ -335,9 +334,9 @@ def test_ass_builder_new_creative_templates():
 
 
 def test_strict_chunking_limit_and_rlm_embedding():
-    # Enforces max 4 words even if requested 7
-    builder = ASSSubtitleBuilder(words_per_line=7, animation_style="hormozi-pop")
-    assert builder.words_per_line <= 4
+    # Enforces max 6 words even if requested 8
+    builder = ASSSubtitleBuilder(words_per_line=8, animation_style="hormozi-pop")
+    assert builder.words_per_line <= 6
 
     words = [
         {"word": "دير", "start": 0.0, "end": 0.4},
@@ -349,8 +348,8 @@ def test_strict_chunking_limit_and_rlm_embedding():
         {"word": "nouvelle", "start": 2.2, "end": 2.8}
     ]
     chunks = builder.chunk_words(words)
-    # The 7 raw tokens get bound and all chunks are <= 4 words
-    assert all(len(c) <= 4 for c in chunks)
+    # The raw tokens get bound and all chunks are <= 6 words
+    assert all(len(c) <= 6 for c in chunks)
 
     # Mixed script ASS contains RLM marker \u200F for RTL embedding
     data = {
@@ -380,5 +379,5 @@ def test_grammatical_cohesion_anti_dangling_particles():
         {"word": "شوف", "start": 4.10, "end": 4.66}
     ]
     chunks = builder.chunk_words(words)
-    # 'la' must not be stranded at end of chunk; 'la' and 'tôle' must stay together
-    assert any("la" in [w["word"] for w in ch] and "tôle" in [w["word"] for w in ch] for ch in chunks)
+    # 'la' and 'tôle' bind together into 'la tôle' and must not be separated
+    assert any("la tôle" in [w["word"] for w in ch] for ch in chunks)
