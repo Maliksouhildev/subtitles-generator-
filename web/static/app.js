@@ -2552,6 +2552,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  
+  function sanitizeDarijaText(text) {
+    if (!text) return "";
+    return text
+      .replace(/\bهكذاء\b/g, "هكذا")
+      .replace(/\bهكداء\b/g, "هكدا")
+      .replace(/\bهاكداء\b/g, "هاكدا")
+      .replace(/\bهاكذاء\b/g, "هاكذا")
+      .replace(/\bخلاصء\b/g, "خلاص")
+      .replace(/\bصحاء\b/g, "صحة");
+  }
+
   function updateLiveSubtitlePreview() {
 
     if (!liveSubtitleContainer || !liveSubtitleBox) return;
@@ -2581,27 +2593,35 @@ document.addEventListener("DOMContentLoaded", () => {
       const segWords = currentTranscription.segments[0].words || [];
 
       const boundSegWords = [];
-      const prefixArticleRegex = /^(?:[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644[\u0640\-]+|[\u0648]?\u0644\u0627[\u0640\-]*|[\u0648]?\u0644\u0648[\u0640\-]*|[\u0648]?\u0644\u064a[\u0640\-]*|[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|[\u0648]?\u062f\u064a[\u0640\-]*|[\u0648]?\u062f\u0648[\u0640\-]*|[\u0648]?\u062f[\u0640\-]+|[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|[\u0648]?\u0645\u0627[\u0640\-]*|[\u0648]?\u064a\u0627[\u0640\-]*|[\u0648]?\u0647\u0627[\u0640\-]*|[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*)$/;
+      const prefixArticleRegex = /^(?:[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644[\u0640\-]+|[\u0648]?\u0644\u0627[\u0640\-]*|[\u0648]?\u0644\u0648[\u0640\-]*|[\u0648]?\u0644\u064a[\u0640\-]*|[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|[\u0648]?\u062f\u064a[\u0640\-]*|[\u0648]?\u062f\u0648[\u0640\-]*|[\u0648]?\u062f[\u0640\-]+|[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|[\u0648]?[\u064a\u062a\u0646][\u0640\-]+|[\u0648]?\u0645\u0627[\u0640\-]*|[\u0648]?\u064a\u0627[\u0640\-]*|[\u0648]?\u0647\u0627[\u0640\-]*|[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*)$/;
 
-      function isPrefix(strVal) {
+      function isPrefix(strVal, nextVal) {
         const clean = (strVal || "").replace(/^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$/g, "").trim();
         if (!clean) return false;
-        return prefixArticleRegex.test(clean) || (strVal || "").trim().endsWith("-") || (strVal || "").trim().endsWith("ـ");
+        if (prefixArticleRegex.test(clean) || (strVal || "").trim().endsWith("-") || (strVal || "").trim().endsWith("ـ")) return true;
+        if (["ي", "ت", "ن"].includes(clean) && nextVal && /[a-zA-Z]/.test(nextVal)) return true;
+        return false;
       }
 
       let bwIdx = 0;
       while (bwIdx < segWords.length) {
-        const textVal = (segWords[bwIdx].word || "").trim();
-        if (isPrefix(textVal) && bwIdx + 1 < segWords.length) {
+        const textVal = sanitizeDarijaText((segWords[bwIdx].word || "").trim());
+        const nextVal = bwIdx + 1 < segWords.length ? (segWords[bwIdx + 1].word || "").trim() : "";
+        if (isPrefix(textVal, nextVal) && bwIdx + 1 < segWords.length) {
           const chain = [segWords[bwIdx]];
           let j = bwIdx + 1;
-          while (j < segWords.length && isPrefix(segWords[j].word || "")) {
-            chain.push(segWords[j]);
-            j++;
+          while (j < segWords.length) {
+            const futureVal = j + 1 < segWords.length ? (segWords[j + 1].word || "").trim() : "";
+            if (isPrefix(segWords[j].word || "", futureVal)) {
+              chain.push(segWords[j]);
+              j++;
+            } else {
+              break;
+            }
           }
           if (j < segWords.length) {
             const targetWord = segWords[j];
-            const jointText = chain.map((item) => (item.word || "").trim()).join(" ") + " " + (targetWord.word || "").trim();
+            const jointText = chain.map((item) => sanitizeDarijaText((item.word || "").trim())).join(" ") + " " + sanitizeDarijaText((targetWord.word || "").trim());
             boundSegWords.push({
               word: jointText.trim(),
               start: chain[0].start,
@@ -2610,7 +2630,6 @@ document.addEventListener("DOMContentLoaded", () => {
             bwIdx = j + 1;
             continue;
           } else {
-            const nextVal = (segWords[bwIdx + 1].word || "").trim();
             boundSegWords.push({
               word: `${textVal} ${nextVal}`,
               start: segWords[bwIdx].start,
@@ -2620,12 +2639,27 @@ document.addEventListener("DOMContentLoaded", () => {
             continue;
           }
         }
-        boundSegWords.push(segWords[bwIdx]);
+        boundSegWords.push({
+          ...segWords[bwIdx],
+          word: textVal
+        });
         bwIdx++;
       }
 
+      // Script-separated chunking for preview: Arabic and French never mix on screen
       if (boundSegWords.length > 0) {
-        wordList = boundSegWords.slice(0, targetWordCount).map(w => w.word);
+        const firstIsLatin = /[a-zA-Z]/.test(boundSegWords[0].word);
+        const homogeneousWords = [];
+        for (const w of boundSegWords) {
+          const hasLatin = /[a-zA-Z]/.test(w.word);
+          if (hasLatin === firstIsLatin) {
+            homogeneousWords.push(w.word);
+            if (homogeneousWords.length >= targetWordCount) break;
+          } else {
+            break;
+          }
+        }
+        wordList = homogeneousWords.length > 0 ? homogeneousWords : boundSegWords.slice(0, targetWordCount).map(w => w.word);
       }
 
     }

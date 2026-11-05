@@ -25,15 +25,15 @@ def is_arabic_text(text: str) -> bool:
 def classify_token_script(token: str, default: str = "arabic") -> str:
     """
     Classifies a word token into 'latin' (French/English) or 'arabic' (Darija/Arabic script).
+    Tokens containing Latin letters (including loanwords with bound prefixes like 'الـ PPF', 'يـ percer')
+    are classified as 'latin' to keep loanwords homogeneous and isolated. Pure Arabic words are 'arabic'.
     Neutral tokens (numbers, punctuation) inherit the active script context.
     """
     has_latin = bool(LATIN_REGEX.search(token))
     has_arabic = bool(ARABIC_REGEX.search(token))
-    if has_latin and not has_arabic:
+    if has_latin:
         return "latin"
-    elif has_arabic and not has_latin:
-        return "arabic"
-    elif has_arabic and has_latin:
+    elif has_arabic:
         return "arabic"
     else:
         return default
@@ -52,6 +52,7 @@ ARABIC_PREFIX_ARTICLE_REGEX = re.compile(
     r'[\u0648]?\u062f\u0648[\u0640\-]*|'                                          # دو, ودو (French 'du')
     r'[\u0648]?\u062f[\u0640\-]+|'                                                # دـ, ودـ (Darija genitive d-)
     r'[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|'                                  # بـ, فـ, كـ
+    r'[\u0648]?[\u064a\u062a\u0646][\u0640\-]+|'                                  # يـ, تـ, نـ (Darija imperfective verb prefixes e.g. يـ percer)
     r'[\u0648]?\u0645\u0627[\u0640\-]*|'                                          # ما, وما
     r'[\u0648]?\u064a\u0627[\u0640\-]*|'                                          # يا, ويا
     r'[\u0648]?\u0647\u0627[\u0640\-]*|'                                          # ها, وها
@@ -60,18 +61,49 @@ ARABIC_PREFIX_ARTICLE_REGEX = re.compile(
 )
 
 
-def is_prefix_token(token: str) -> bool:
-    """Checks if a token is an orphaned Arabic article/particle prefix."""
-    clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(token).strip())
+def is_prefix_token(token: str, next_token: Optional[str] = None) -> bool:
+    """Checks if a token is an orphaned Arabic article/particle/verb prefix."""
+    t = str(token).strip()
+    clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', t)
     if not clean:
         return False
-    return bool(ARABIC_PREFIX_ARTICLE_REGEX.match(clean)) or token.strip().endswith(("-", "ـ"))
+    if bool(ARABIC_PREFIX_ARTICLE_REGEX.match(clean)) or t.endswith(("-", "ـ")):
+        return True
+    if clean in ("ي", "ت", "ن") and next_token and bool(LATIN_REGEX.search(str(next_token))):
+        return True
+    return False
+
+
+def calculate_word_end_time(
+    w_start: float,
+    natural_end: float,
+    next_chunk_start: Optional[float],
+    min_hold_duration: float = 0.85,
+    silence_threshold: float = 0.8
+) -> float:
+    """
+    Calculates display end time for the final word in a chunk.
+    - If there is a silence gap (> silence_threshold) before the next chunk,
+      dismisses the subtitle cleanly at natural_end + 0.35s (does not linger over silence).
+    - If speech continues promptly, bridges smoothly to next_chunk_start - 0.05s
+      or maintains min_hold_duration.
+    """
+    if next_chunk_start is not None:
+        gap = next_chunk_start - natural_end
+        if gap > silence_threshold:
+            return max(w_start + 0.30, natural_end + 0.35)
+        min_hold = w_start + min_hold_duration
+        return min(next_chunk_start - 0.05, max(natural_end, min_hold))
+    else:
+        min_hold = w_start + min_hold_duration
+        return max(natural_end, min_hold)
 
 
 def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا', 'بهاد') to subsequent Latin loanwords
-    (e.g. 'premier', 'nouvelle'), treating them as a single highlighted token.
+    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا', 'بهاد')
+    and imperfective verb prefixes (e.g. 'يـ', 'تـ', 'نـ') to subsequent Latin loanwords
+    (e.g. 'PPF', 'percer', 'premier', 'nouvelle'), treating them as a single highlighted token.
     Prevents awkward isolated article pop on screen and preserves natural bilingual phrasing.
     Supports chained prefixes (e.g. 'و' + 'لا' + 'nouvelle').
     """
@@ -82,12 +114,19 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     while i < len(words):
         w = words[i]
         text_val = str(w.get("word", "")).strip()
-        if is_prefix_token(text_val) and i + 1 < len(words):
+        next_w_val = words[i + 1].get("word", "") if i + 1 < len(words) else None
+
+        if is_prefix_token(text_val, next_w_val) and i + 1 < len(words):
             chain = [w]
             j = i + 1
-            while j < len(words) and is_prefix_token(words[j].get("word", "")):
-                chain.append(words[j])
-                j += 1
+            while j < len(words):
+                future_w = words[j + 1].get("word", "") if j + 1 < len(words) else None
+                if is_prefix_token(words[j].get("word", ""), future_w):
+                    chain.append(words[j])
+                    j += 1
+                else:
+                    break
+
             if j < len(words):
                 target_word = words[j]
                 joint_text = " ".join(str(item.get("word", "")).strip() for item in chain) + " " + str(target_word.get("word", "")).strip()
@@ -108,6 +147,7 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
                 })
                 i += 2
                 continue
+
         bound.append(w)
         i += 1
     return bound
@@ -334,42 +374,73 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def chunk_words(self, words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """
-        Splits words into balanced chunks based on:
-        1. Natural speech pauses (> 0.9s).
-        2. Pacing control (words_per_line) with anti-orphan balancing.
-        3. Automatic binding of orphaned Arabic definite articles ('ال', 'الـ') to Latin words.
-        4. Grammatical cohesion: avoids stranding non-terminal particles ('la', 'و', 'ما') across chunk breaks.
+        Splits words into balanced chunks with strict script separation:
+        - Arabic clauses and French/Latin loanwords NEVER mix on the same screen chunk.
+        - Consecutive tokens of the same script are grouped together.
+        - Arabic runs are split into balanced sub-chunks of 2 to 4 words.
+        - French loanword runs are grouped together (up to 4 words).
+        - Natural speech pauses (> 0.8s) trigger new chunks.
+        - Grammatical cohesion avoids stranding non-terminal particles across chunk breaks.
         """
         if not words:
             return []
 
         words = bind_arabic_articles_to_latin(words)
-        pause_blocks = []
-        current_block = []
-        for w in words:
-            if current_block:
-                prev_w = current_block[-1]
-                pause_gap = w.get("start", 0.0) - prev_w.get("end", 0.0)
-                if pause_gap > 0.9:
-                    pause_blocks.append(current_block)
-                    current_block = []
-            current_block.append(w)
-        if current_block:
-            pause_blocks.append(current_block)
+        if not words:
+            return []
 
-        chunks = []
-        for block in pause_blocks:
-            sizes = balance_chunk_sizes(len(block), self.words_per_line)
+        target_size = min(4, max(2, self.words_per_line))
+
+        # Step 1: Group tokens into homogeneous script runs and pause blocks
+        runs: List[List[Dict[str, Any]]] = []
+        current_run: List[Dict[str, Any]] = []
+        current_script: Optional[str] = None
+
+        for w in words:
+            w_text = str(w.get("word", "")).strip()
+            if not w_text:
+                continue
+
+            token_script = classify_token_script(w_text, default=current_script or "arabic")
+
+            if current_run:
+                prev_w = current_run[-1]
+                prev_end = float(prev_w.get("end", prev_w.get("start", 0.0) + 0.3))
+                pause_gap = float(w.get("start", 0.0)) - prev_end
+                if token_script != current_script or pause_gap > 0.8:
+                    runs.append(current_run)
+                    current_run = []
+                    current_script = token_script
+
+            if not current_run:
+                current_script = token_script
+
+            current_run.append(w)
+
+        if current_run:
+            runs.append(current_run)
+
+        # Step 2: Chunk each run respecting words_per_line and grammatical cohesion
+        chunks: List[List[Dict[str, Any]]] = []
+        for run in runs:
+            if not run:
+                continue
+
+            if len(run) <= target_size:
+                chunks.append(run)
+                continue
+
+            sizes = balance_chunk_sizes(len(run), target_size)
             idx = 0
-            block_chunks = []
+            run_subchunks = []
             for sz in sizes:
-                block_chunks.append(list(block[idx:idx + sz]))
+                run_subchunks.append(list(run[idx:idx + sz]))
                 idx += sz
 
-            # Grammatical cohesion: prevent stranding non-terminal particles at the end of a line
-            for c_i in range(len(block_chunks) - 1):
-                curr_c = block_chunks[c_i]
-                next_c = block_chunks[c_i + 1]
+            # Grammatical cohesion pass within the homogeneous run
+            for c_i in range(len(run_subchunks) - 1):
+                curr_c = run_subchunks[c_i]
+                next_c = run_subchunks[c_i + 1]
                 if curr_c and is_non_terminal_token(curr_c[-1].get("word", "")):
                     if len(curr_c) > 2:
                         moved = curr_c.pop()
@@ -378,9 +449,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         moved = next_c.pop(0)
                         curr_c.append(moved)
 
-            for c in block_chunks:
-                if c:
-                    chunks.append(c)
+            for sc in run_subchunks:
+                if sc:
+                    chunks.append(sc)
 
         return chunks
 
@@ -399,7 +470,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
+            chunk_is_rtl = not chunk_is_latin
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -407,10 +479,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    # Hold the completed phrase on screen for minimum 0.85s so viewer can absorb sentence context
-                    natural_end = active_word["end"]
-                    min_hold = w_start + 0.85
-                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -450,6 +519,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_text = " ".join(formatted_words)
                 if chunk_is_rtl:
                     line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -465,7 +536,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
+            chunk_is_rtl = not chunk_is_latin
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -473,9 +545,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    natural_end = active_word["end"]
-                    min_hold = w_start + 0.85
-                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -507,6 +577,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         revealed.append(f"{{{pri_tag}\\blur1.8}}{w_text}")
 
                 line_text = " ".join(revealed)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -545,7 +619,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
+            chunk_is_rtl = not chunk_is_latin
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -553,9 +628,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    natural_end = active_word["end"]
-                    min_hold = w_start + 0.65
-                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.65, silence_threshold=0.8)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -588,6 +661,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_text = " ".join(formatted_words)
                 if chunk_is_rtl:
                     line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -604,7 +679,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
+            chunk_is_rtl = not chunk_is_latin
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -612,9 +688,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    natural_end = active_word["end"]
-                    min_hold = w_start + 0.85
-                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -650,6 +724,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_text = " ".join(formatted_words)
                 if chunk_is_rtl:
                     line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -667,7 +743,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
+            chunk_is_rtl = not chunk_is_latin
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -675,9 +752,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    natural_end = active_word["end"]
-                    min_hold = w_start + 0.85
-                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -710,6 +785,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_text = " ".join(formatted_words)
                 if chunk_is_rtl:
                     line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -726,7 +803,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
+            chunk_is_rtl = not chunk_is_latin
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -734,9 +812,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    natural_end = active_word["end"]
-                    min_hold = w_start + 0.85
-                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -768,6 +844,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_text = " ".join(formatted_words)
                 if chunk_is_rtl:
                     line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -784,7 +862,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
+            chunk_is_rtl = not chunk_is_latin
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -792,9 +871,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    natural_end = active_word["end"]
-                    min_hold = w_start + 0.65
-                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.65, silence_threshold=0.8)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -841,6 +918,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_text = " ".join(formatted_words)
                 if chunk_is_rtl:
                     line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events
@@ -860,7 +939,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_rtl = any(is_arabic_text(w.get("word", "")) for w in chunk)
+            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
+            chunk_is_rtl = not chunk_is_latin
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -868,9 +948,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i + 1 < len(chunk):
                     w_end = chunk[i + 1]["start"]
                 else:
-                    natural_end = active_word["end"]
-                    min_hold = w_start + 0.85
-                    w_end = min(next_chunk_start - 0.05, max(natural_end, min_hold)) if next_chunk_start else max(natural_end, min_hold)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -916,6 +994,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_text = " ".join(formatted_words)
                 if chunk_is_rtl:
                     line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
                 events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{line_text}")
 
         return events

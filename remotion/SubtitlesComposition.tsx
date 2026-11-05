@@ -17,12 +17,26 @@ export interface SubtitlesProps {
 
 const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 const LATIN_REGEX = /[a-zA-Z]/;
-const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644[\u0640\-]+|[\u0648]?\u0644\u0627[\u0640\-]*|[\u0648]?\u0644\u0648[\u0640\-]*|[\u0648]?\u0644\u064a[\u0640\-]*|[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|[\u0648]?\u062f\u064a[\u0640\-]*|[\u0648]?\u062f\u0648[\u0640\-]*|[\u0648]?\u062f[\u0640\-]+|[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|[\u0648]?\u0645\u0627[\u0640\-]*|[\u0648]?\u064a\u0627[\u0640\-]*|[\u0648]?\u0647\u0627[\u0640\-]*|[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*)$/;
+const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644[\u0640\-]+|[\u0648]?\u0644\u0627[\u0640\-]*|[\u0648]?\u0644\u0648[\u0640\-]*|[\u0648]?\u0644\u064a[\u0640\-]*|[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|[\u0648]?\u062f\u064a[\u0640\-]*|[\u0648]?\u062f\u0648[\u0640\-]*|[\u0648]?\u062f[\u0640\-]+|[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|[\u0648]?[\u064a\u062a\u0646][\u0640\-]+|[\u0648]?\u0645\u0627[\u0640\-]*|[\u0648]?\u064a\u0627[\u0640\-]*|[\u0648]?\u0647\u0627[\u0640\-]*|[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*)$/;
 
-function isPrefixToken(token: string): boolean {
+function isPrefixToken(token: string, nextToken?: string): boolean {
   const clean = token.replace(/^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$/g, "").trim();
   if (!clean) return false;
-  return ARABIC_PREFIX_ARTICLE_REGEX.test(clean) || token.trim().endsWith("-") || token.trim().endsWith("ـ");
+  if (ARABIC_PREFIX_ARTICLE_REGEX.test(clean) || token.trim().endsWith("-") || token.trim().endsWith("ـ")) {
+    return true;
+  }
+  if (["ي", "ت", "ن"].includes(clean) && nextToken && LATIN_REGEX.test(nextToken)) {
+    return true;
+  }
+  return false;
+}
+
+function classifyTokenScript(token: string, fallback: "arabic" | "latin" = "arabic"): "arabic" | "latin" {
+  const hasLatin = LATIN_REGEX.test(token);
+  const hasArabic = ARABIC_REGEX.test(token);
+  if (hasLatin) return "latin";
+  if (hasArabic) return "arabic";
+  return fallback;
 }
 
 function bindArabicArticlesToLatin(words: WordData[]): WordData[] {
@@ -32,12 +46,18 @@ function bindArabicArticlesToLatin(words: WordData[]): WordData[] {
   while (i < words.length) {
     const w = words[i];
     const text = (w.word || "").trim();
-    if (isPrefixToken(text) && i + 1 < words.length) {
+    const nextWText = i + 1 < words.length ? words[i + 1].word : undefined;
+    if (isPrefixToken(text, nextWText) && i + 1 < words.length) {
       const chain = [w];
       let j = i + 1;
-      while (j < words.length && isPrefixToken(words[j].word || "")) {
-        chain.push(words[j]);
-        j++;
+      while (j < words.length) {
+        const futureWText = j + 1 < words.length ? words[j + 1].word : undefined;
+        if (isPrefixToken(words[j].word || "", futureWText)) {
+          chain.push(words[j]);
+          j++;
+        } else {
+          break;
+        }
       }
       if (j < words.length) {
         const targetWord = words[j];
@@ -129,29 +149,93 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
 
   const boundWords = React.useMemo(() => bindArabicArticlesToLatin(words), [words]);
 
-  // Enforce strict 3-to-4 word limit per chunk to maintain mobile legibility
-  const chunks: WordData[][] = React.useMemo(() => {
+  // Pure script-separated chunking: Arabic and French never mix on the same screen chunk!
+  const chunks: Array<{ words: WordData[]; start: number; end: number; script: "arabic" | "latin" }> = React.useMemo(() => {
     if (!boundWords.length) return [];
-    const sizes = balanceChunkSizes(boundWords.length, wordsPerChunk);
-    const res: WordData[][] = [];
-    let idx = 0;
-    for (const sz of sizes) {
-      const slice = boundWords.slice(idx, idx + sz);
-      if (slice.length > 0) {
-        res.push(slice);
+
+    const runs: Array<{ words: WordData[]; script: "arabic" | "latin" }> = [];
+    let currentRun: WordData[] = [];
+    let currentScript: "arabic" | "latin" | null = null;
+
+    for (const w of boundWords) {
+      const wText = (w.word || "").trim();
+      if (!wText) continue;
+      const tokenScript = classifyTokenScript(wText, currentScript || "arabic");
+
+      if (currentRun.length > 0) {
+        const prev = currentRun[currentRun.length - 1];
+        const pauseGap = w.start - prev.end;
+        if (tokenScript !== currentScript || pauseGap > 0.8) {
+          runs.push({ words: currentRun, script: currentScript! });
+          currentRun = [];
+          currentScript = tokenScript;
+        }
       }
-      idx += sz;
+      if (currentRun.length === 0) {
+        currentScript = tokenScript;
+      }
+      currentRun.push(w);
+    }
+    if (currentRun.length > 0 && currentScript) {
+      runs.push({ words: currentRun, script: currentScript });
+    }
+
+    const res: Array<{ words: WordData[]; start: number; end: number; script: "arabic" | "latin" }> = [];
+    for (const run of runs) {
+      const { words: rWords, script } = run;
+      if (rWords.length <= wordsPerChunk) {
+        res.push({
+          words: rWords,
+          start: rWords[0].start,
+          end: rWords[rWords.length - 1].end,
+          script
+        });
+        continue;
+      }
+      const sizes = balanceChunkSizes(rWords.length, wordsPerChunk);
+      let idx = 0;
+      for (const sz of sizes) {
+        const slice = rWords.slice(idx, idx + sz);
+        if (slice.length > 0) {
+          res.push({
+            words: slice,
+            start: slice[0].start,
+            end: slice[slice.length - 1].end,
+            script
+          });
+        }
+        idx += sz;
+      }
     }
     return res;
   }, [boundWords, wordsPerChunk]);
 
-  // Find active chunk
-  const activeChunk = chunks.find((chunk) => {
-    if (!chunk.length) return false;
-    const start = chunk[0].start;
-    const end = chunk[chunk.length - 1].end;
-    return currentTime >= start && currentTime <= end + 0.25;
-  });
+  // Find active chunk with silence gap cutoff (>0.8s silence dismisses subtitle)
+  const activeChunk = React.useMemo(() => {
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const nextChunkStart = i + 1 < chunks.length ? chunks[i + 1].start : null;
+      const naturalEnd = chunk.end;
+      const minHold = chunk.start + 0.85;
+
+      let effectiveEnd: number;
+      if (nextChunkStart !== null) {
+        const gap = nextChunkStart - naturalEnd;
+        if (gap > 0.8) {
+          effectiveEnd = Math.max(chunk.start + 0.3, naturalEnd + 0.35);
+        } else {
+          effectiveEnd = Math.min(nextChunkStart - 0.05, Math.max(naturalEnd, minHold));
+        }
+      } else {
+        effectiveEnd = Math.max(naturalEnd, minHold);
+      }
+
+      if (currentTime >= chunk.start && currentTime <= effectiveEnd) {
+        return chunk;
+      }
+    }
+    return null;
+  }, [chunks, currentTime]);
 
   const strokeWidth = 3.5;
   const textShadow = `
@@ -174,17 +258,17 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
         flexDirection: "column",
         paddingBottom: "180px",
         fontFamily: "'Cairo', 'Tajawal', sans-serif",
-        direction: "rtl",
+        direction: activeChunk?.script === "latin" ? "ltr" : "rtl",
       }}
     >
       {activeChunk && (() => {
-        const runs = groupScriptRuns(activeChunk);
+        const runs = groupScriptRuns(activeChunk.words);
         return (
           <div
             dir="rtl"
             style={{
               display: "flex",
-              direction: "rtl",
+              direction: activeChunk?.script === "latin" ? "ltr" : "rtl",
               gap: "14px",
               justifyContent: "center",
               alignItems: "center",
@@ -280,7 +364,7 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
                   dir="rtl"
                   style={{
                     display: "inline-flex",
-                    direction: "rtl",
+                    direction: activeChunk?.script === "latin" ? "ltr" : "rtl",
                     unicodeBidi: "isolate",
                     alignItems: "center",
                     gap: "10px",

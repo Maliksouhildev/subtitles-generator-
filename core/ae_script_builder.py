@@ -8,6 +8,7 @@ import json
 import re
 from typing import Dict, Any, List, Optional
 from core.transcriber import bind_arabic_articles_to_latin
+from core.srt_builder import chunk_words_by_script
 
 
 def format_ae_timecode(seconds: float) -> str:
@@ -64,7 +65,7 @@ class AfterEffectsScriptBuilder:
             return [1.0, 1.0, 1.0]
 
     def extract_and_chunk_words(self, transcription_data: Dict[str, Any]) -> List[List[Dict[str, Any]]]:
-        """Collects words with bound Arabic articles and chunks them based on words_per_line."""
+        """Collects words and splits them into homogeneous script-separated chunks."""
         segments = transcription_data.get("segments", [])
         all_words: List[Dict[str, Any]] = []
 
@@ -81,20 +82,7 @@ class AfterEffectsScriptBuilder:
                         "end": seg.get("end", 2.0)
                     })
 
-        # Bind isolated Arabic articles (الـ, لـ, etc.) to following Latin words
-        bound_words = bind_arabic_articles_to_latin(all_words)
-
-        chunks: List[List[Dict[str, Any]]] = []
-        current_chunk: List[Dict[str, Any]] = []
-        for w in bound_words:
-            current_chunk.append(w)
-            if len(current_chunk) >= self.words_per_line:
-                chunks.append(current_chunk)
-                current_chunk = []
-        if current_chunk:
-            chunks.append(current_chunk)
-
-        return chunks
+        return chunk_words_by_script(all_words, self.words_per_line)
 
     def generate_jsx(self, transcription_data: Dict[str, Any], total_duration: float = 30.0) -> str:
         """

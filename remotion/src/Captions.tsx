@@ -29,12 +29,26 @@ export interface CaptionsCompositionProps {
 // Regex to detect French / English loanwords embedded in Arabic text
 const LATIN_REGEX = /[a-zA-Z]/;
 const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
-const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644[\u0640\-]+|[\u0648]?\u0644\u0627[\u0640\-]*|[\u0648]?\u0644\u0648[\u0640\-]*|[\u0648]?\u0644\u064a[\u0640\-]*|[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|[\u0648]?\u062f\u064a[\u0640\-]*|[\u0648]?\u062f\u0648[\u0640\-]*|[\u0648]?\u062f[\u0640\-]+|[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|[\u0648]?\u0645\u0627[\u0640\-]*|[\u0648]?\u064a\u0627[\u0640\-]*|[\u0648]?\u0647\u0627[\u0640\-]*|[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*)$/;
+const ARABIC_PREFIX_ARTICLE_REGEX = /^(?:[\u0648\u0641\u0628\u0643]?[\u0622\u0623\u0625\u0627]?\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644\u0644[\u0640\-]*|[\u0648\u0641\u0628]?\u0644[\u0640\-]+|[\u0648]?\u0644\u0627[\u0640\-]*|[\u0648]?\u0644\u0648[\u0640\-]*|[\u0648]?\u0644\u064a[\u0640\-]*|[\u0648]?\u0627\u0644\u0644\u064a[\u0640\-]*|[\u0648]?\u062f\u064a[\u0640\-]*|[\u0648]?\u062f\u0648[\u0640\-]*|[\u0648]?\u062f[\u0640\-]+|[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|[\u0648]?[\u064a\u062a\u0646][\u0640\-]+|[\u0648]?\u0645\u0627[\u0640\-]*|[\u0648]?\u064a\u0627[\u0640\-]*|[\u0648]?\u0647\u0627[\u0640\-]*|[\u0628\u0641]?\u0647\u0627\u062f[\u0640\-]*)$/;
 
-function isPrefixToken(token: string): boolean {
+function isPrefixToken(token: string, nextToken?: string): boolean {
   const clean = token.replace(/^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$/g, "").trim();
   if (!clean) return false;
-  return ARABIC_PREFIX_ARTICLE_REGEX.test(clean) || token.trim().endsWith("-") || token.trim().endsWith("ـ");
+  if (ARABIC_PREFIX_ARTICLE_REGEX.test(clean) || token.trim().endsWith("-") || token.trim().endsWith("ـ")) {
+    return true;
+  }
+  if (["ي", "ت", "ن"].includes(clean) && nextToken && LATIN_REGEX.test(nextToken)) {
+    return true;
+  }
+  return false;
+}
+
+function classifyTokenScript(token: string, fallback: "arabic" | "latin" = "arabic"): "arabic" | "latin" {
+  const hasLatin = LATIN_REGEX.test(token);
+  const hasArabic = ARABIC_REGEX.test(token);
+  if (hasLatin) return "latin";
+  if (hasArabic) return "arabic";
+  return fallback;
 }
 
 
@@ -92,12 +106,18 @@ export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
   while (i < words.length) {
     const w = words[i];
     const text = (w.word || "").trim();
-    if (isPrefixToken(text) && i + 1 < words.length) {
+    const nextWText = i + 1 < words.length ? words[i + 1].word : undefined;
+    if (isPrefixToken(text, nextWText) && i + 1 < words.length) {
       const chain = [w];
       let j = i + 1;
-      while (j < words.length && isPrefixToken(words[j].word || "")) {
-        chain.push(words[j]);
-        j++;
+      while (j < words.length) {
+        const futureWText = j + 1 < words.length ? words[j + 1].word : undefined;
+        if (isPrefixToken(words[j].word || "", futureWText)) {
+          chain.push(words[j]);
+          j++;
+        } else {
+          break;
+        }
       }
       if (j < words.length) {
         const targetWord = words[j];
@@ -193,41 +213,72 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
   const subBoxColor = style.sub_box_color || "#000000";
   const subBoxAlpha = style.sub_box_alpha ?? 0.85;
 
-  // Group words into natural speech chunks with balanced sizes
-  const chunks: Array<{ words: WordToken[]; start: number; end: number }> = React.useMemo(() => {
+  // Group words into natural speech chunks with strict script separation:
+  // Arabic phrases and French loanwords NEVER mix on the same screen chunk.
+  const chunks: Array<{ words: WordToken[]; start: number; end: number; script: "arabic" | "latin" }> = React.useMemo(() => {
     if (!allWords || allWords.length === 0) return [];
 
-    // Group into pause blocks (pauses > 0.9s break line)
-    const pauseBlocks: WordToken[][] = [];
-    let currentBlock: WordToken[] = [];
+    // Step 1: Partition into homogeneous script runs and pause blocks
+    const runs: Array<{ words: WordToken[]; script: "arabic" | "latin" }> = [];
+    let currentRunWords: WordToken[] = [];
+    let currentScript: "arabic" | "latin" | null = null;
 
     for (const w of allWords) {
-      if (currentBlock.length > 0) {
-        const prev = currentBlock[currentBlock.length - 1];
-        if (w.start - prev.end > 0.9) {
-          pauseBlocks.push(currentBlock);
-          currentBlock = [];
+      const wText = (w.word || "").trim();
+      if (!wText) continue;
+
+      const tokenScript = classifyTokenScript(wText, currentScript || "arabic");
+
+      if (currentRunWords.length > 0) {
+        const prev = currentRunWords[currentRunWords.length - 1];
+        const prevEnd = prev.end ?? prev.start + 0.3;
+        const pauseGap = w.start - prevEnd;
+
+        if (tokenScript !== currentScript || pauseGap > 0.8) {
+          runs.push({ words: currentRunWords, script: currentScript! });
+          currentRunWords = [];
+          currentScript = tokenScript;
         }
       }
-      currentBlock.push(w);
-    }
-    if (currentBlock.length > 0) pauseBlocks.push(currentBlock);
 
-    // Apply balanced chunking per pause block with grammatical cohesion
-    const result: Array<{ words: WordToken[]; start: number; end: number }> = [];
-    for (const block of pauseBlocks) {
-      const sizes = balanceChunkSizes(block.length, wordsPerLine);
+      if (currentRunWords.length === 0) {
+        currentScript = tokenScript;
+      }
+
+      currentRunWords.push(w);
+    }
+
+    if (currentRunWords.length > 0 && currentScript) {
+      runs.push({ words: currentRunWords, script: currentScript });
+    }
+
+    // Step 2: Balance sub-chunks per run (strict 2 to 4 words limit)
+    const result: Array<{ words: WordToken[]; start: number; end: number; script: "arabic" | "latin" }> = [];
+
+    for (const run of runs) {
+      const { words: runWords, script } = run;
+      if (runWords.length <= wordsPerLine) {
+        result.push({
+          words: runWords,
+          start: runWords[0].start,
+          end: runWords[runWords.length - 1].end ?? (runWords[runWords.length - 1].start + 0.3),
+          script,
+        });
+        continue;
+      }
+
+      const sizes = balanceChunkSizes(runWords.length, wordsPerLine);
       let idx = 0;
-      const blockChunks: WordToken[][] = [];
+      const subChunks: WordToken[][] = [];
       for (const sz of sizes) {
-        blockChunks.push(block.slice(idx, idx + sz));
+        subChunks.push(runWords.slice(idx, idx + sz));
         idx += sz;
       }
 
-      // Grammatical cohesion pass: prevent stranding non-terminal particles at chunk ends
-      for (let cI = 0; cI < blockChunks.length - 1; cI++) {
-        const currC = blockChunks[cI];
-        const nextC = blockChunks[cI + 1];
+      // Grammatical cohesion pass within the run
+      for (let cI = 0; cI < subChunks.length - 1; cI++) {
+        const currC = subChunks[cI];
+        const nextC = subChunks[cI + 1];
         if (currC.length > 0 && isNonTerminalToken(currC[currC.length - 1].word)) {
           if (currC.length > 2) {
             const moved = currC.pop()!;
@@ -239,29 +290,41 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
         }
       }
 
-      for (const slice of blockChunks) {
+      for (const slice of subChunks) {
         if (slice.length > 0) {
           result.push({
             words: slice,
             start: slice[0].start,
-            end: slice[slice.length - 1].end,
+            end: slice[slice.length - 1].end ?? (slice[slice.length - 1].start + 0.3),
+            script,
           });
         }
       }
     }
+
     return result;
   }, [allWords, wordsPerLine]);
 
-  // Find currently active chunk with minimum hold duration so phrase never flickers out
+  // Find currently active chunk with silence detection so text doesn't linger across dead air
   const activeChunkInfo = React.useMemo(() => {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const nextChunkStart = i + 1 < chunks.length ? chunks[i + 1].start : null;
       const naturalEnd = chunk.end;
       const minHold = chunk.start + 0.85;
-      const effectiveEnd = nextChunkStart
-        ? Math.min(nextChunkStart - 0.05, Math.max(naturalEnd, minHold))
-        : Math.max(naturalEnd, minHold);
+
+      let effectiveEnd: number;
+      if (nextChunkStart !== null) {
+        const gap = nextChunkStart - naturalEnd;
+        if (gap > 0.8) {
+          // Speech paused; dismiss subtitle cleanly 0.35s after word completes
+          effectiveEnd = Math.max(chunk.start + 0.3, naturalEnd + 0.35);
+        } else {
+          effectiveEnd = Math.min(nextChunkStart - 0.05, Math.max(naturalEnd, minHold));
+        }
+      } else {
+        effectiveEnd = Math.max(naturalEnd, minHold);
+      }
 
       if (currentTime >= chunk.start && currentTime <= effectiveEnd) {
         return chunk;
@@ -308,7 +371,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
       }}
     >
       {activeChunkInfo && (() => {
-        const isChunkRtl = activeChunkInfo.words.some((w) => ARABIC_REGEX.test(w.word));
+        const isChunkRtl = activeChunkInfo.script === "arabic";
         const activeTemplateId = template_id || style.animation_style || DEFAULT_TEMPLATE_ID;
         const TemplateComponent = getTemplateComponent(activeTemplateId);
 

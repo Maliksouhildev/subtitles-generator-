@@ -239,3 +239,48 @@ def test_split_fused_script_tokens():
     assert split[1]["word"] == "ه"
     assert split[2]["word"] == "مع"
     assert split[3]["word"] == "تشوف"
+
+
+def test_sanitize_transcription_text_and_verb_prefixes():
+    from core.transcriber import sanitize_transcription_text, bind_arabic_articles_to_latin, normalize_transcription_data
+
+    # 1. Spelling normalization: strips trailing hamza from هكذاء
+    raw_phrase = "سي بون، خلاص، هكذاء"
+    clean_phrase = sanitize_transcription_text(raw_phrase)
+    assert clean_phrase == "سي بون، خلاص، هكذا"
+
+    # 2. Verb prefix binding with French verbs
+    words = [
+        {"word": "يـ", "start": 6.0, "end": 6.2},
+        {"word": "percer", "start": 6.2, "end": 6.6},
+        {"word": "داخل", "start": 6.6, "end": 6.9},
+        {"word": "الـ", "start": 6.9, "end": 7.1},
+        {"word": "PPF", "start": 7.1, "end": 7.5}
+    ]
+    bound = bind_arabic_articles_to_latin(words)
+    assert len(bound) == 3
+    assert bound[0]["word"] == "يـ percer"
+    assert bound[1]["word"] == "داخل"
+    assert bound[2]["word"] == "الـ PPF"
+
+    # 3. Full normalize_transcription_data integration
+    raw_data = {
+        "text": "سي بون خلاص هكذاء",
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 2.0,
+                "text": "سي بون خلاص هكذاء",
+                "words": [
+                    {"word": "سي", "start": 0.0, "end": 0.4},
+                    {"word": "بون", "start": 0.4, "end": 0.8},
+                    {"word": "خلاص", "start": 0.8, "end": 1.4},
+                    {"word": "هكذاء", "start": 1.4, "end": 2.0}
+                ]
+            }
+        ]
+    }
+    norm = normalize_transcription_data(raw_data)
+    assert norm["text"] == "سي بون خلاص هكذا"
+    assert norm["segments"][0]["words"][3]["word"] == "هكذا"

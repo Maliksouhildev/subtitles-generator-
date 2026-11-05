@@ -38,12 +38,16 @@ DIALECT & LINGUISTIC RULES:
    - "برك", "بزاف", "شوية", "مليح", "قع", "كامل", "دير", "حاب", "باغي", "خلاص", "صحة", "خويا", "ختي", "كاش", "هكذا", "هاكا"
 3. FRENCH & FOREIGN LOANWORD SPELLING (CRITICAL):
    - NEVER phonetically transliterate French, English, or foreign loanwords into Arabic letters (e.g. do NOT write 'برومي' for 'premier', do NOT write 'نوفيل' for 'nouvelle', do NOT write 'تيست' for 'test', do NOT write 'ريدفيلد' for 'Redfield', do NOT write 'دوزيام' for 'deuxième').
-   - Always write established French, English, or foreign brand names, technical terms, and loanwords in their authentic standard LATIN script (e.g. "premier", "nouvelle", "test", "Redfield", "rendez-vous", "projet", "voiture", "normal", "c'est bon").
+   - Always write established French, English, or foreign brand names, technical terms, and loanwords in their authentic standard LATIN script (e.g. "premier", "nouvelle", "test", "Redfield", "rendez-vous", "projet", "voiture", "normal", "c'est bon", "la tôle", "PPF", "vinyle", "par rapport", "percer").
+   - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: e.g. "الـ PPF", "يـ percer", "تـ tester", "نـ changer".
    - This ensures professional, native-grade bilingual subtitling.
-4. Provide PRECISE TIMESTAMPS:
+4. AUTHENTIC DARIJA SPELLING (NO BOGUS HAMZAS):
+   - NEVER add an unneeded trailing hamza 'ء' to Darija words: always write 'هكذا' or 'هكدا' (NEVER 'هكذاء'), 'صحة' (NEVER 'صحاء'), 'خلاص' (NEVER 'خلاصء').
+5. COMPLETE SPEECH COVERAGE & PRECISE TIMESTAMPS:
    - Every segment must have 'start' and 'end' in seconds (float).
    - Every word within a segment must have its exact spoken 'start' and 'end' timestamps in seconds.
    - Timestamps must correspond to the exact moment the speaker pronounces the word.
+   - Transcribe ALL spoken words across the full audio timeline without dropping quiet or rapid speech.
 
 STRICT JSON OUTPUT FORMAT ONLY:
 Return ONLY valid JSON matching this schema with NO markdown code fences, NO explanation, NO introduction:
@@ -503,6 +507,7 @@ ARABIC_PREFIX_ARTICLE_REGEX = re.compile(
     r'[\u0648]?\u062f\u0648[\u0640\-]*|'                                          # دو, ودو (French 'du')
     r'[\u0648]?\u062f[\u0640\-]+|'                                                # دـ, ودـ (Darija genitive d-)
     r'[\u0648]?[\u0628\u0641\u0643][\u0640\-]+|'                                  # بـ, فـ, كـ
+    r'[\u0648]?[\u064a\u062a\u0646][\u0640\-]+|'                                  # يـ, تـ, نـ (Darija imperfective verb prefixes e.g. يـ percer)
     r'[\u0648]?\u0645\u0627[\u0640\-]*|'                                          # ما, وما
     r'[\u0648]?\u064a\u0627[\u0640\-]*|'                                          # يا, ويا
     r'[\u0648]?\u0647\u0627[\u0640\-]*|'                                          # ها, وها
@@ -511,19 +516,43 @@ ARABIC_PREFIX_ARTICLE_REGEX = re.compile(
 )
 
 
-def is_prefix_token(token: str) -> bool:
-    """Checks if a token is an orphaned Arabic article/particle prefix."""
-    clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(token).strip())
+def is_prefix_token(token: str, next_token: Optional[str] = None) -> bool:
+    """Checks if a token is an orphaned Arabic article/particle/verb prefix."""
+    t = str(token).strip()
+    clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', t)
     if not clean:
         return False
-    return bool(ARABIC_PREFIX_ARTICLE_REGEX.match(clean)) or token.strip().endswith(("-", "ـ"))
+    if bool(ARABIC_PREFIX_ARTICLE_REGEX.match(clean)) or t.endswith(("-", "ـ")):
+        return True
+    # Standalone verb prefixes (ي, ت, ن) when followed by a Latin word (e.g. ي percer)
+    if clean in ("ي", "ت", "ن") and next_token and bool(LATIN_REGEX.search(str(next_token))):
+        return True
+    return False
+
+
+def sanitize_transcription_text(text: str) -> str:
+    """
+    Cleans up common Darija spelling errors and phonetic typos:
+    - Removes unneeded trailing hamza 'ء' (e.g. 'هكذاء' -> 'هكذا', 'هكداء' -> 'هكدا')
+    - Corrects common colloquial spelling variations
+    """
+    if not text:
+        return ""
+    text = re.sub(r'\bهكذاء\b', 'هكذا', text)
+    text = re.sub(r'\bهكداء\b', 'هكدا', text)
+    text = re.sub(r'\bهاكداء\b', 'هاكدا', text)
+    text = re.sub(r'\bهاكذاء\b', 'هاكذا', text)
+    text = re.sub(r'\bخلاصء\b', 'خلاص', text)
+    text = re.sub(r'\bصحاء\b', 'صحة', text)
+    return text
 
 
 def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا', 'بهاد') to subsequent Latin loanwords
-    (e.g. 'premier', 'nouvelle'), treating them as a single highlighted token.
-    Prevents awkward isolated article pop on screen and preserves natural bilingual phrasing.
+    Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا', 'بهاد')
+    and imperfective verb prefixes (e.g. 'يـ', 'تـ', 'نـ') to subsequent Latin loanwords
+    (e.g. 'PPF', 'percer', 'premier', 'nouvelle'), treating them as a single highlighted token.
+    Prevents awkward isolated prefix pop on screen and preserves natural bilingual phrasing.
     Supports chained prefixes (e.g. 'و' + 'لا' + 'nouvelle').
     """
     if not words:
@@ -533,14 +562,19 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     while i < len(words):
         w = words[i]
         text_val = str(w.get("word", "")).strip()
+        next_w_val = words[i + 1].get("word", "") if i + 1 < len(words) else None
 
-        if is_prefix_token(text_val) and i + 1 < len(words):
+        if is_prefix_token(text_val, next_w_val) and i + 1 < len(words):
             # Accumulate chained prefixes if present
             chain = [w]
             j = i + 1
-            while j < len(words) and is_prefix_token(words[j].get("word", "")):
-                chain.append(words[j])
-                j += 1
+            while j < len(words):
+                future_w = words[j + 1].get("word", "") if j + 1 < len(words) else None
+                if is_prefix_token(words[j].get("word", ""), future_w):
+                    chain.append(words[j])
+                    j += 1
+                else:
+                    break
 
             if j < len(words):
                 target_word = words[j]
@@ -616,13 +650,18 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
     seg_counter = 0
 
     for seg in segments:
+        if "text" in seg and seg["text"]:
+            seg["text"] = sanitize_transcription_text(seg["text"])
         words = interpolate_word_timestamps(seg)
+        for w in words:
+            if "word" in w and w["word"]:
+                w["word"] = sanitize_transcription_text(w["word"])
         words = split_fused_script_tokens(words)
         words = bind_arabic_articles_to_latin(words)
         if not words:
             start = float(seg.get("start", 0.0))
             end = float(seg.get("end", start + 2.0))
-            text = seg.get("text", "").strip()
+            text = sanitize_transcription_text(seg.get("text", "").strip())
             normalized_segments.append({
                 "id": seg_counter,
                 "start": round(start, 2),
@@ -635,7 +674,7 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
 
         seg_start = float(words[0]["start"])
         seg_end = float(words[-1]["end"])
-        seg_text = seg.get("text", "").strip() or " ".join(w["word"] for w in words)
+        seg_text = sanitize_transcription_text(seg.get("text", "").strip() or " ".join(w["word"] for w in words))
         normalized_segments.append({
             "id": seg_counter,
             "start": round(seg_start, 2),
@@ -645,7 +684,7 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
         })
         seg_counter += 1
 
-    full_text = data.get("text", "")
+    full_text = sanitize_transcription_text(data.get("text", ""))
     if not full_text and normalized_segments:
         full_text = " ".join(s["text"] for s in normalized_segments)
 

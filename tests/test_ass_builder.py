@@ -248,8 +248,8 @@ def test_ass_builder_silence_isolation():
     }
     ass_text = builder.generate_ass(data)
     events = [l for l in ass_text.splitlines() if l.startswith("Dialogue:")]
-    # Verify segment 1 ends at 1.0s and does not stretch until 30.0s
-    assert any("0:00:00.00,0:00:01.00" in e for e in events)
+    # Verify segment 1 cleanly dismisses at 1.35s and does not linger across 30s silence gap
+    assert any("0:00:00.00,0:00:01.35" in e for e in events)
     assert not any("0:00:00.00,0:00:30.00" in e for e in events)
 
 
@@ -266,10 +266,31 @@ def test_ass_builder_script_separated_chunking():
         {"word": "test", "start": 4.1, "end": 4.8}
     ]
     chunks = builder.chunk_words(words)
-    # Balanced chunking with words_per_line=4 produces 2 unified phrases without script fracturing
-    assert len(chunks) == 2
-    assert [w["word"] for w in chunks[0]] == ["وكان", "شرف", "للشركة", "Red"]
-    assert [w["word"] for w in chunks[1]] == ["Field", "أنها", "تدير", "test"]
+    # Pure script separation: Arabic clauses and French/Latin words NEVER mix in the same chunk
+    assert len(chunks) == 4
+    assert [w["word"] for w in chunks[0]] == ["وكان", "شرف", "للشركة"]
+    assert [w["word"] for w in chunks[1]] == ["Red", "Field"]
+    assert [w["word"] for w in chunks[2]] == ["أنها", "تدير"]
+    assert [w["word"] for w in chunks[3]] == ["test"]
+
+
+def test_ass_builder_verb_prefix_binding_and_spelling():
+    builder = ASSSubtitleBuilder(words_per_line=3, animation_style="karaoke_pop")
+    words = [
+        {"word": "يـ", "start": 6.0, "end": 6.2},
+        {"word": "percer", "start": 6.2, "end": 6.5},
+        {"word": "داخل", "start": 6.5, "end": 6.8},
+        {"word": "la", "start": 6.8, "end": 7.0},
+        {"word": "tôle", "start": 7.0, "end": 7.3},
+        {"word": "شوف", "start": 7.3, "end": 7.6}
+    ]
+    chunks = builder.chunk_words(words)
+    # Verb prefix "يـ" binds with "percer" into "يـ percer"
+    assert chunks[0][0]["word"] == "يـ percer"
+    # Pure script separation ensures separate chunks for Arabic and French
+    assert [w["word"] for w in chunks[1]] == ["داخل"]
+    assert [w["word"] for w in chunks[2]] == ["la", "tôle"]
+    assert [w["word"] for w in chunks[3]] == ["شوف"]
 
 
 def test_ass_builder_new_creative_templates():
