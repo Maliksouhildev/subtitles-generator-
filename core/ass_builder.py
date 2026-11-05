@@ -79,10 +79,12 @@ def calculate_word_end_time(
     natural_end: float,
     next_chunk_start: Optional[float],
     min_hold_duration: float = 0.85,
-    silence_threshold: float = 0.8
+    silence_threshold: float = 0.65,
+    max_duration: float = 2.5
 ) -> float:
     """
     Calculates display end time for the final word in a chunk.
+    - Strictly enforces max_duration rule: no subtitle stays on screen longer than 2.5s.
     - If there is a silence gap (> silence_threshold) before the next chunk,
       dismisses the subtitle cleanly at natural_end + 0.35s (does not linger over silence).
     - If speech continues promptly, bridges smoothly to next_chunk_start - 0.05s
@@ -91,12 +93,15 @@ def calculate_word_end_time(
     if next_chunk_start is not None:
         gap = next_chunk_start - natural_end
         if gap > silence_threshold:
-            return max(w_start + 0.30, natural_end + 0.35)
-        min_hold = w_start + min_hold_duration
-        return min(next_chunk_start - 0.05, max(natural_end, min_hold))
+            chosen_end = max(w_start + 0.30, natural_end + 0.35)
+        else:
+            min_hold = w_start + min_hold_duration
+            chosen_end = min(next_chunk_start - 0.05, max(natural_end, min_hold))
     else:
         min_hold = w_start + min_hold_duration
-        return max(natural_end, min_hold)
+        chosen_end = max(natural_end, min_hold)
+
+    return min(w_start + max_duration, max(w_start + 0.25, chosen_end))
 
 
 def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -106,6 +111,7 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     (e.g. 'PPF', 'percer', 'premier', 'nouvelle'), treating them as a single highlighted token.
     Prevents awkward isolated article pop on screen and preserves natural bilingual phrasing.
     Supports chained prefixes (e.g. 'و' + 'لا' + 'nouvelle').
+    Also merges isolated punctuation tokens and common French multi-word expressions ('par rapport').
     """
     if not words:
         return []
@@ -114,7 +120,27 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     while i < len(words):
         w = words[i]
         text_val = str(w.get("word", "")).strip()
+
+        # Merge isolated punctuation into previous word
+        if text_val in (",", "،", ".", "!", "?", "؛", ":") and bound:
+            prev = bound[-1]
+            prev["word"] = f"{prev.get('word', '')}{text_val}"
+            prev["end"] = max(float(prev.get("end", 0.0)), float(w.get("end", prev.get("end", 0.0))))
+            i += 1
+            continue
+
         next_w_val = words[i + 1].get("word", "") if i + 1 < len(words) else None
+
+        # Bind multi-word French loan expressions: e.g. "par" + "rapport"
+        if text_val.lower() == "par" and next_w_val and str(next_w_val).strip().lower().startswith("rapport"):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
 
         if is_prefix_token(text_val, next_w_val) and i + 1 < len(words):
             chain = [w]
@@ -325,6 +351,19 @@ class ASSSubtitleBuilder:
         self.sub_box_style = sub_box_style or "none"
         self.sub_box_color = sub_box_color or "#000000"
         self.sub_box_alpha = max(0.0, min(1.0, float(sub_box_alpha)))
+        self.is_arabic_mode = True
+
+    def is_chunk_rtl(self, chunk: List[Dict[str, Any]]) -> bool:
+        """
+        Determines whether the subtitle chunk should render in Right-to-Left (RTL) base direction.
+        In Algerian Darija subtitling, any chunk containing Arabic script, Arabic prefixes,
+        or mixed Arabic/French loanwords ALWAYS has RTL base paragraph direction (\u200F).
+        Only 100% purely Latin chunks with zero Arabic characters or context default to LTR.
+        """
+        has_arabic = any(bool(ARABIC_REGEX.search(str(w.get("word", "")))) for w in chunk)
+        if has_arabic:
+            return True
+        return getattr(self, "is_arabic_mode", True)
 
     def generate_header(self) -> str:
         """Generates the ASS script header and style block."""
@@ -374,13 +413,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def chunk_words(self, words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """
-        Splits words into balanced chunks with strict script separation:
-        - Arabic clauses and French/Latin loanwords NEVER mix on the same screen chunk.
-        - Consecutive tokens of the same script are grouped together.
-        - Arabic runs are split into balanced sub-chunks of 2 to 4 words.
-        - French loanword runs are grouped together (up to 4 words).
-        - Natural speech pauses (> 0.8s) trigger new chunks.
-        - Grammatical cohesion avoids stranding non-terminal particles across chunk breaks.
+        Splits words into balanced, readable bilingual subtitle chunks:
+        - Maintains natural Darija clause flow (Arabic words and French loanwords appear together naturally).
+        - Strictly enforces 2 to 4 words per chunk for mobile legibility.
+        - Splits on punctuation marks (،, ., ,, !, ?, ؛, :).
+        - Splits on speech pauses (> 0.65s).
+        - Splits if character length exceeds 32 characters.
+        - Applies anti-orphan balancing (e.g. 5 words -> [3, 2] instead of [4, 1]).
+        - Protects non-terminal particles from dangling at chunk ends.
         """
         if not words:
             return []
@@ -391,56 +431,54 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         target_size = min(4, max(2, self.words_per_line))
 
-        # Step 1: Group tokens into homogeneous script runs and pause blocks
-        runs: List[List[Dict[str, Any]]] = []
-        current_run: List[Dict[str, Any]] = []
-        current_script: Optional[str] = None
+        # Partition into clause blocks by punctuation and silence pauses
+        clauses: List[List[Dict[str, Any]]] = []
+        current_clause: List[Dict[str, Any]] = []
 
         for w in words:
             w_text = str(w.get("word", "")).strip()
             if not w_text:
                 continue
 
-            token_script = classify_token_script(w_text, default=current_script or "arabic")
-
-            if current_run:
-                prev_w = current_run[-1]
+            if current_clause:
+                prev_w = current_clause[-1]
                 prev_end = float(prev_w.get("end", prev_w.get("start", 0.0) + 0.3))
                 pause_gap = float(w.get("start", 0.0)) - prev_end
-                if token_script != current_script or pause_gap > 0.8:
-                    runs.append(current_run)
-                    current_run = []
-                    current_script = token_script
+                prev_text = str(prev_w.get("word", "")).strip()
+                has_punct = any(prev_text.endswith(p) for p in (",", "،", ".", "!", "?", "؛", ":"))
 
-            if not current_run:
-                current_script = token_script
+                if pause_gap > 0.65 or has_punct:
+                    clauses.append(current_clause)
+                    current_clause = []
 
-            current_run.append(w)
+            current_clause.append(w)
 
-        if current_run:
-            runs.append(current_run)
+        if current_clause:
+            clauses.append(current_clause)
 
-        # Step 2: Chunk each run respecting words_per_line and grammatical cohesion
+        # Sub-chunk each clause respecting words_per_line and character budget
         chunks: List[List[Dict[str, Any]]] = []
-        for run in runs:
-            if not run:
+        for clause in clauses:
+            if not clause:
                 continue
 
-            if len(run) <= target_size:
-                chunks.append(run)
-                continue
+            if len(clause) <= target_size:
+                total_len = sum(len(str(w.get("word", ""))) for w in clause)
+                if total_len <= 34 or len(clause) <= 2:
+                    chunks.append(clause)
+                    continue
 
-            sizes = balance_chunk_sizes(len(run), target_size)
+            sizes = balance_chunk_sizes(len(clause), target_size)
             idx = 0
-            run_subchunks = []
+            subchunks = []
             for sz in sizes:
-                run_subchunks.append(list(run[idx:idx + sz]))
+                subchunks.append(list(clause[idx:idx + sz]))
                 idx += sz
 
-            # Grammatical cohesion pass within the homogeneous run
-            for c_i in range(len(run_subchunks) - 1):
-                curr_c = run_subchunks[c_i]
-                next_c = run_subchunks[c_i + 1]
+            # Grammatical cohesion pass: don't strand non-terminal tokens at chunk end
+            for c_i in range(len(subchunks) - 1):
+                curr_c = subchunks[c_i]
+                next_c = subchunks[c_i + 1]
                 if curr_c and is_non_terminal_token(curr_c[-1].get("word", "")):
                     if len(curr_c) > 2:
                         moved = curr_c.pop()
@@ -449,7 +487,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         moved = next_c.pop(0)
                         curr_c.append(moved)
 
-            for sc in run_subchunks:
+            for sc in subchunks:
                 if sc:
                     chunks.append(sc)
 
@@ -470,8 +508,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
-            chunk_is_rtl = not chunk_is_latin
+            chunk_is_rtl = self.is_chunk_rtl(chunk)
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -536,8 +573,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
-            chunk_is_rtl = not chunk_is_latin
+            chunk_is_rtl = self.is_chunk_rtl(chunk)
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -619,8 +655,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
-            chunk_is_rtl = not chunk_is_latin
+            chunk_is_rtl = self.is_chunk_rtl(chunk)
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -679,8 +714,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
-            chunk_is_rtl = not chunk_is_latin
+            chunk_is_rtl = self.is_chunk_rtl(chunk)
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -743,8 +777,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
-            chunk_is_rtl = not chunk_is_latin
+            chunk_is_rtl = self.is_chunk_rtl(chunk)
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -803,8 +836,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
-            chunk_is_rtl = not chunk_is_latin
+            chunk_is_rtl = self.is_chunk_rtl(chunk)
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -862,8 +894,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
-            chunk_is_rtl = not chunk_is_latin
+            chunk_is_rtl = self.is_chunk_rtl(chunk)
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -939,8 +970,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not chunk:
                 continue
 
-            chunk_is_latin = any(bool(LATIN_REGEX.search(w.get("word", ""))) for w in chunk)
-            chunk_is_rtl = not chunk_is_latin
+            chunk_is_rtl = self.is_chunk_rtl(chunk)
             next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
 
             for i, active_word in enumerate(chunk):
@@ -1006,6 +1036,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         Chunks words per segment to preserve natural pauses and prevent subtitle drift.
         """
         segments = transcription_data.get("segments", [])
+        has_arabic = any(bool(ARABIC_REGEX.search(str(seg.get("text", "")))) for seg in segments)
+        lang = str(transcription_data.get("language", "")).lower()
+        self.is_arabic_mode = has_arabic or lang.startswith("ar") or "algerian" in lang
 
         # Extract words per segment to respect pauses between sentences
         chunks = []

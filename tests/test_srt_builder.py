@@ -84,12 +84,12 @@ def test_srt_script_separation():
         ]
     }
     srt = generate_srt(data, words_per_chunk=3)
-    # The Arabic and French words must be in separate cues
+    # The Arabic and French words stay naturally in the same readable clause with RTL marker
     assert "درت" in srt
     assert "test" in srt
     assert "البارح" in srt
     lines = [l.strip() for l in srt.splitlines() if l.strip() and not l.strip().isdigit() and "-->" not in l]
-    # Each cue text must not mix Arabic and French
-    assert lines == ["درت", "test", "البارح"]
+    assert len(lines) == 1
+    assert "درت test البارح" in lines[0]
 
 

@@ -2556,12 +2556,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function sanitizeDarijaText(text) {
     if (!text) return "";
     return text
-      .replace(/\bهكذاء\b/g, "هكذا")
-      .replace(/\bهكداء\b/g, "هكدا")
-      .replace(/\bهاكداء\b/g, "هاكدا")
-      .replace(/\bهاكذاء\b/g, "هاكذا")
-      .replace(/\bخلاصء\b/g, "خلاص")
-      .replace(/\bصحاء\b/g, "صحة");
+      .replaceAll("هكذاء", "هكذا")
+      .replaceAll("هكداء", "هكدا")
+      .replaceAll("هاكداء", "هاكدا")
+      .replaceAll("هاكذاء", "هاكذا")
+      .replaceAll("خلاصء", "خلاص")
+      .replaceAll("صحاء", "صحة");
   }
 
   function updateLiveSubtitlePreview() {
@@ -2606,7 +2606,29 @@ document.addEventListener("DOMContentLoaded", () => {
       let bwIdx = 0;
       while (bwIdx < segWords.length) {
         const textVal = sanitizeDarijaText((segWords[bwIdx].word || "").trim());
+
+        // Merge isolated punctuation into previous word
+        if ([",", "،", ".", "!", "?", "؛", ":"].includes(textVal) && boundSegWords.length > 0) {
+          const prev = boundSegWords[boundSegWords.length - 1];
+          prev.word = `${prev.word}${textVal}`;
+          prev.end = Math.max(prev.end || 0, segWords[bwIdx].end || 0);
+          bwIdx++;
+          continue;
+        }
+
         const nextVal = bwIdx + 1 < segWords.length ? (segWords[bwIdx + 1].word || "").trim() : "";
+
+        // Bind multi-word French loan expressions (e.g. "par" + "rapport")
+        if (textVal.toLowerCase() === "par" && nextVal.toLowerCase().startsWith("rapport")) {
+          boundSegWords.push({
+            word: `${textVal} ${nextVal}`,
+            start: segWords[bwIdx].start,
+            end: segWords[bwIdx + 1].end || (segWords[bwIdx + 1].start + 0.3)
+          });
+          bwIdx += 2;
+          continue;
+        }
+
         if (isPrefix(textVal, nextVal) && bwIdx + 1 < segWords.length) {
           const chain = [segWords[bwIdx]];
           let j = bwIdx + 1;
@@ -2646,20 +2668,9 @@ document.addEventListener("DOMContentLoaded", () => {
         bwIdx++;
       }
 
-      // Script-separated chunking for preview: Arabic and French never mix on screen
+      // Natural bilingual preview: display natural 2 to 4 word clause
       if (boundSegWords.length > 0) {
-        const firstIsLatin = /[a-zA-Z]/.test(boundSegWords[0].word);
-        const homogeneousWords = [];
-        for (const w of boundSegWords) {
-          const hasLatin = /[a-zA-Z]/.test(w.word);
-          if (hasLatin === firstIsLatin) {
-            homogeneousWords.push(w.word);
-            if (homogeneousWords.length >= targetWordCount) break;
-          } else {
-            break;
-          }
-        }
-        wordList = homogeneousWords.length > 0 ? homogeneousWords : boundSegWords.slice(0, targetWordCount).map(w => w.word);
+        wordList = boundSegWords.slice(0, targetWordCount).map(w => w.word);
       }
 
     }

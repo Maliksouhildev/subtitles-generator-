@@ -87,7 +87,28 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     while i < len(words):
         w = words[i]
         text_val = str(w.get("word", "")).strip()
+
+        # Merge isolated punctuation into previous word
+        if text_val in (",", "،", ".", "!", "?", "؛", ":") and bound:
+            prev = bound[-1]
+            prev["word"] = f"{prev.get('word', '')}{text_val}"
+            prev["end"] = max(float(prev.get("end", 0.0)), float(w.get("end", prev.get("end", 0.0))))
+            i += 1
+            continue
+
         next_w_val = words[i + 1].get("word", "") if i + 1 < len(words) else None
+
+        # Bind multi-word French loan expressions: e.g. "par" + "rapport"
+        if text_val.lower() == "par" and next_w_val and str(next_w_val).strip().lower().startswith("rapport"):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
+
         if is_prefix_token(text_val, next_w_val) and i + 1 < len(words):
             chain = [w]
             j = i + 1
@@ -160,12 +181,13 @@ def balance_chunk_sizes(total_words: int, target_size: int = 3) -> List[int]:
 
 def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4) -> List[List[Dict[str, Any]]]:
     """
-    Chunks words strictly separating Arabic script from French/Latin loanwords:
-    - Arabic phrases and French loanwords NEVER mix on the same screen chunk.
-    - Consecutive tokens of the same script are grouped together.
-    - Arabic runs are split into balanced sub-chunks of 2 to 4 words.
-    - French loanword runs are grouped together (up to 4 words).
-    - Speech pauses (> 0.8s) trigger new chunks.
+    Chunks words into balanced, readable bilingual subtitle chunks:
+    - Maintains natural Darija clause flow (Arabic words and French loanwords appear together naturally).
+    - Strictly enforces 2 to 4 words per chunk for mobile legibility.
+    - Splits on punctuation marks (،, ., ,, !, ?, ؛, :).
+    - Splits on speech pauses (> 0.65s).
+    - Applies anti-orphan balancing.
+    - Protects non-terminal particles from dangling at chunk ends.
     """
     if not words:
         return []
@@ -175,55 +197,51 @@ def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4)
 
     target_size = min(4, max(2, words_per_chunk))
 
-    # Step 1: Group tokens into homogeneous script runs and pause blocks
-    runs: List[List[Dict[str, Any]]] = []
-    current_run: List[Dict[str, Any]] = []
-    current_script: Optional[str] = None
+    clauses: List[List[Dict[str, Any]]] = []
+    current_clause: List[Dict[str, Any]] = []
 
     for w in words:
         w_text = str(w.get("word", "")).strip()
         if not w_text:
             continue
 
-        token_script = classify_token_script(w_text, default=current_script or "arabic")
-
-        if current_run:
-            prev_w = current_run[-1]
+        if current_clause:
+            prev_w = current_clause[-1]
             prev_end = float(prev_w.get("end", prev_w.get("start", 0.0) + 0.3))
             pause_gap = float(w.get("start", 0.0)) - prev_end
-            if token_script != current_script or pause_gap > 0.8:
-                runs.append(current_run)
-                current_run = []
-                current_script = token_script
+            prev_text = str(prev_w.get("word", "")).strip()
+            has_punct = any(prev_text.endswith(p) for p in (",", "،", ".", "!", "?", "؛", ":"))
 
-        if not current_run:
-            current_script = token_script
+            if pause_gap > 0.65 or has_punct:
+                clauses.append(current_clause)
+                current_clause = []
 
-        current_run.append(w)
+        current_clause.append(w)
 
-    if current_run:
-        runs.append(current_run)
+    if current_clause:
+        clauses.append(current_clause)
 
-    # Step 2: Balance sub-chunks per run (max 4 words)
     chunks: List[List[Dict[str, Any]]] = []
-    for run in runs:
-        if not run:
+    for clause in clauses:
+        if not clause:
             continue
 
-        if len(run) <= target_size:
-            chunks.append(run)
-            continue
+        if len(clause) <= target_size:
+            total_len = sum(len(str(w.get("word", ""))) for w in clause)
+            if total_len <= 34 or len(clause) <= 2:
+                chunks.append(clause)
+                continue
 
-        sizes = balance_chunk_sizes(len(run), target_size)
+        sizes = balance_chunk_sizes(len(clause), target_size)
         idx = 0
-        run_subchunks = []
+        subchunks = []
         for sz in sizes:
-            run_subchunks.append(list(run[idx:idx + sz]))
+            subchunks.append(list(clause[idx:idx + sz]))
             idx += sz
 
-        for c_i in range(len(run_subchunks) - 1):
-            curr_c = run_subchunks[c_i]
-            next_c = run_subchunks[c_i + 1]
+        for c_i in range(len(subchunks) - 1):
+            curr_c = subchunks[c_i]
+            next_c = subchunks[c_i + 1]
             if curr_c and is_non_terminal_token(curr_c[-1].get("word", "")):
                 if len(curr_c) > 2:
                     moved = curr_c.pop()
@@ -232,7 +250,7 @@ def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4)
                     moved = next_c.pop(0)
                     curr_c.append(moved)
 
-        for sc in run_subchunks:
+        for sc in subchunks:
             if sc:
                 chunks.append(sc)
 
@@ -242,7 +260,8 @@ def chunk_words_by_script(words: List[Dict[str, Any]], words_per_chunk: int = 4)
 def generate_srt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -> str:
     """
     Generates standard SubRip (.srt) subtitles.
-    Chunks words per segment respecting sentence boundaries, pauses, and script boundaries.
+    Chunks words per segment respecting sentence boundaries, pauses, and natural clause flow.
+    Enforces maximum duration of 2.5s and prepends RTL marker for Arabic text.
     """
     segments = transcription_data.get("segments", [])
     srt_lines = []
@@ -252,17 +271,38 @@ def generate_srt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -
         words = seg.get("words", [])
         if words and len(words) > 1:
             chunks = chunk_words_by_script(words, words_per_chunk)
-            for chunk in chunks:
-                start_str = format_srt_time(chunk[0]["start"])
-                end_str = format_srt_time(chunk[-1]["end"])
+            for chunk_idx, chunk in enumerate(chunks):
+                w_start = float(chunk[0]["start"])
+                natural_end = float(chunk[-1]["end"])
+                next_start = float(chunks[chunk_idx + 1][0]["start"]) if chunk_idx + 1 < len(chunks) else None
+
+                if next_start is not None:
+                    gap = next_start - natural_end
+                    if gap > 0.65:
+                        w_end = max(w_start + 0.3, natural_end + 0.35)
+                    else:
+                        w_end = min(next_start - 0.05, max(natural_end, w_start + 0.85))
+                else:
+                    w_end = max(natural_end, w_start + 0.85)
+
+                w_end = min(w_start + 2.5, max(w_start + 0.25, w_end))
+
+                start_str = format_srt_time(w_start)
+                end_str = format_srt_time(w_end)
                 text = " ".join(w.get("word", "") for w in chunk)
+                if any(bool(ARABIC_REGEX.search(str(w.get("word", "")))) for w in chunk):
+                    text = f"\u200F{text}"
 
                 srt_lines.append(f"{counter}\n{start_str} --> {end_str}\n{text}\n")
                 counter += 1
         else:
-            start_str = format_srt_time(seg.get("start", 0.0))
-            end_str = format_srt_time(seg.get("end", 2.0))
+            w_start = float(seg.get("start", 0.0))
+            w_end = min(w_start + 2.5, float(seg.get("end", w_start + 2.0)))
+            start_str = format_srt_time(w_start)
+            end_str = format_srt_time(w_end)
             text = seg.get("text", "").strip()
+            if bool(ARABIC_REGEX.search(text)):
+                text = f"\u200F{text}"
 
             srt_lines.append(f"{counter}\n{start_str} --> {end_str}\n{text}\n")
             counter += 1
@@ -273,7 +313,8 @@ def generate_srt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -
 def generate_vtt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -> str:
     """
     Generates WebVTT (.vtt) format subtitle content.
-    Chunks words per segment respecting sentence boundaries, pauses, and script boundaries.
+    Chunks words per segment respecting sentence boundaries, pauses, and natural clause flow.
+    Enforces maximum duration of 2.5s and prepends RTL marker for Arabic text.
     """
     segments = transcription_data.get("segments", [])
     vtt_lines = ["WEBVTT\n"]
@@ -282,16 +323,37 @@ def generate_vtt(transcription_data: Dict[str, Any], words_per_chunk: int = 4) -
         words = seg.get("words", [])
         if words and len(words) > 1:
             chunks = chunk_words_by_script(words, words_per_chunk)
-            for chunk in chunks:
-                start_str = format_vtt_time(chunk[0]["start"])
-                end_str = format_vtt_time(chunk[-1]["end"])
+            for chunk_idx, chunk in enumerate(chunks):
+                w_start = float(chunk[0]["start"])
+                natural_end = float(chunk[-1]["end"])
+                next_start = float(chunks[chunk_idx + 1][0]["start"]) if chunk_idx + 1 < len(chunks) else None
+
+                if next_start is not None:
+                    gap = next_start - natural_end
+                    if gap > 0.65:
+                        w_end = max(w_start + 0.3, natural_end + 0.35)
+                    else:
+                        w_end = min(next_start - 0.05, max(natural_end, w_start + 0.85))
+                else:
+                    w_end = max(natural_end, w_start + 0.85)
+
+                w_end = min(w_start + 2.5, max(w_start + 0.25, w_end))
+
+                start_str = format_vtt_time(w_start)
+                end_str = format_vtt_time(w_end)
                 text = " ".join(w.get("word", "") for w in chunk)
+                if any(bool(ARABIC_REGEX.search(str(w.get("word", "")))) for w in chunk):
+                    text = f"\u200F{text}"
 
                 vtt_lines.append(f"{start_str} --> {end_str}\n{text}\n")
         else:
-            start_str = format_vtt_time(seg.get("start", 0.0))
-            end_str = format_vtt_time(seg.get("end", 2.0))
+            w_start = float(seg.get("start", 0.0))
+            w_end = min(w_start + 2.5, float(seg.get("end", w_start + 2.0)))
+            start_str = format_vtt_time(w_start)
+            end_str = format_vtt_time(w_end)
             text = seg.get("text", "").strip()
+            if bool(ARABIC_REGEX.search(text)):
+                text = f"\u200F{text}"
             vtt_lines.append(f"{start_str} --> {end_str}\n{text}\n")
 
     return "\n".join(vtt_lines)

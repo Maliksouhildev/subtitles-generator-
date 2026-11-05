@@ -266,12 +266,10 @@ def test_ass_builder_script_separated_chunking():
         {"word": "test", "start": 4.1, "end": 4.8}
     ]
     chunks = builder.chunk_words(words)
-    # Pure script separation: Arabic clauses and French/Latin words NEVER mix in the same chunk
-    assert len(chunks) == 4
-    assert [w["word"] for w in chunks[0]] == ["وكان", "شرف", "للشركة"]
-    assert [w["word"] for w in chunks[1]] == ["Red", "Field"]
-    assert [w["word"] for w in chunks[2]] == ["أنها", "تدير"]
-    assert [w["word"] for w in chunks[3]] == ["test"]
+    # Natural bilingual chunking groups into readable 3-4 word phrases (balanced 4 and 4)
+    assert len(chunks) == 2
+    assert [w["word"] for w in chunks[0]] == ["وكان", "شرف", "للشركة", "Red"]
+    assert [w["word"] for w in chunks[1]] == ["Field", "أنها", "تدير", "test"]
 
 
 def test_ass_builder_verb_prefix_binding_and_spelling():
@@ -287,10 +285,10 @@ def test_ass_builder_verb_prefix_binding_and_spelling():
     chunks = builder.chunk_words(words)
     # Verb prefix "يـ" binds with "percer" into "يـ percer"
     assert chunks[0][0]["word"] == "يـ percer"
-    # Pure script separation ensures separate chunks for Arabic and French
-    assert [w["word"] for w in chunks[1]] == ["داخل"]
-    assert [w["word"] for w in chunks[2]] == ["la", "tôle"]
-    assert [w["word"] for w in chunks[3]] == ["شوف"]
+    # Anti-orphan balanced chunking groups 5 tokens into [2, 3]
+    assert len(chunks) == 2
+    assert [w["word"] for w in chunks[0]] == ["يـ percer", "داخل"]
+    assert [w["word"] for w in chunks[1]] == ["la", "tôle", "شوف"]
 
 
 def test_ass_builder_new_creative_templates():

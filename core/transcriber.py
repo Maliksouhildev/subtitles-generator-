@@ -356,26 +356,27 @@ def calibrate_transcription_to_vad(transcription: Dict[str, Any], speech_interva
         c_end = float(cluster[-1]["end"])
         c_dur = max(0.1, c_end - c_start)
 
-        # Match to closest VAD interval by temporal overlap
-        best_vad = None
-        best_overlap = -1.0
-        for vad_start, vad_end in speech_intervals:
-            overlap = max(0.0, min(c_end, vad_end) - max(c_start, vad_start))
-            if overlap > best_overlap:
-                best_overlap = overlap
-                best_vad = (vad_start, vad_end)
+        # For any cluster [c_start, c_end], find all overlapping VAD intervals
+        overlapping_vad = [
+            iv for iv in speech_intervals
+            if max(0.0, min(c_end, iv[1]) - max(c_start, iv[0])) > 0.05
+        ]
 
-        # Fallback to index mapping if overlap is negligible
-        if (not best_vad or best_overlap <= 0.1) and c_idx < len(speech_intervals):
-            best_vad = speech_intervals[c_idx]
+        if overlapping_vad:
+            vad_start = overlapping_vad[0][0]
+            vad_end = overlapping_vad[-1][1]
+        elif c_idx < len(speech_intervals):
+            vad_start, vad_end = speech_intervals[c_idx]
+        else:
+            vad_start, vad_end = None, None
 
-        if best_vad:
-            vad_start, vad_end = best_vad
-            vad_dur = vad_end - vad_start
+        if vad_start is not None and vad_end is not None:
+            vad_dur = max(0.1, vad_end - vad_start)
 
-            # Calibrate if there is drift > 0.35s
+            # Calibrate if there is drift > 0.35s and reasonable scale (0.60 - 1.60)
             if abs(c_dur - vad_dur) > 0.35 or abs(c_start - vad_start) > 0.35:
-                scale = vad_dur / c_dur if c_dur > 0.1 else 1.0
+                raw_scale = vad_dur / c_dur if c_dur > 0.1 else 1.0
+                scale = max(0.40, min(1.60, raw_scale))
                 logger.info(f"VAD Calibration applied to cluster {c_idx}: AI [{c_start:.2f}s - {c_end:.2f}s] -> VAD [{vad_start:.2f}s - {vad_end:.2f}s] (scale={scale:.3f})")
                 for seg in cluster:
                     seg["start"] = round(vad_start + (seg["start"] - c_start) * scale, 2)
@@ -538,12 +539,7 @@ def sanitize_transcription_text(text: str) -> str:
     """
     if not text:
         return ""
-    text = re.sub(r'\bهكذاء\b', 'هكذا', text)
-    text = re.sub(r'\bهكداء\b', 'هكدا', text)
-    text = re.sub(r'\bهاكداء\b', 'هاكدا', text)
-    text = re.sub(r'\bهاكذاء\b', 'هاكذا', text)
-    text = re.sub(r'\bخلاصء\b', 'خلاص', text)
-    text = re.sub(r'\bصحاء\b', 'صحة', text)
+    text = text.replace("هكذاء", "هكذا").replace("هكداء", "هكدا").replace("هاكداء", "هاكدا").replace("هاكذاء", "هاكذا").replace("خلاصء", "خلاص").replace("صحاء", "صحة")
     return text
 
 
@@ -552,8 +548,7 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     Binds orphaned Arabic definite articles (e.g. 'ال', 'الـ', 'لـ', 'لا', 'بهاد')
     and imperfective verb prefixes (e.g. 'يـ', 'تـ', 'نـ') to subsequent Latin loanwords
     (e.g. 'PPF', 'percer', 'premier', 'nouvelle'), treating them as a single highlighted token.
-    Prevents awkward isolated prefix pop on screen and preserves natural bilingual phrasing.
-    Supports chained prefixes (e.g. 'و' + 'لا' + 'nouvelle').
+    Also merges isolated punctuation tokens and multi-word loan phrases (e.g. 'par rapport').
     """
     if not words:
         return []
@@ -562,7 +557,27 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
     while i < len(words):
         w = words[i]
         text_val = str(w.get("word", "")).strip()
+
+        # Merge isolated punctuation into previous word
+        if text_val in (",", "،", ".", "!", "?", "؛", ":") and bound:
+            prev = bound[-1]
+            prev["word"] = f"{prev.get('word', '')}{text_val}"
+            prev["end"] = max(float(prev.get("end", 0.0)), float(w.get("end", prev.get("end", 0.0))))
+            i += 1
+            continue
+
         next_w_val = words[i + 1].get("word", "") if i + 1 < len(words) else None
+
+        # Bind multi-word French loan expressions: e.g. "par" + "rapport"
+        if text_val.lower() == "par" and next_w_val and str(next_w_val).strip().lower().startswith("rapport"):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
 
         if is_prefix_token(text_val, next_w_val) and i + 1 < len(words):
             # Accumulate chained prefixes if present

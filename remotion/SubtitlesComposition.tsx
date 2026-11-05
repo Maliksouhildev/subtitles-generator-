@@ -149,53 +149,57 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
 
   const boundWords = React.useMemo(() => bindArabicArticlesToLatin(words), [words]);
 
-  // Pure script-separated chunking: Arabic and French never mix on the same screen chunk!
+  // Natural bilingual speech chunking: 2 to 4 words per chunk
   const chunks: Array<{ words: WordData[]; start: number; end: number; script: "arabic" | "latin" }> = React.useMemo(() => {
     if (!boundWords.length) return [];
 
-    const runs: Array<{ words: WordData[]; script: "arabic" | "latin" }> = [];
-    let currentRun: WordData[] = [];
-    let currentScript: "arabic" | "latin" | null = null;
+    const clauses: WordData[][] = [];
+    let currentClause: WordData[] = [];
 
     for (const w of boundWords) {
       const wText = (w.word || "").trim();
       if (!wText) continue;
-      const tokenScript = classifyTokenScript(wText, currentScript || "arabic");
 
-      if (currentRun.length > 0) {
-        const prev = currentRun[currentRun.length - 1];
+      if (currentClause.length > 0) {
+        const prev = currentClause[currentClause.length - 1];
         const pauseGap = w.start - prev.end;
-        if (tokenScript !== currentScript || pauseGap > 0.8) {
-          runs.push({ words: currentRun, script: currentScript! });
-          currentRun = [];
-          currentScript = tokenScript;
+        const prevText = (prev.word || "").trim();
+        const hasPunct = [",", "،", ".", "!", "?", "؛", ":"].some(p => prevText.endsWith(p));
+
+        if (pauseGap > 0.65 || hasPunct) {
+          clauses.push(currentClause);
+          currentClause = [];
         }
       }
-      if (currentRun.length === 0) {
-        currentScript = tokenScript;
-      }
-      currentRun.push(w);
+
+      currentClause.push(w);
     }
-    if (currentRun.length > 0 && currentScript) {
-      runs.push({ words: currentRun, script: currentScript });
+
+    if (currentClause.length > 0) {
+      clauses.push(currentClause);
     }
 
     const res: Array<{ words: WordData[]; start: number; end: number; script: "arabic" | "latin" }> = [];
-    for (const run of runs) {
-      const { words: rWords, script } = run;
-      if (rWords.length <= wordsPerChunk) {
+    for (const clause of clauses) {
+      if (!clause || clause.length === 0) continue;
+
+      const hasArabic = clause.some(w => ARABIC_REGEX.test(w.word || ""));
+      const script: "arabic" | "latin" = hasArabic ? "arabic" : "latin";
+
+      if (clause.length <= wordsPerChunk) {
         res.push({
-          words: rWords,
-          start: rWords[0].start,
-          end: rWords[rWords.length - 1].end,
+          words: clause,
+          start: clause[0].start,
+          end: clause[clause.length - 1].end,
           script
         });
         continue;
       }
-      const sizes = balanceChunkSizes(rWords.length, wordsPerChunk);
+
+      const sizes = balanceChunkSizes(clause.length, wordsPerChunk);
       let idx = 0;
       for (const sz of sizes) {
-        const slice = rWords.slice(idx, idx + sz);
+        const slice = clause.slice(idx, idx + sz);
         if (slice.length > 0) {
           res.push({
             words: slice,
@@ -210,7 +214,7 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
     return res;
   }, [boundWords, wordsPerChunk]);
 
-  // Find active chunk with silence gap cutoff (>0.8s silence dismisses subtitle)
+  // Find active chunk with silence gap cutoff (>0.65s silence dismisses subtitle) & max 2.5s duration
   const activeChunk = React.useMemo(() => {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
@@ -221,7 +225,7 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
       let effectiveEnd: number;
       if (nextChunkStart !== null) {
         const gap = nextChunkStart - naturalEnd;
-        if (gap > 0.8) {
+        if (gap > 0.65) {
           effectiveEnd = Math.max(chunk.start + 0.3, naturalEnd + 0.35);
         } else {
           effectiveEnd = Math.min(nextChunkStart - 0.05, Math.max(naturalEnd, minHold));
@@ -229,6 +233,8 @@ export const SubtitlesComposition: React.FC<SubtitlesProps> = ({
       } else {
         effectiveEnd = Math.max(naturalEnd, minHold);
       }
+
+      effectiveEnd = Math.min(chunk.start + 2.5, Math.max(chunk.start + 0.25, effectiveEnd));
 
       if (currentTime >= chunk.start && currentTime <= effectiveEnd) {
         return chunk;

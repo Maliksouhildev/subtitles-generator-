@@ -213,69 +213,67 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
   const subBoxColor = style.sub_box_color || "#000000";
   const subBoxAlpha = style.sub_box_alpha ?? 0.85;
 
-  // Group words into natural speech chunks with strict script separation:
-  // Arabic phrases and French loanwords NEVER mix on the same screen chunk.
+  // Group words into natural bilingual speech chunks:
+  // Arabic phrases and French loanwords appear together naturally in 2 to 4 word chunks.
   const chunks: Array<{ words: WordToken[]; start: number; end: number; script: "arabic" | "latin" }> = React.useMemo(() => {
     if (!allWords || allWords.length === 0) return [];
 
-    // Step 1: Partition into homogeneous script runs and pause blocks
-    const runs: Array<{ words: WordToken[]; script: "arabic" | "latin" }> = [];
-    let currentRunWords: WordToken[] = [];
-    let currentScript: "arabic" | "latin" | null = null;
+    const clauses: WordToken[][] = [];
+    let currentClause: WordToken[] = [];
 
     for (const w of allWords) {
       const wText = (w.word || "").trim();
       if (!wText) continue;
 
-      const tokenScript = classifyTokenScript(wText, currentScript || "arabic");
-
-      if (currentRunWords.length > 0) {
-        const prev = currentRunWords[currentRunWords.length - 1];
+      if (currentClause.length > 0) {
+        const prev = currentClause[currentClause.length - 1];
         const prevEnd = prev.end ?? prev.start + 0.3;
         const pauseGap = w.start - prevEnd;
+        const prevText = (prev.word || "").trim();
+        const hasPunct = [",", "،", ".", "!", "?", "؛", ":"].some(p => prevText.endsWith(p));
 
-        if (tokenScript !== currentScript || pauseGap > 0.8) {
-          runs.push({ words: currentRunWords, script: currentScript! });
-          currentRunWords = [];
-          currentScript = tokenScript;
+        if (pauseGap > 0.65 || hasPunct) {
+          clauses.push(currentClause);
+          currentClause = [];
         }
       }
 
-      if (currentRunWords.length === 0) {
-        currentScript = tokenScript;
-      }
-
-      currentRunWords.push(w);
+      currentClause.push(w);
     }
 
-    if (currentRunWords.length > 0 && currentScript) {
-      runs.push({ words: currentRunWords, script: currentScript });
+    if (currentClause.length > 0) {
+      clauses.push(currentClause);
     }
 
-    // Step 2: Balance sub-chunks per run (strict 2 to 4 words limit)
     const result: Array<{ words: WordToken[]; start: number; end: number; script: "arabic" | "latin" }> = [];
 
-    for (const run of runs) {
-      const { words: runWords, script } = run;
-      if (runWords.length <= wordsPerLine) {
-        result.push({
-          words: runWords,
-          start: runWords[0].start,
-          end: runWords[runWords.length - 1].end ?? (runWords[runWords.length - 1].start + 0.3),
-          script,
-        });
-        continue;
+    for (const clause of clauses) {
+      if (!clause || clause.length === 0) continue;
+
+      const hasArabic = clause.some(w => /[\u0600-\u06FF]/.test(w.word || ""));
+      const script: "arabic" | "latin" = hasArabic ? "arabic" : "latin";
+
+      if (clause.length <= wordsPerLine) {
+        const totalLen = clause.reduce((acc, w) => acc + (w.word || "").length, 0);
+        if (totalLen <= 34 || clause.length <= 2) {
+          result.push({
+            words: clause,
+            start: clause[0].start,
+            end: clause[clause.length - 1].end ?? (clause[clause.length - 1].start + 0.3),
+            script,
+          });
+          continue;
+        }
       }
 
-      const sizes = balanceChunkSizes(runWords.length, wordsPerLine);
+      const sizes = balanceChunkSizes(clause.length, wordsPerLine);
       let idx = 0;
       const subChunks: WordToken[][] = [];
       for (const sz of sizes) {
-        subChunks.push(runWords.slice(idx, idx + sz));
+        subChunks.push(clause.slice(idx, idx + sz));
         idx += sz;
       }
 
-      // Grammatical cohesion pass within the run
       for (let cI = 0; cI < subChunks.length - 1; cI++) {
         const currC = subChunks[cI];
         const nextC = subChunks[cI + 1];
@@ -305,7 +303,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
     return result;
   }, [allWords, wordsPerLine]);
 
-  // Find currently active chunk with silence detection so text doesn't linger across dead air
+  // Find currently active chunk with silence detection & max duration rule (<= 2.5s)
   const activeChunkInfo = React.useMemo(() => {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
@@ -316,15 +314,16 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
       let effectiveEnd: number;
       if (nextChunkStart !== null) {
         const gap = nextChunkStart - naturalEnd;
-        if (gap > 0.8) {
-          // Speech paused; dismiss subtitle cleanly 0.35s after word completes
+        if (gap > 0.65) {
           effectiveEnd = Math.max(chunk.start + 0.3, naturalEnd + 0.35);
         } else {
-          effectiveEnd = Math.min(nextChunkStart - 0.05, Math.max(naturalEnd, minHold));
+          effectiveEnd = min(nextChunkStart - 0.05, Math.max(naturalEnd, minHold));
         }
       } else {
         effectiveEnd = Math.max(naturalEnd, minHold);
       }
+
+      effectiveEnd = Math.min(chunk.start + 2.5, Math.max(chunk.start + 0.25, effectiveEnd));
 
       if (currentTime >= chunk.start && currentTime <= effectiveEnd) {
         return chunk;
