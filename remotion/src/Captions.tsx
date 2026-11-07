@@ -286,7 +286,18 @@ export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
 
 
 
-    // Bind French article to Latin loanword: "le" + "premier", "la" + "nouvelle"
+    // Bind negative existential copula: "ما" + ("كاين", "كاش", "كانش")
+    if (text === "ما" && nextWText && ["كاين", "كاش", "كانش"].includes(nextWText)) {
+      bound.push({
+        word: `${text} ${nextWText}`,
+        start: w.start,
+        end: nextW!.end ?? (nextW!.start + 0.3),
+      });
+      i += 2;
+      continue;
+    }
+
+    // Bind French article to Latin loanword: "le" + "premier", "la" + "nouvelle" 
 
     const cleanTv = text.replace(/^[^\w]+|[^\w]+$/g, "").toLowerCase();
 

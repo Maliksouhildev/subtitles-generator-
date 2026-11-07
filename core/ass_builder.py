@@ -12,6 +12,7 @@ Features:
 import math
 import re
 from typing import List, Dict, Any, Optional
+from core.arabic_shaper import shape_arabic_word_to_letters
 
 ARABIC_REGEX = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]')
 LATIN_REGEX = re.compile(r'[a-zA-Z]')
@@ -199,6 +200,17 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
             continue
 
         # Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle"
+        # Bind negative existential copula: 'ما' + ('كاين', 'كاش', 'كانش') into a single inseparable token
+        if text_val == "ما" and next_w_val and str(next_w_val).strip() in ("كاين", "كاش", "كانش"):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"ما {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
+
         clean_tv = re.sub(r'^[^\w]+|[^\w]+$', '', text_val).lower()
         if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
             next_w = words[i + 1]
@@ -528,7 +540,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             has_major_stop = any(prev_text.endswith(p) for p in (".", "!", "?", "،", ","))
 
             # Never break after a negative existential copula before 'حتى' or noun
-            is_inseparable = (prev_clean in ("ما كاين", "ماكاين", "ما كاش", "ماكاش", "ما كانش") and w_text.startswith("حتى")) or (prev_clean == "حتى" and not is_non_terminal_token(w_text))
+            is_inseparable = (
+                (prev_clean in ("ما كاين", "ماكاين", "ما كاش", "ماكاش", "ما كانش") and (w_text.startswith("حتى") or not is_non_terminal_token(w_text)))
+                or (prev_clean == "بلي" and (w_text.startswith("ما") or w_text in ("ما", "ماكاين", "ما كاين")))
+                or (prev_clean == "حتى" and not is_non_terminal_token(w_text))
+            )
 
             should_break = False
             if current_chunk:
@@ -999,12 +1015,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return events
 
     def build_letter_pop_events(self, chunks: List[List[Dict[str, Any]]], style_type: str = "pop") -> List[str]:
-        """Builds kinetic letter-by-letter popping subtitles with spring dynamics."""
+        """Builds true kinetic letter-by-letter popping subtitles with spring dynamics and cursive preservation."""
         events = []
         pri_tag = f"\\c{hex_to_ass_color(self.primary_color)}"
         hl_tag = f"\\c{hex_to_ass_color(self.highlight_color)}"
         spd = self.animation_speed
-        out_ass = hex_to_ass_color(self.outline_color)
+        reset_tag = "\\fscx100\\fscy100"
 
         for chunk_idx, chunk in enumerate(chunks):
             if not chunk:
@@ -1028,30 +1044,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if w_end <= w_start:
                     w_end = w_start + 0.30
 
-                dur_ms = max(100, int((w_end - w_start) * 1000))
-                t1 = max(30, min(int(dur_ms * 0.35), int(80 / spd)))
-                t2 = max(t1 + 25, min(int(dur_ms * 0.7), int(160 / spd)))
-
-                if style_type == "drop":
-                    pop_tag = (
-                        f"\\fscx85\\fscy85"
-                        f"\\t(0,{t1},0.5,\\fscx120\\fscy120)"
-                        f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
-                    )
-                elif style_type == "rise":
-                    pop_tag = (
-                        f"\\fscx90\\fscy90"
-                        f"\\t(0,{t1},0.6,\\fscx120\\fscy120)"
-                        f"\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
-                    )
-                else:
-                    pop_tag = (
-                        f"\\fscx60\\fscy60"
-                        f"\\t(0,{t1},0.5,\\fscx125\\fscy125)"
-                        f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
-                    )
-
-                reset_tag = "\\fscx100\\fscy100"
+                dur_ms = max(120, int((w_end - w_start) * 1000))
                 start_str = format_ass_time(w_start)
                 end_str = format_ass_time(w_end)
 
@@ -1059,12 +1052,38 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 formatted_words = []
                 for j in display_indices:
                     w = chunk[j]
-                    word_text = format_bidi_word(w.get("word", ""), in_rtl_context=chunk_is_rtl)
+                    raw_word = str(w.get("word", "")).strip()
+                    word_is_ar = is_arabic_text(raw_word)
+
                     if j == i:
-                        formatted_words.append(f"{{{hl_tag}\\blur0.8{pop_tag}}}{word_text}{{{pri_tag}{reset_tag}}}")
+                        letters = shape_arabic_word_to_letters(raw_word) if word_is_ar else list(raw_word)
+                        N = max(1, len(letters))
+                        stagger_step = max(15, min(45, int(dur_ms * 0.35 / N))) / spd
+                        t_rise = max(20, int(dur_ms * 0.22 / spd))
+                        t_fall = max(20, int(dur_ms * 0.25 / spd))
+
+                        letter_tags = []
+                        for k, ch in enumerate(letters):
+                            t0 = int(k * stagger_step)
+                            t1 = t0 + t_rise
+                            t2 = t1 + t_fall
+                            if style_type == "drop":
+                                anim = f"\\alpha&HFF&\\t({t0},{t1},0.45,\\alpha&H00&\\fscx125\\fscy125)\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
+                            elif style_type == "rise":
+                                anim = f"\\alpha&HFF&\\t({t0},{t1},0.5,\\alpha&H00&\\fscx120\\fscy120)\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
+                            else:
+                                anim = f"\\alpha&HFF&\\t({t0},{t1},0.35,\\alpha&H00&\\fscx135\\fscy135)\\t({t1},{t2},1.5,\\fscx100\\fscy100)"
+                            letter_tags.append(f"{{{anim}}}{ch}")
+
+                        word_str = "{" + hl_tag + "\\blur0.8}" + "".join(letter_tags) + "{" + pri_tag + "\\alpha&H00&" + reset_tag + "}"
+                        if not word_is_ar and chunk_is_rtl:
+                            word_str = f"\u200E{word_str}\u200E"
+                        formatted_words.append(word_str)
                     elif j < i:
+                        word_text = format_bidi_word(raw_word, in_rtl_context=chunk_is_rtl)
                         formatted_words.append(f"{{{pri_tag}\\blur0.8{reset_tag}}}{word_text}")
                     else:
+                        word_text = format_bidi_word(raw_word, in_rtl_context=chunk_is_rtl)
                         formatted_words.append(f"{{{pri_tag}\\alpha&H88&\\blur0.8{reset_tag}}}{word_text}")
 
                 line_text = " ".join(formatted_words)

@@ -2643,7 +2643,18 @@ document.addEventListener("DOMContentLoaded", () => {
           continue;
         }
 
-        // Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle"
+        // Bind negative existential copula: "ما" + ("كاين", "كاش", "كانش") into single token
+        if (textVal === "ما" && ["كاين", "كاش", "كانش"].includes(nextVal)) {
+          boundSegWords.push({
+            word: `${textVal} ${nextVal}`,
+            start: segWords[bwIdx].start,
+            end: segWords[bwIdx + 1].end || (segWords[bwIdx + 1].start + 0.3)
+          });
+          bwIdx += 2;
+          continue;
+        }
+
+        // Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle" 
         const cleanTv = textVal.replace(/^[^\w]+|[^\w]+$/g, '').toLowerCase();
         if (["la", "le", "les", "un", "une", "des", "du"].includes(cleanTv) && /[a-zA-Z]/.test(nextVal)) {
           boundSegWords.push({
