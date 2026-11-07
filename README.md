@@ -28,61 +28,28 @@ Spoken Algerian Arabic (**الدارجة الجزائرية**) is a rich dialect
 
 ---
 
-## 🏛️ System Architecture
+## 🖥️ Live Studio Interface & Phone Simulation
 
-```mermaid
-flowchart TD
-    subgraph Ingestion["Input Media Ingestion"]
-        Audio["Audio Files (.mp3, .wav, .m4a)"]
-        Video["Video Files (.mp4, .mov, .mkv)"]
-        WebUI["Web GUI Scrubber (:8000)"]
-    end
+<div align="center">
 
-    subgraph Speech_Pipeline["Speech-to-Text & Token Alignment"]
-        Gemini["Google Gemini 2.5 Flash STT (Cloud)"]
-        Whisper["faster-whisper Engine (Offline Fallback)"]
-        Tokenizer["Word-Level Timestamp Synchronizer"]
-    end
+![DZ Subtitles AI Studio](docs/images/dz_subtitles_studio.jpg)
 
-    subgraph BiDi_Engine["Bidirectional & Darija Shaping Engine"]
-        ScriptSplit["Hybrid Token Splitter (Arabic + Latin)"]
-        CliticBinder["Clitic & Article Binder (الـ / و / بـ)"]
-        BidiShaper["FriBidi / Python Bidi & Arabic Reshaper"]
-        ASSBuilder["libass Subtitle Styler (.ass)"]
-    end
+*DZ Subtitles AI Studio: Real-time Safe-Zone Phone Simulation (TikTok, Reels, Shorts), Algerian Darija dialect model, Hormozi viral pop animations, custom font rendering, and multi-format exports.*
 
-    subgraph Render_Export["Rendering & Export Engine"]
-        GreenScreen["Chroma Key Green Screen (#00FF00)"]
-        AlphaChannel["ProRes 4444 / WebM Alpha Video"]
-        DirectBurn["Direct Video Burn-In (FFmpeg)"]
-        SubExports[".ass / .srt / .vtt / .json Export"]
-    end
+</div>
 
-    subgraph Editors["Video Editing Suites"]
-        Premiere["Adobe Premiere Pro"]
-        DaVinci["DaVinci Resolve"]
-        CapCut["CapCut / Final Cut Pro"]
-    end
+---
 
-    Audio --> Speech_Pipeline
-    Video --> Speech_Pipeline
-    WebUI --> Speech_Pipeline
-    Speech_Pipeline --> Gemini
-    Speech_Pipeline -.-> Whisper
-    Gemini --> Tokenizer
-    Whisper --> Tokenizer
-    Tokenizer --> ScriptSplit
-    ScriptSplit --> CliticBinder
-    CliticBinder --> BidiShaper
-    BidiShaper --> ASSBuilder
-    ASSBuilder --> Render_Export
-    Render_Export --> GreenScreen
-    Render_Export --> AlphaChannel
-    Render_Export --> DirectBurn
-    Render_Export --> SubExports
-    GreenScreen --> Editors
-    AlphaChannel --> Editors
-```
+## ⚡ The Transcription & Rendering Pipeline
+
+| Step | Component | Description |
+|:-----|:----------|:------------|
+| **1. Audio / Video Ingestion** | Drag & Drop Web Uploader | Supports MP3, WAV, AAC, MP4, MOV, MKV, and WebM with instant waveform generation. |
+| **2. Darija AI Speech-to-Text** | Google Gemini 2.5 Flash | Pre-tuned dialect prompts accurately capturing Algerian Darija slang, French loanwords, and conversational Arabic. |
+| **3. Word-Level Synchronization** | High-Precision Tokenizer | Aligns start and end timestamps down to the millisecond for snappy, viral karaoke pacing. |
+| **4. Mixed-Script BiDi Reshaper** | `split_fused_script_tokens` & FriBidi | Solves RTL/LTR word flipping bugs so French terms embedded within Arabic sentences render in exact spoken order. |
+| **5. Multi-Style Animation** | libass `.ass` Builder | Hormozi Viral Pop, TikTok Gold, Cyber Cyan, Hot Coral, Box Highlights, and Classic White text outlines. |
+| **6. Video Editor Export** | FFmpeg Hardware Acceleration | Export as transparent ProRes 4444 / WebM Alpha video, Chroma Key Green Screen (`#00FF00`), or direct MP4 burn-in. |
 
 ---
 

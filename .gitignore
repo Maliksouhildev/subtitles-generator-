@@ -56,3 +56,5 @@ sample_data/
 .idea/
 .DS_Store
 Thumbs.db
+
+!docs/images/*
