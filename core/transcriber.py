@@ -19,12 +19,12 @@ logging.basicConfig(level=logging.INFO)
 
 # Gemini models with free-tier access ordered by speed, transcription accuracy & JSON mode support
 GEMINI_MODELS = [
-    "gemini-3.1-flash-lite",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-flash-lite-latest",
-    "gemini-3.8-flash",
     "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash",
+    "gemini-3.1-flash-lite",
 ]
 
 DARIJA_SYSTEM_PROMPT = """
@@ -42,6 +42,9 @@ STRICT VERBATIM TRANSLATION & SPELLING RULES:
    - If the speaker says "c'est bon" or "سي بون", write "c'est bon" or "سي بون".
    - Always write French and foreign loanwords/technical terms in Latin script (e.g. "premier", "nouvelle", "test", "Redfield", "voiture", "projet", "normal").
    - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: "الـ PPF", "للـ PPF", "يـ percer", "تـ tester".
+2. PRESERVE DEFINITE ARTICLES IN DARIJA IDIOMS:
+   - In idioms like "وكان الشرف لشركة..." or "عندي الشرف" / "لي الشرف", ALWAYS preserve the definite article "الشرف". NEVER drop it to "شرف".
+   - Preserve "ال" on sun/moon letters exactly as intended in authentic speech.
 
 2. NEVER PARAPHRASE, "STANDARDIZE", OR "CORRECT" ALGERIAN DARIJA:
    - If the speaker says "خويا يدخل", write EXACTLY "خويا يدخل" (NEVER change to "راهو يدخل").
@@ -558,10 +561,13 @@ def sanitize_transcription_text(text: str) -> str:
     Cleans up common Darija spelling errors and phonetic typos:
     - Removes unneeded trailing hamza 'ء' (e.g. 'هكذاء' -> 'هكذا', 'هكداء' -> 'هكدا')
     - Corrects common colloquial spelling variations
+    - Restores dropped definite articles in key Darija idioms ('وكان شرف' -> 'وكان الشرف')
     """
     if not text:
         return ""
     text = text.replace("هكذاء", "هكذا").replace("هكداء", "هكدا").replace("هاكداء", "هاكدا").replace("هاكذاء", "هاكذا").replace("خلاصء", "خلاص").replace("صحاء", "صحة")
+    text = re.sub(r'\b(و?كان)\s+شرف\b', r'\1 الشرف', text)
+    text = re.sub(r'\b(لي|لنا|عندي)\s+شرف\b', r'\1 الشرف', text)
     return text
 
 
@@ -716,6 +722,12 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
         for w in words:
             if "word" in w and w["word"]:
                 w["word"] = sanitize_transcription_text(w["word"])
+        # Fix dropped definite article in token sequence: 'وكان' + 'شرف' -> 'وكان' + 'الشرف'
+        for widx in range(len(words) - 1):
+            w1_txt = str(words[widx].get("word", "")).strip()
+            w2_txt = str(words[widx + 1].get("word", "")).strip()
+            if w1_txt in ("وكان", "كان") and w2_txt == "شرف":
+                words[widx + 1]["word"] = "الشرف"
         words = split_fused_script_tokens(words)
         words = bind_arabic_articles_to_latin(words)
         if not words:
@@ -824,7 +836,7 @@ def transcribe_with_gemini(
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
         logger.info(f"Attempting Gemini transcription with model: {model_name}...")
         try:
-            response = requests.post(url, json=payload, timeout=60)
+            response = requests.post(url, json=payload, timeout=35)
             if response.status_code == 200:
                 resp_json = response.json()
                 candidates = resp_json.get("candidates", [])

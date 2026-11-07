@@ -1503,7 +1503,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       margin: marginV ? (parseInt(marginV.value) || 960) : 960,
 
-      wordsPerLine: wordsPerLine ? (parseInt(wordsPerLine.value) || 5) : 5,
+      wordsPerLine: wordsPerLine ? (parseInt(wordsPerLine.value) || 4) : 4,
 
       alignment: alignment ? (parseInt(alignment.value) || 2) : 2,
 
@@ -3006,7 +3006,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function stepPreviewCycle() {
 
-    const wordCount = parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5;
+    const wordCount = parseInt(wordsPerLine ? wordsPerLine.value : 4) || 4;
 
     previewActiveIdx = (previewActiveIdx + 1) % wordCount;
 
@@ -4926,7 +4926,7 @@ document.addEventListener("DOMContentLoaded", () => {
           font_size: parseInt(fontSize ? fontSize.value : 56) || 56,
           primary_color: (primaryColor && primaryColor.value) ? primaryColor.value : "#FFFFFF",
           highlight_color: (highlightColor && highlightColor.value) ? highlightColor.value : "#FFE600",
-          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5,
+          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 4) || 4,
           animation_style: (animationStyle && animationStyle.value) ? animationStyle.value : "letter_pop",
           pos_y: Math.max(30, 1920 - (parseInt(marginV ? marginV.value : 960) || 960)),
           ease_p1: [easeP1 ? easeP1.x : 0.34, easeP1 ? easeP1.y : 1.56],
@@ -4967,7 +4967,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const payload = {
           task_id: currentTaskId || "default",
           transcription_data: currentTranscription,
-          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5
+          words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 4) || 4
         };
 
         const res = await fetch("/api/export_text", {
@@ -5052,7 +5052,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alignment: parseInt(alignment ? alignment.value : 2) || 2,
       margin_v: parseInt(marginV ? marginV.value : 960) || 960,
       pos_y: Math.max(30, 1920 - (parseInt(marginV ? marginV.value : 960) || 960)),
-      words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 5) || 5,
+      words_per_line: parseInt(wordsPerLine ? wordsPerLine.value : 4) || 4,
       template_id: (animationStyle && animationStyle.value) ? animationStyle.value : "karaoke_pop",
       animation_style: (animationStyle && animationStyle.value) ? animationStyle.value : "karaoke_pop",
       animation_speed: parseFloat(animSpeed ? animSpeed.value : 1.0) || 1.0,

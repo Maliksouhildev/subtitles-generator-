@@ -359,14 +359,19 @@ FONT_FAMILY_MAP = {
 NON_TERMINAL_PARTICLES = {
     "و", "ف", "ب", "ل", "في", "على", "من", "عن", "مع", "إلى", "الى",
     "ما", "لا", "لي", "اللي", "دي", "دو", "يا", "ها", "بهاد", "فهاد", "هاد",
-    "يعني", "كيما", "باش", "باشما", "علاش", "كيفاش", "وين", "وقتاش",
+    "بهذا", "هذا", "هادي", "يعني", "كيما", "باش", "باشما", "علاش", "كيفاش", "وين", "وقتاش",
+    "بلي", "كي", "غير", "حتى", "ما كاين", "ماكاين", "ما كاش", "ماكاش", "ما كانش",
     "la", "le", "les", "un", "une", "des", "du", "de", "d'", "et", "ou",
     "en", "au", "aux", "par", "pour", "avec", "dans", "sur"
 }
 
 def is_non_terminal_token(token: str) -> bool:
     clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(token).strip().lower())
-    return clean in NON_TERMINAL_PARTICLES or token.strip().endswith(("-", "ـ"))
+    if clean in NON_TERMINAL_PARTICLES or str(token).strip().endswith(("-", "ـ")):
+        return True
+    if clean.startswith(("و", "ف")) and len(clean) > 1 and clean[1:] in NON_TERMINAL_PARTICLES:
+        return True
+    return False
 
 class ASSSubtitleBuilder:
     def __init__(
@@ -483,6 +488,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not words:
             return []
 
+        # 0. Normalization: restore dropped definite articles in key idioms ('وكان شرف' -> 'وكان الشرف')
+        for widx in range(len(words) - 1):
+            w1_txt = str(words[widx].get("word", "")).strip()
+            w2_txt = str(words[widx + 1].get("word", "")).strip()
+            if w1_txt in ("وكان", "كان") and w2_txt == "شرف":
+                words[widx + 1]["word"] = "الشرف"
+
         # 1. Split fused Arabic/Latin tokens (e.g. 'بهاد la' -> 'بهاد' + 'la')
         words = split_fused_script_tokens(words)
 
@@ -512,7 +524,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 pause_gap = float(w.get("start", 0.0)) - prev_end
 
             prev_text = str(current_chunk[-1].get("word", "")).strip() if current_chunk else ""
+            prev_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', prev_text.lower())
             has_major_stop = any(prev_text.endswith(p) for p in (".", "!", "?", "،", ","))
+
+            # Never break after a negative existential copula before 'حتى' or noun
+            is_inseparable = (prev_clean in ("ما كاين", "ماكاين", "ما كاش", "ماكاش", "ما كانش") and w_text.startswith("حتى")) or (prev_clean == "حتى" and not is_non_terminal_token(w_text))
 
             should_break = False
             if current_chunk:
@@ -522,8 +538,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 # Hard silence boundary: never cross pause > 0.50s
                 elif pause_gap > 0.50:
                     should_break = True
+                elif is_inseparable:
+                    should_break = False
                 # Strict 3-4 words max per chunk
                 elif len(current_chunk) >= target_size:
+                    should_break = True
+                # Break before non-terminal particles when chunk already has >= 2 words to preserve natural phrasing
+                elif len(current_chunk) >= 2 and is_non_terminal_token(w_text):
                     should_break = True
                 # Punctuation boundary when chunk has >= 2 words
                 elif has_major_stop and len(current_chunk) >= 2:
@@ -600,13 +621,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 t3 = max(t2 + 25, min(int(dur_ms * 0.85), int(260 / spd)))
                 t4 = max(t3 + 20, min(dur_ms, int(330 / spd)))
 
-                # Lock \fscx at 100 to eliminate horizontal line drift and keep sibling words rock-solid
                 active_pop_transform = (
                     f"\\blur1.8\\fscx100\\fscy100"
-                    f"\\t(0,{t1},0.45,\\fscx100\\fscy122)"
-                    f"\\t({t1},{t2},1.6,\\fscx100\\fscy106)"
-                    f"\\t({t2},{t3},0.8,\\fscx100\\fscy112)"
-                    f"\\t({t3},{t4},1.3,\\fscx100\\fscy106)"
+                    f"\\t(0,{t1},0.45,\\fscx120\\fscy120)"
+                    f"\\t({t1},{t2},1.6,\\fscx108\\fscy108)"
+                    f"\\t({t2},{t3},0.8,\\fscx114\\fscy114)"
+                    f"\\t({t3},{t4},1.3,\\fscx100\\fscy100)"
                 )
 
                 start_str = format_ass_time(w_start)
@@ -821,10 +841,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 bounce_tag = (
                     f"\\blur1.8\\fscx100\\fscy100"
-                    f"\\t(0,{t1},0.45,\\fscx100\\fscy126)"
-                    f"\\t({t1},{t2},1.6,\\fscx100\\fscy96)"
-                    f"\\t({t2},{t3},0.8,\\fscx100\\fscy110)"
-                    f"\\t({t3},{t4},1.3,\\fscx100\\fscy102)"
+                    f"\\t(0,{t1},0.45,\\fscx124\\fscy124)"
+                    f"\\t({t1},{t2},1.6,\\fscx96\\fscy96)"
+                    f"\\t({t2},{t3},0.8,\\fscx112\\fscy112)"
+                    f"\\t({t3},{t4},1.3,\\fscx100\\fscy100)"
                 )
 
                 start_str = format_ass_time(w_start)
@@ -1014,20 +1034,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 if style_type == "drop":
                     pop_tag = (
-                        f"\\fscx100\\fscy85"
-                        f"\\t(0,{t1},0.5,\\fscx100\\fscy118)"
+                        f"\\fscx85\\fscy85"
+                        f"\\t(0,{t1},0.5,\\fscx120\\fscy120)"
                         f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
                     )
                 elif style_type == "rise":
                     pop_tag = (
-                        f"\\fscx100\\fscy90"
-                        f"\\t(0,{t1},0.6,\\fscx100\\fscy118)"
+                        f"\\fscx90\\fscy90"
+                        f"\\t(0,{t1},0.6,\\fscx120\\fscy120)"
                         f"\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
                     )
                 else:
                     pop_tag = (
-                        f"\\fscx100\\fscy50"
-                        f"\\t(0,{t1},0.5,\\fscx100\\fscy124)"
+                        f"\\fscx60\\fscy60"
+                        f"\\t(0,{t1},0.5,\\fscx125\\fscy125)"
                         f"\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
                     )
 
@@ -1095,17 +1115,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 if style_type == "glow":
                     active_tag = (
-                        f"\\t(0,{t1},0.6,\\fscx100\\fscy116\\blur3.5)"
-                        f"\\t({t1},{t2},1.3,\\fscx100\\fscy104\\blur1.8)"
+                        f"\\t(0,{t1},0.6,\\fscx116\\fscy116\\blur3.5)"
+                        f"\\t({t1},{t2},1.3,\\fscx104\\fscy104\\blur1.8)"
                     )
                 elif style_type == "bounce":
                     active_tag = (
-                        f"\\t(0,{t1},0.5,\\fscx100\\fscy122)"
-                        f"\\t({t1},{t2},1.4,\\fscx100\\fscy104)"
+                        f"\\t(0,{t1},0.5,\\fscx122\\fscy122)"
+                        f"\\t({t1},{t2},1.4,\\fscx104\\fscy104)"
                     )
                 else:
                     active_tag = (
-                        f"\\t(0,{t1},0.6,\\fscx100\\fscy116)"
+                        f"\\t(0,{t1},0.6,\\fscx118\\fscy118)"
                         f"\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
                     )
 
