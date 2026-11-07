@@ -78,8 +78,8 @@ def calculate_word_end_time(
     w_start: float,
     natural_end: float,
     next_chunk_start: Optional[float],
-    min_hold_duration: float = 0.85,
-    silence_threshold: float = 0.65,
+    min_hold_duration: float = 0.70,
+    silence_threshold: float = 0.50,
     max_duration: float = 2.5
 ) -> float:
     """
@@ -102,6 +102,51 @@ def calculate_word_end_time(
         chosen_end = max(natural_end, min_hold)
 
     return min(w_start + max_duration, max(w_start + 0.25, chosen_end))
+
+
+def split_fused_script_tokens(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Splits hybrid tokens containing both Arabic and Latin characters into distinct
+    tokens with accurate proportional timestamps.
+    E.g. 'بهاد la' -> 'بهاد' (Arabic) + 'la' (Latin)
+         'الـ premier' -> 'الـ' (Arabic) + 'premier' (Latin)
+    """
+    if not words:
+        return []
+    result: List[Dict[str, Any]] = []
+    latin_then_arabic = re.compile(r'^([a-zA-Z0-9_\-]+)([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF].*)$')
+    arabic_then_latin = re.compile(r'^([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\s\-\u0640]+?)\s*([a-zA-Z].*)$')
+
+    for w in words:
+        text = str(w.get("word", "")).strip()
+        dur = max(0.1, float(w.get("end", float(w.get("start", 0.0)) + 0.3)) - float(w.get("start", 0.0)))
+        s = float(w.get("start", 0.0))
+        e = float(w.get("end", s + 0.3))
+
+        m1 = latin_then_arabic.match(text)
+        if m1 and not text.endswith(("-", "ـ")):
+            p1, p2 = m1.group(1).strip(), m1.group(2).strip()
+            split_ratio = len(p1) / max(1, len(p1) + len(p2))
+            mid = round(s + dur * split_ratio, 2)
+            if p1:
+                result.append({"word": p1, "start": s, "end": mid})
+            if p2:
+                result.append({"word": p2, "start": mid, "end": e})
+            continue
+
+        m2 = arabic_then_latin.match(text)
+        if m2 and not text.endswith(("-", "ـ")):
+            p1, p2 = m2.group(1).strip(), m2.group(2).strip()
+            split_ratio = len(p1) / max(1, len(p1) + len(p2))
+            mid = round(s + dur * split_ratio, 2)
+            if p1:
+                result.append({"word": p1, "start": s, "end": mid})
+            if p2:
+                result.append({"word": p2, "start": mid, "end": e})
+            continue
+
+        result.append(w)
+    return result
 
 
 def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -165,18 +210,19 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
             i += 2
             continue
 
-        if is_prefix_token(text_val, next_w_val) and i + 1 < len(words):
+        # Bind Arabic-only clitics (e.g. 'و' + 'السيارة', 'في' + 'الدار') - strictly Arabic only, never across to Latin!
+        if is_prefix_token(text_val, next_w_val) and i + 1 < len(words) and not bool(LATIN_REGEX.search(str(next_w_val or ""))):
             chain = [w]
             j = i + 1
             while j < len(words):
                 future_w = words[j + 1].get("word", "") if j + 1 < len(words) else None
-                if is_prefix_token(words[j].get("word", ""), future_w):
+                if is_prefix_token(words[j].get("word", ""), future_w) and not bool(LATIN_REGEX.search(str(future_w or ""))):
                     chain.append(words[j])
                     j += 1
                 else:
                     break
 
-            if j < len(words):
+            if j < len(words) and not bool(LATIN_REGEX.search(str(words[j].get("word", "")))):
                 target_word = words[j]
                 joint_text = " ".join(str(item.get("word", "")).strip() for item in chain) + " " + str(target_word.get("word", "")).strip()
                 bound.append({
@@ -186,7 +232,7 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
                 })
                 i = j + 1
                 continue
-            else:
+            elif not bool(LATIN_REGEX.search(str(words[i + 1].get("word", "")))):
                 next_w = words[i + 1]
                 joint_text = f"{text_val} {str(next_w.get('word', '')).strip()}"
                 bound.append({
@@ -228,23 +274,20 @@ def resolve_visual_word_order(chunk: List[Dict[str, Any]], in_rtl_context: bool 
     return list(range(len(chunk)))
 
 
-def balance_chunk_sizes(total_words: int, target_size: int = 5) -> List[int]:
+def balance_chunk_sizes(total_words: int, target_size: int = 4) -> List[int]:
     """
-    Calculates balanced chunk sizes preventing awkward 1-word orphan lines
-    and enforcing a 4-to-6 word sliding window for mobile legibility.
-    For example: 9 words splits into [5, 4], 7 words into [4, 3].
-    A chunk never exceeds 6 words.
+    Calculates balanced chunk sizes enforcing a strict 3-to-4 word limit
+    for single-line short-form vertical video aesthetic.
+    A chunk never exceeds 4 words.
     """
-    effective_target = min(6, max(3, target_size))
+    effective_target = min(4, max(2, target_size))
     if total_words <= effective_target:
-        return [total_words]
-    if target_size >= 4 and total_words <= 6:
         return [total_words]
     num_chunks = max(1, math.ceil(total_words / effective_target))
     base_size = total_words // num_chunks
     remainder = total_words % num_chunks
     sizes = [base_size + (1 if k < remainder else 0) for k in range(num_chunks)]
-    while any(s > 6 for s in sizes):
+    while any(s > 4 for s in sizes):
         num_chunks += 1
         base_size = total_words // num_chunks
         remainder = total_words % num_chunks
@@ -362,7 +405,7 @@ class ASSSubtitleBuilder:
             self.margin_v = max(30, video_height - pos_y)
         else:
             self.margin_v = margin_v
-        self.words_per_line = min(6, max(3, words_per_line))
+        self.words_per_line = min(4, max(2, words_per_line))
         self.animation_style = animation_style
         self.video_width = video_width
         self.video_height = video_height
@@ -432,97 +475,89 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def chunk_words(self, words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """
-        Splits words into balanced, readable bilingual subtitle chunks following a 4-to-6 word sliding window:
-        - Groups words into natural phrases of 4 to 6 words.
-        - Never creates 1-word or 2-word orphan screens.
-        - Splits on natural speech pauses (> 1.2s silence gap, or > 0.85s gap if chunk already has >= 4 words).
-        - Splits on sentence-ending punctuation (., !, ?) when chunk has >= 3 words.
-        - Protects non-terminal particles (و, في, يعني, la, etc.) from dangling at chunk ends.
+        Splits words into balanced, single-line bilingual subtitle chunks:
+        - Strictly isolates French loanwords from Algerian Darija: forced chunk breaks before & after Latin strings.
+        - Enforces strict 3 to 4 words maximum per chunk (maintains clean, single-line vertical short aesthetic).
+        - Hard silence boundary: never crosses pauses > 0.50s (completely prevents future subtitle desync drift).
         """
         if not words:
             return []
 
+        # 1. Split fused Arabic/Latin tokens (e.g. 'بهاد la' -> 'بهاد' + 'la')
+        words = split_fused_script_tokens(words)
+
+        # 2. Bind internal French articles ('le premier', 'la nouvelle', 'par rapport')
         words = bind_arabic_articles_to_latin(words)
         if not words:
             return []
 
-        target_size = min(6, max(3, self.words_per_line))
+        target_size = min(4, max(2, self.words_per_line))
 
-        clauses: List[List[Dict[str, Any]]] = []
-        current_clause: List[Dict[str, Any]] = []
+        # 3. Form script-isolated chunks with hard pause boundaries
+        raw_chunks: List[List[Dict[str, Any]]] = []
+        current_chunk: List[Dict[str, Any]] = []
+        current_script: Optional[str] = None
 
         for w in words:
             w_text = str(w.get("word", "")).strip()
             if not w_text:
                 continue
 
-            if current_clause:
-                prev_w = current_clause[-1]
-                prev_end = float(prev_w.get("end", prev_w.get("start", 0.0) + 0.3))
+            w_script = "latin" if bool(LATIN_REGEX.search(w_text)) else "arabic"
+
+            pause_gap = 0.0
+            if current_chunk:
+                prev_w = current_chunk[-1]
+                prev_end = float(prev_w.get("end", float(prev_w.get("start", 0.0)) + 0.3))
                 pause_gap = float(w.get("start", 0.0)) - prev_end
-                prev_text = str(prev_w.get("word", "")).strip()
-                has_major_stop = any(prev_text.endswith(p) for p in (".", "!", "?"))
-                curr_chars = sum(len(str(x.get("word", ""))) + 1 for x in current_clause)
 
-                should_break = False
-                if pause_gap > 1.2:
+            prev_text = str(current_chunk[-1].get("word", "")).strip() if current_chunk else ""
+            has_major_stop = any(prev_text.endswith(p) for p in (".", "!", "?", "،", ","))
+
+            should_break = False
+            if current_chunk:
+                # Forced break before and after Latin loan strings to eliminate BiDi layout collisions
+                if w_script != current_script:
                     should_break = True
-                elif pause_gap > 0.85 and len(current_clause) >= 4:
+                # Hard silence boundary: never cross pause > 0.50s
+                elif pause_gap > 0.50:
                     should_break = True
-                elif has_major_stop and len(current_clause) >= 3:
+                # Strict 3-4 words max per chunk
+                elif len(current_chunk) >= target_size:
+                    should_break = True
+                # Punctuation boundary when chunk has >= 2 words
+                elif has_major_stop and len(current_chunk) >= 2:
                     should_break = True
 
-                if should_break:
-                    clauses.append(current_clause)
-                    current_clause = []
+            if should_break and current_chunk:
+                raw_chunks.append(current_chunk)
+                current_chunk = []
 
-            current_clause.append(w)
+            current_chunk.append(w)
+            current_script = w_script
 
-        if current_clause:
-            clauses.append(current_clause)
+        if current_chunk:
+            raw_chunks.append(current_chunk)
 
-        # Sub-chunk clauses respecting target_size
-        chunks: List[List[Dict[str, Any]]] = []
-        for clause in clauses:
-            if not clause:
+        # 4. Anti-orphan pass: only merge tiny 1-word fragments if SAME script, gap <= 0.40s, and combined <= 4 words
+        merged_chunks: List[List[Dict[str, Any]]] = []
+        for c in raw_chunks:
+            if not c:
                 continue
+            if merged_chunks:
+                prev_c = merged_chunks[-1]
+                prev_script = "latin" if bool(LATIN_REGEX.search(str(prev_c[-1].get("word", "")))) else "arabic"
+                curr_script = "latin" if bool(LATIN_REGEX.search(str(c[0].get("word", "")))) else "arabic"
+                prev_end = float(prev_c[-1].get("end", float(prev_c[-1].get("start", 0.0)) + 0.3))
+                gap = float(c[0].get("start", 0.0)) - prev_end
 
-            if len(clause) <= target_size:
-                chunks.append(clause)
-                continue
+                if prev_script == curr_script and gap <= 0.40 and len(prev_c) + len(c) <= target_size and (len(c) == 1 or len(prev_c) == 1):
+                    prev_c.extend(c)
+                    continue
 
-            if target_size >= 4 and len(clause) <= target_size + 1 and len(clause) <= 6:
-                chunks.append(clause)
-                continue
+            merged_chunks.append(c)
 
-            sizes = balance_chunk_sizes(len(clause), target_size)
-            idx = 0
-            subchunks = []
-            for sz in sizes:
-                subchunks.append(list(clause[idx:idx + sz]))
-                idx += sz
-
-            # Grammatical cohesion pass: don't strand non-terminal tokens at chunk end
-            for c_i in range(len(subchunks) - 1):
-                curr_c = subchunks[c_i]
-                next_c = subchunks[c_i + 1]
-                if curr_c and is_non_terminal_token(curr_c[-1].get("word", "")):
-                    if len(curr_c) > 2:
-                        moved = curr_c.pop()
-                        next_c.insert(0, moved)
-                    elif len(curr_c) < 6 and next_c:
-                        moved = next_c.pop(0)
-                        curr_c.append(moved)
-
-            for sc in subchunks:
-                if sc:
-                    chunks.append(sc)
-
-        # Anti-orphan merge pass: merge fragments < 3 words into previous chunk if combined <= 6 words
-        if len(chunks) > 1 and len(chunks[-1]) < 3 and (len(chunks[-2]) + len(chunks[-1]) <= 6):
-            chunks[-2].extend(chunks.pop())
-
-        return chunks
+        return merged_chunks
 
     def build_karaoke_pop_events(self, chunks: List[List[Dict[str, Any]]]) -> List[str]:
         """
@@ -545,9 +580,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
-                    w_end = chunk[i + 1]["start"]
+                    next_start = float(chunk[i + 1]["start"])
+                    nat_end = float(active_word.get("end", w_start + 0.3))
+                    if next_start - nat_end > 0.50:
+                        w_end = nat_end + 0.25
+                    else:
+                        w_end = next_start
                 else:
-                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -610,9 +650,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
-                    w_end = chunk[i + 1]["start"]
+                    next_start = float(chunk[i + 1]["start"])
+                    nat_end = float(active_word.get("end", w_start + 0.3))
+                    if next_start - nat_end > 0.50:
+                        w_end = nat_end + 0.25
+                    else:
+                        w_end = next_start
                 else:
-                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -692,9 +737,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
-                    w_end = chunk[i + 1]["start"]
+                    next_start = float(chunk[i + 1]["start"])
+                    nat_end = float(active_word.get("end", w_start + 0.3))
+                    if next_start - nat_end > 0.50:
+                        w_end = nat_end + 0.25
+                    else:
+                        w_end = next_start
                 else:
-                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.65, silence_threshold=0.8)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -751,9 +801,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
-                    w_end = chunk[i + 1]["start"]
+                    next_start = float(chunk[i + 1]["start"])
+                    nat_end = float(active_word.get("end", w_start + 0.3))
+                    if next_start - nat_end > 0.50:
+                        w_end = nat_end + 0.25
+                    else:
+                        w_end = next_start
                 else:
-                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -814,9 +869,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
-                    w_end = chunk[i + 1]["start"]
+                    next_start = float(chunk[i + 1]["start"])
+                    nat_end = float(active_word.get("end", w_start + 0.3))
+                    if next_start - nat_end > 0.50:
+                        w_end = nat_end + 0.25
+                    else:
+                        w_end = next_start
                 else:
-                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -873,9 +933,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
-                    w_end = chunk[i + 1]["start"]
+                    next_start = float(chunk[i + 1]["start"])
+                    nat_end = float(active_word.get("end", w_start + 0.3))
+                    if next_start - nat_end > 0.50:
+                        w_end = nat_end + 0.25
+                    else:
+                        w_end = next_start
                 else:
-                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -931,9 +996,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
-                    w_end = chunk[i + 1]["start"]
+                    next_start = float(chunk[i + 1]["start"])
+                    nat_end = float(active_word.get("end", w_start + 0.3))
+                    if next_start - nat_end > 0.50:
+                        w_end = nat_end + 0.25
+                    else:
+                        w_end = next_start
                 else:
-                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.65, silence_threshold=0.8)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
@@ -1007,9 +1077,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             for i, active_word in enumerate(chunk):
                 w_start = active_word["start"]
                 if i + 1 < len(chunk):
-                    w_end = chunk[i + 1]["start"]
+                    next_start = float(chunk[i + 1]["start"])
+                    nat_end = float(active_word.get("end", w_start + 0.3))
+                    if next_start - nat_end > 0.50:
+                        w_end = nat_end + 0.25
+                    else:
+                        w_end = next_start
                 else:
-                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.85, silence_threshold=0.8)
+                    w_end = calculate_word_end_time(w_start, active_word["end"], next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
 
                 if w_end <= w_start:
                     w_end = w_start + 0.30
