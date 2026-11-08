@@ -399,10 +399,18 @@ def calibrate_transcription_to_vad(transcription: Dict[str, Any], speech_interva
         if overlapping_vad:
             vad_start = overlapping_vad[0][0]
             vad_end = overlapping_vad[-1][1]
-        elif c_idx < len(speech_intervals):
-            vad_start, vad_end = speech_intervals[c_idx]
         else:
-            vad_start, vad_end = None, None
+            closest_iv = None
+            min_dist = float("inf")
+            for iv in speech_intervals:
+                dist = min(abs(c_start - iv[0]), abs(c_end - iv[1]))
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_iv = iv
+            if closest_iv and min_dist <= 1.5:
+                vad_start, vad_end = closest_iv
+            else:
+                vad_start, vad_end = None, None
 
         if vad_start is not None and vad_end is not None:
             vad_dur = max(0.1, vad_end - vad_start)
@@ -957,7 +965,7 @@ def transcribe_with_gemini(
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
         logger.info(f"Attempting Gemini transcription with model: {model_name}...")
         try:
-            response = requests.post(url, json=payload, timeout=35)
+            response = requests.post(url, json=payload, timeout=18)
             if response.status_code == 200:
                 resp_json = response.json()
                 candidates = resp_json.get("candidates", [])

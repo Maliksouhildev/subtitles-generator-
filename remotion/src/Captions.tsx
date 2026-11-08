@@ -580,7 +580,10 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
 
       let shouldBreak = false;
       if (curChunk.length > 0) {
-        if (pauseGap > 0.50) {
+        // Forced break before and after Latin loan strings so French words are displayed by themselves
+        if (wScript !== curScript) {
+          shouldBreak = true;
+        } else if (pauseGap > 0.50) {
           shouldBreak = true;
         } else if (isConjunctionBoundary) {
           shouldBreak = true;
@@ -637,7 +640,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
 
         const gap = rc.words[0].start - prevEnd;
 
-        if (gap <= 0.35 && prev.words.length + rc.words.length <= effectiveTarget && (rc.words.length === 1 || prev.words.length === 1)) {
+        if (prev.script === rc.script && gap <= 0.40 && prev.words.length + rc.words.length <= effectiveTarget && (rc.words.length === 1 || prev.words.length === 1)) {
 
           prev.words.push(...rc.words);
 

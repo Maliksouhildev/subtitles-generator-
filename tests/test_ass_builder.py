@@ -266,10 +266,12 @@ def test_ass_builder_script_separated_chunking():
         {"word": "test", "start": 4.1, "end": 4.8}
     ]
     chunks = builder.chunk_words(words)
-    # Smooth bilingual chunking: bilingual phrases share screen smoothly without visual whiplash
-    assert len(chunks) == 2
-    assert [w["word"] for w in chunks[0]] == ["وكان", "الشرف", "للشركة", "Red"]
-    assert [w["word"] for w in chunks[1]] == ["Field", "أنها", "تدير", "test"]
+    # Script separation: French words displayed by themselves
+    assert len(chunks) == 4
+    assert [w["word"] for w in chunks[0]] == ["وكان", "الشرف", "للشركة"]
+    assert [w["word"] for w in chunks[1]] == ["Red", "Field"]
+    assert [w["word"] for w in chunks[2]] == ["أنها", "تدير"]
+    assert [w["word"] for w in chunks[3]] == ["test"]
 
 
 def test_ass_builder_verb_prefix_binding_and_spelling():
@@ -285,10 +287,12 @@ def test_ass_builder_verb_prefix_binding_and_spelling():
     chunks = builder.chunk_words(words)
     # Verb prefix "يـ" binds with "percer" into "يـ percer", and "la" binds with "tôle" into "la tôle"
     assert chunks[0][0]["word"] == "يـ percer"
-    # Smooth bilingual flow: phrases up to words_per_line share screen smoothly
-    assert len(chunks) == 2
-    assert [w["word"] for w in chunks[0]] == ["يـ percer", "داخل", "la tôle"]
-    assert [w["word"] for w in chunks[1]] == ["شوف"]
+    # Script separation: Arabic and French isolated into distinct screens
+    assert len(chunks) == 4
+    assert [w["word"] for w in chunks[0]] == ["يـ percer"]
+    assert [w["word"] for w in chunks[1]] == ["داخل"]
+    assert [w["word"] for w in chunks[2]] == ["la tôle"]
+    assert [w["word"] for w in chunks[3]] == ["شوف"]
 
 
 def test_ass_builder_new_creative_templates():

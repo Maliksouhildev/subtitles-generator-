@@ -324,6 +324,44 @@ def balance_chunk_sizes(total_words: int, target_size: int = 4) -> List[int]:
     return sizes
 
 
+ASS_FONT_MAP = {
+    "almarai": "Almarai Bold",
+    "cairo": "Cairo",
+    "tajawal": "Tajawal",
+    "amiri": "Amiri",
+    "lalezar": "Lalezar",
+    "alexandria": "Alexandria",
+    "aref ruqaa": "Aref Ruqaa",
+    "baloo bhaijaan 2": "Baloo Bhaijaan 2",
+    "baloo bhaijaan": "Baloo Bhaijaan 2",
+    "bebas neue": "Bebas Neue",
+    "changa": "Changa",
+    "el messiri": "El Messiri",
+    "harmattan": "Harmattan",
+    "ibm plex sans arabic": "IBM Plex Sans Arabic",
+    "ibm plex": "IBM Plex Sans Arabic",
+    "lemonada": "Lemonada",
+    "mada": "Mada",
+    "marhey": "Marhey Light",
+    "montserrat": "Montserrat Thin",
+    "noto kufi arabic": "Noto Kufi Arabic",
+    "noto sans arabic": "Noto Kufi Arabic",
+    "outfit": "Outfit Thin",
+    "poppins": "Poppins",
+    "readex pro": "Readex Pro",
+    "reem kufi": "Reem Kufi",
+    "rubik": "Rubik Light",
+    "anton": "Anton",
+}
+
+def resolve_ass_font_name(name: str) -> str:
+    """Resolves user-facing font name to the exact TTF family name recognized by libass."""
+    if not name:
+        return "Cairo"
+    clean = name.strip().lower()
+    return ASS_FONT_MAP.get(clean, name.strip())
+
+
 def hex_to_ass_color(hex_str: str, alpha: int = 0) -> str:
     """
     Converts a standard hex color string (#RRGGBB or RRGGBB) to ASS color format (&HAABBGGRR&).
@@ -500,7 +538,7 @@ PlayResY: {self.video_height}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{self.font_name},{self.font_size},{pri_ass},{sec_ass},{out_ass},{sha_ass},-1,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},{self.alignment},30,30,{self.margin_v},-1
+Style: Default,{resolve_ass_font_name(self.font_name)},{self.font_size},{pri_ass},{sec_ass},{out_ass},{sha_ass},0,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},{self.alignment},30,30,{self.margin_v},-1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -657,8 +695,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
             should_break = False
             if current_chunk:
+                # Forced break before and after Latin loan strings so French words are displayed by themselves
+                if w_script != current_script:
+                    should_break = True
                 # Hard silence boundary: never cross pause > 0.50s
-                if pause_gap > 0.50:
+                elif pause_gap > 0.50:
                     should_break = True
                 elif is_conjunction_boundary:
                     should_break = True
@@ -698,7 +739,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 prev_end = float(prev_c[-1].get("end", float(prev_c[-1].get("start", 0.0)) + 0.3))
                 gap = float(c[0].get("start", 0.0)) - prev_end
 
-                if gap <= 0.35 and len(prev_c) + len(c) <= target_size and (len(c) == 1 or len(prev_c) == 1):
+                if prev_script == curr_script and gap <= 0.40 and len(prev_c) + len(c) <= target_size and (len(c) == 1 or len(prev_c) == 1):
                     prev_c.extend(c)
                     continue
 
@@ -1180,11 +1221,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                             # Keep letters visible at full opacity (\alpha&H00&) so long words like 'technologie'
                             # and 'premier' are never chopped mid-word or invisible during active speech
                             if style_type == "drop":
-                                anim = f"\\alpha&H00&\\t({t0},{t1},0.45,\\fscx125\\fscy125)\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
+                                anim = f"\\fscx0\\fscy0\\t({t0},{t1},0.45,\\fscx125\\fscy125)\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
                             elif style_type == "rise":
-                                anim = f"\\alpha&H00&\\t({t0},{t1},0.5,\\fscx120\\fscy120)\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
+                                anim = f"\\fscx0\\fscy0\\t({t0},{t1},0.5,\\fscx120\\fscy120)\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
                             else:
-                                anim = f"\\alpha&H00&\\t({t0},{t1},0.35,\\fscx135\\fscy135)\\t({t1},{t2},1.5,\\fscx100\\fscy100)"
+                                anim = f"\\fscx0\\fscy0\\t({t0},{t1},0.35,\\fscx135\\fscy135)\\t({t1},{t2},1.5,\\fscx100\\fscy100)"
                             letter_tags.append(f"{{{anim}}}{ch}")
 
                         word_str = "{" + hl_tag + "\\blur0.8}" + "".join(letter_tags) + "{" + pri_tag + "\\alpha&H00&" + reset_tag + "}"
