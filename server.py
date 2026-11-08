@@ -22,6 +22,7 @@ from core.ass_builder import ASSSubtitleBuilder
 from core.srt_builder import generate_srt, generate_vtt
 from core.video_engine import render_video, cancel_render, is_video_file, get_video_dimensions
 from core.ae_script_builder import AfterEffectsScriptBuilder
+from core.autostart import ensure_launcher_scripts, get_autostart_status, set_autostart
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("server")
@@ -33,6 +34,10 @@ FONTS_DIR = BASE_DIR / "fonts"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(FONTS_DIR, exist_ok=True)
+try:
+    ensure_launcher_scripts()
+except Exception as e:
+    logger.warning(f"Failed to ensure launcher scripts: {e}")
 
 app = FastAPI(
     title="Darija Subtitles Generator",
@@ -93,6 +98,10 @@ class RenderRequest(BaseModel):
     comp_width: int = 1080
     comp_height: int = 1920
     fps: float = 30.0
+
+
+class AutostartRequest(BaseModel):
+    enabled: bool = True
 
 
 @app.get("/api/health")
@@ -583,6 +592,19 @@ async def export_text_timestamps_endpoint(req: RenderRequest):
         media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="subtitles_timestamps_{task_id}.txt"'}
     )
+
+
+@app.get("/api/autostart")
+async def get_autostart():
+    """Returns whether auto-start on boot is enabled and platform details."""
+    return get_autostart_status()
+
+
+@app.post("/api/autostart")
+async def set_autostart_endpoint(req: AutostartRequest):
+    """Enables or disables auto-start on boot."""
+    return set_autostart(req.enabled)
+
 
 # Serve Static UI files
 if STATIC_DIR.exists():

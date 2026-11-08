@@ -401,6 +401,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const closeGuideBtn = document.getElementById("closeGuideBtn");
 
+  // Automation & Autostart Controls
+  const autoStartToggleBtn = document.getElementById("autoStartToggleBtn");
+  const autoStartHeaderLabel = document.getElementById("autoStartHeaderLabel");
+  const autoStartBootCheckbox = document.getElementById("autoStartBootCheckbox");
+  const autoStartBootDesc = document.getElementById("autoStartBootDesc");
+  const autoDownloadBothToggle = document.getElementById("autoDownloadBothToggle");
+  const autoDownloadVideoToggle = document.getElementById("autoDownloadVideoToggle");
+  const autoDownloadSubtitlesToggle = document.getElementById("autoDownloadSubtitlesToggle");
+  let isAutostartActive = false;
+
 
 
   // Application State
@@ -685,7 +695,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       queue_badge: "BATCH QUEUE",
 
-      queue_clear: "Clear Queue"
+      queue_clear: "Clear Queue",
+
+      header_autostart_toggle: "Auto-Run: OFF",
+      header_autostart_on: "Auto-Run: ON",
+      automation_card_title: "AUTOMATION & BACKGROUND CONTROL",
+      automation_badge: "AUTO ENGINE",
+      auto_boot_title: "Auto-Run on PC Boot",
+      auto_boot_desc: "Launches server quietly on PC startup",
+      auto_dl_both_title: "Auto-Download Both (Video + Subs)",
+      auto_dl_both_desc: "Instant automatic download upon render completion",
+      auto_dl_video: "Video (.mp4)",
+      auto_dl_subs: "Subtitles (.ass / .srt)"
 
     },
 
@@ -947,7 +968,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       queue_badge: "FILE D'ATTENTE",
 
-      queue_clear: "Vider la file"
+      queue_clear: "Vider la file",
+
+      header_autostart_toggle: "Démarrage Auto: NON",
+      header_autostart_on: "Démarrage Auto: OUI",
+      automation_card_title: "AUTOMATISATION & CONTRÔLE ARRIÈRE-PLAN",
+      automation_badge: "MOTEUR AUTO",
+      auto_boot_title: "Lancement au Démarrage PC",
+      auto_boot_desc: "Lance le serveur silencieusement au démarrage",
+      auto_dl_both_title: "Téléchargement Auto des Deux (Vidéo + Subs)",
+      auto_dl_both_desc: "Téléchargement immédiat dès la fin du rendu",
+      auto_dl_video: "Vidéo (.mp4)",
+      auto_dl_subs: "Sous-titres (.ass / .srt)"
 
     },
 
@@ -1209,7 +1241,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       queue_badge: "قائمة الملفات",
 
-      queue_clear: "إفراغ القائمة"
+      queue_clear: "إفراغ القائمة",
+
+      header_autostart_toggle: "تشغيل تلقائي: معطل",
+      header_autostart_on: "تشغيل تلقائي: مفعّل",
+      automation_card_title: "التحكم في الأتمتة والتشغيل الخلفي",
+      automation_badge: "المحرك الآلي",
+      auto_boot_title: "التشغيل التلقائي عند إقلاع الكمبيوتر",
+      auto_boot_desc: "يشغّل الخادم بهدوء في الخلفية فور إقلاع الجهاز",
+      auto_dl_both_title: "تحميل تلقائي لكليهما (فيديو + ترجمات)",
+      auto_dl_both_desc: "تحميل فوري وتلقائي فور اكتمال التوليد",
+      auto_dl_video: "فيديو (.mp4)",
+      auto_dl_subs: "ملفات الترجمة (.ass / .srt)"
 
     }
 
@@ -1262,6 +1305,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
+
+    if (autoStartHeaderLabel) {
+      autoStartHeaderLabel.textContent = isAutostartActive
+        ? (dict.header_autostart_on || "Auto-Run: ON")
+        : (dict.header_autostart_toggle || "Auto-Run: OFF");
+    }
 
     // 2. Re-render Phone Simulator elements in the selected language
 
@@ -5156,6 +5205,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     resultVideo.play().catch(() => {});
 
+    handleAutoDownloads(data, currentTaskId);
+
 
 
     return data;
@@ -5191,9 +5242,168 @@ document.addEventListener("DOMContentLoaded", () => {
   updateEaseLivePreview = function() {};
 
   // Restore previous settings and initialize live previews
+  // --- AUTOMATIC DOWNLOADS & AUTOSTART MANAGER ---
+  function triggerBrowserDownload(url, filename) {
+    if (!url) return;
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      if (filename) a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a);
+      }, 350);
+    } catch (e) {
+      console.warn("Auto-download trigger failed:", e);
+    }
+  }
+
+  function handleAutoDownloads(resultData, taskId) {
+    if (!resultData) return;
+    const shouldDlVideo = autoDownloadVideoToggle ? autoDownloadVideoToggle.checked : false;
+    const shouldDlSubs = autoDownloadSubtitlesToggle ? autoDownloadSubtitlesToggle.checked : false;
+
+    let delay = 350;
+    if (shouldDlVideo && resultData.video_url) {
+      setTimeout(() => {
+        const ext = resultData.video_url.endsWith(".webm") ? "webm" : "mp4";
+        triggerBrowserDownload(resultData.video_url, `subtitles_${taskId || "video"}.${ext}`);
+      }, delay);
+      delay += 400;
+    }
+
+    if (shouldDlSubs && (resultData.ass_url || resultData.srt_url)) {
+      setTimeout(() => {
+        const subUrl = resultData.ass_url || resultData.srt_url;
+        const subExt = resultData.ass_url ? "ass" : "srt";
+        triggerBrowserDownload(subUrl, `subtitles_${taskId || "subtitles"}.${subExt}`);
+      }, delay);
+      delay += 400;
+    }
+  }
+
+  function updateAutostartUI(enabled) {
+    isAutostartActive = !!enabled;
+    const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
+    if (autoStartBootCheckbox) {
+      autoStartBootCheckbox.checked = isAutostartActive;
+    }
+
+    if (autoStartToggleBtn) {
+      autoStartToggleBtn.classList.toggle("is-active", isAutostartActive);
+      autoStartToggleBtn.title = isAutostartActive ? "Auto-Run on PC Boot: ON (Click to disable)" : "Auto-Run on PC Boot: OFF (Click to enable)";
+    }
+
+    if (autoStartHeaderLabel) {
+      autoStartHeaderLabel.textContent = isAutostartActive
+        ? (dict.header_autostart_on || "Auto-Run: ON")
+        : (dict.header_autostart_toggle || "Auto-Run: OFF");
+    }
+
+    if (autoStartBootDesc) {
+      autoStartBootDesc.textContent = isAutostartActive
+        ? "Active - Automatically runs silently on system boot"
+        : (dict.auto_boot_desc || "Launches server quietly on PC startup");
+    }
+  }
+
+  async function fetchAutostartStatus() {
+    try {
+      const res = await fetch("/api/autostart");
+      if (!res.ok) return;
+      const data = await res.json();
+      updateAutostartUI(data.enabled);
+    } catch (e) {
+      console.warn("Could not fetch autostart status:", e);
+    }
+  }
+
+  async function setAutostartAPI(enable) {
+    try {
+      if (autoStartToggleBtn) autoStartToggleBtn.disabled = true;
+      if (autoStartBootCheckbox) autoStartBootCheckbox.disabled = true;
+
+      const res = await fetch("/api/autostart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !!enable })
+      });
+
+      if (!res.ok) throw new Error("Server responded with HTTP " + res.status);
+      const data = await res.json();
+      updateAutostartUI(!!data.enabled);
+    } catch (err) {
+      console.warn("Failed to set autostart:", err);
+      updateAutostartUI(isAutostartActive);
+    } finally {
+      if (autoStartToggleBtn) autoStartToggleBtn.disabled = false;
+      if (autoStartBootCheckbox) autoStartBootCheckbox.disabled = false;
+    }
+  }
+
+  function initAutomationControls() {
+    fetchAutostartStatus();
+
+    if (autoStartToggleBtn) {
+      autoStartToggleBtn.addEventListener("click", () => {
+        setAutostartAPI(!isAutostartActive);
+      });
+    }
+
+    if (autoStartBootCheckbox) {
+      autoStartBootCheckbox.addEventListener("change", () => {
+        setAutostartAPI(autoStartBootCheckbox.checked);
+      });
+    }
+
+    const savedDlVideo = localStorage.getItem("dz_auto_dl_video");
+    const savedDlSubs = localStorage.getItem("dz_auto_dl_subs");
+
+    if (autoDownloadVideoToggle) {
+      autoDownloadVideoToggle.checked = (savedDlVideo !== null) ? (savedDlVideo === "1") : true;
+    }
+    if (autoDownloadSubtitlesToggle) {
+      autoDownloadSubtitlesToggle.checked = (savedDlSubs !== null) ? (savedDlSubs === "1") : true;
+    }
+    if (autoDownloadBothToggle && autoDownloadVideoToggle && autoDownloadSubtitlesToggle) {
+      autoDownloadBothToggle.checked = (autoDownloadVideoToggle.checked && autoDownloadSubtitlesToggle.checked);
+    }
+
+    if (autoDownloadBothToggle) {
+      autoDownloadBothToggle.addEventListener("change", () => {
+        const isChecked = autoDownloadBothToggle.checked;
+        if (autoDownloadVideoToggle) autoDownloadVideoToggle.checked = isChecked;
+        if (autoDownloadSubtitlesToggle) autoDownloadSubtitlesToggle.checked = isChecked;
+        localStorage.setItem("dz_auto_dl_video", isChecked ? "1" : "0");
+        localStorage.setItem("dz_auto_dl_subs", isChecked ? "1" : "0");
+      });
+    }
+
+    if (autoDownloadVideoToggle) {
+      autoDownloadVideoToggle.addEventListener("change", () => {
+        localStorage.setItem("dz_auto_dl_video", autoDownloadVideoToggle.checked ? "1" : "0");
+        if (autoDownloadBothToggle && autoDownloadSubtitlesToggle) {
+          autoDownloadBothToggle.checked = (autoDownloadVideoToggle.checked && autoDownloadSubtitlesToggle.checked);
+        }
+      });
+    }
+
+    if (autoDownloadSubtitlesToggle) {
+      autoDownloadSubtitlesToggle.addEventListener("change", () => {
+        localStorage.setItem("dz_auto_dl_subs", autoDownloadSubtitlesToggle.checked ? "1" : "0");
+        if (autoDownloadBothToggle && autoDownloadVideoToggle) {
+          autoDownloadBothToggle.checked = (autoDownloadVideoToggle.checked && autoDownloadSubtitlesToggle.checked);
+        }
+      });
+    }
+  }
+
   restoreLastSettings();
   updatePhonePlatformUI();
   updateLiveSubtitlePreview();
   syncAllCustomDropdowns();
+  initAutomationControls();
 
 });

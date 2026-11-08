@@ -6387,3 +6387,208 @@ html, body, :root, *,
     margin-top: 6px;
   }
 }
+
+
+/* ==========================================================================
+   Automation & Autostart Controls
+   ========================================================================== */
+#autoStartToggleBtn.is-active {
+  background: var(--color-success, #10b981) !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+}
+
+.automation-toggles-card {
+  margin-top: 18px;
+  margin-bottom: 8px;
+  background: var(--card-bg, #1e1e2d);
+  border: 2px solid var(--border-color, #000000);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.9);
+  transition: all 0.2s ease;
+}
+
+.automation-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  border-bottom: 1.5px dashed var(--border-color, rgba(255, 255, 255, 0.15));
+  padding-bottom: 8px;
+}
+
+.automation-title-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display, inherit);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--text-primary, #ffffff);
+}
+
+.automation-title-box svg {
+  color: var(--color-accent, #ffe600);
+}
+
+.automation-toggles-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comic-toggle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--input-bg, rgba(0, 0, 0, 0.25));
+  border: 1.5px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-radius: 9px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.comic-toggle-card:hover {
+  border-color: var(--color-accent, #ffe600);
+  transform: translateY(-1px);
+}
+
+.comic-toggle-card.highlight-toggle {
+  background: rgba(255, 230, 0, 0.05);
+  border-color: rgba(255, 230, 0, 0.35);
+}
+
+.comic-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toggle-headline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+}
+
+.toggle-subdesc {
+  font-size: 0.74rem;
+  color: var(--text-secondary, #a0a0b0);
+}
+
+/* Comic Switch Slider */
+.comic-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.comic-switch-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.comic-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #3b3b4f;
+  border: 2px solid #000000;
+  border-radius: 24px;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 1.5px 1.5px 0px #000000;
+}
+
+.comic-switch-slider:before {
+  position: absolute;
+  content: '';
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  border: 1.5px solid #000000;
+  border-radius: 50%;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.comic-switch-input:checked + .comic-switch-slider {
+  background-color: var(--color-accent, #ffe600);
+}
+
+.comic-switch-input:checked + .comic-switch-slider:before {
+  transform: translateX(20px);
+  background-color: #1a1a24;
+}
+
+.comic-switch-input:focus + .comic-switch-slider {
+  box-shadow: 0 0 1px var(--color-accent, #ffe600);
+}
+
+/* Sub-toggles Row */
+.automation-subtoggles-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.comic-subtoggle-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-secondary, #b0b0c0);
+  transition: color 0.15s ease;
+}
+
+.comic-subtoggle-item:hover {
+  color: var(--text-primary, #ffffff);
+}
+
+.comic-subcheck {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #000000;
+  border-radius: 4px;
+  background: #2a2a3a;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  position: relative;
+  box-shadow: 1px 1px 0px #000000;
+  transition: all 0.15s ease;
+}
+
+.comic-subcheck:checked {
+  background: var(--color-accent, #ffe600);
+}
+
+.comic-subcheck:checked::after {
+  content: '✔';
+  font-size: 11px;
+  color: #000000;
+  font-weight: 900;
+  line-height: 1;
+}

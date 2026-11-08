@@ -127,6 +127,15 @@
           </span>
 
           <span class="btn-text" id="themeLabel">Dark</span>
+        </button>
+
+        <!-- Auto-Run on Boot Header Toggle -->
+        <button type="button" id="autoStartToggleBtn" class="comic-btn comic-btn-sm comic-btn-neutral" title="Auto-Run on PC Boot" aria-label="Auto-Run on PC Boot">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+            <line x1="12" y1="2" x2="12" y2="12"></line>
+          </svg>
+          <span class="btn-text" id="autoStartHeaderLabel" data-i18n="header_autostart_toggle">Auto-Run: OFF</span>
 
         </button>
 
@@ -1735,6 +1744,63 @@
             </div>
 
 
+
+            <!-- Automation & Quick Controls (Auto-Run on Boot + Auto-Downloads) -->
+            <div class="automation-toggles-card">
+              <div class="automation-card-header">
+                <div class="automation-title-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  <span class="automation-title-text" data-i18n="automation_card_title">AUTOMATION & BACKGROUND CONTROL</span>
+                </div>
+                <span class="comic-pill comic-pill-sm comic-pill-gold" data-i18n="automation_badge">AUTO ENGINE</span>
+              </div>
+
+              <div class="automation-toggles-grid">
+                <!-- Auto Start on Boot -->
+                <label class="comic-toggle-card" for="autoStartBootCheckbox" title="Toggle Auto-Run on Windows Boot">
+                  <div class="comic-toggle-text">
+                    <span class="toggle-headline">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                      <strong data-i18n="auto_boot_title">Auto-Run on PC Boot</strong>
+                    </span>
+                    <span class="toggle-subdesc" id="autoStartBootDesc" data-i18n="auto_boot_desc">Launches server quietly on PC startup</span>
+                  </div>
+                  <div class="comic-switch">
+                    <input type="checkbox" id="autoStartBootCheckbox" class="comic-switch-input">
+                    <span class="comic-switch-slider"></span>
+                  </div>
+                </label>
+
+                <!-- Auto Download Both -->
+                <label class="comic-toggle-card highlight-toggle" for="autoDownloadBothToggle" title="Auto-Download Both Video and Subtitle files on complete">
+                  <div class="comic-toggle-text">
+                    <span class="toggle-headline">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      <strong data-i18n="auto_dl_both_title">Auto-Download Both (Video + Subs)</strong>
+                    </span>
+                    <span class="toggle-subdesc" data-i18n="auto_dl_both_desc">Instant automatic download upon render completion</span>
+                  </div>
+                  <div class="comic-switch">
+                    <input type="checkbox" id="autoDownloadBothToggle" class="comic-switch-input" checked>
+                    <span class="comic-switch-slider"></span>
+                  </div>
+                </label>
+
+                <!-- Sub-toggles for Video & Subtitles -->
+                <div class="automation-subtoggles-row">
+                  <label class="comic-subtoggle-item" for="autoDownloadVideoToggle">
+                    <input type="checkbox" id="autoDownloadVideoToggle" class="comic-subcheck" checked>
+                    <span data-i18n="auto_dl_video">Video (.mp4)</span>
+                  </label>
+                  <label class="comic-subtoggle-item" for="autoDownloadSubtitlesToggle">
+                    <input type="checkbox" id="autoDownloadSubtitlesToggle" class="comic-subcheck" checked>
+                    <span data-i18n="auto_dl_subs">Subtitles (.ass / .srt)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
 
             <!-- Bottom Master CTA Button -->
 
