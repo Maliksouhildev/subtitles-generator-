@@ -39,9 +39,15 @@ STRICT VERBATIM TRANSLATION & SPELLING RULES:
    - If the speaker says "vraiment", you MUST write "vraiment" (in Latin letters, NEVER transliterate as "فريمون").
    - If the speaker says "percer", write "percer" (in Latin letters, e.g. "يـ percer").
    - If the speaker says "PPF", write "PPF" (or "الـ PPF", "للـ PPF").
-   - In car detailing and PPF contexts, accurately transcribe adhesive and film terms: "aucun résidu de colle", "résidu de colle", "sans trace de colle", "la colle", "premier test", "la nouvelle technologie PPF", "Redfield". NEVER transcribe glue residue as "la visibilité" or "alcool" / "d'alcool"!
+   - In car detailing and PPF contexts, accurately transcribe adhesive, film, and company terms: "Redfield", "PPF", "aucun résidu de colle", "résidu de colle", "sans trace de colle", "la colle", "premier test", "la nouvelle technologie PPF", "vraiment".
+   - CRITICAL ANTI-HALLUCINATION & VOCABULARY GROUNDING RULES:
+     * Company and brand name is strictly "Redfield" (STRICTLY "Redfield", NEVER "Redfilm", "Red film", or "Red-film"!).
+     * Always spell French loanwords correctly: write "vraiment" (NEVER "vryment" or "vriment").
+     * When the speaker says in Algerian Darija "ولا كاش خطر" (or "كاش خطر"), transcribe the exact spoken Darija "ولا كاش خطر" (NEVER invent or hallucinate French "la visibilité" over this audio!).
+     * When the speaker says in Arabic "النتيجة" (or "لا نتيجة"), transcribe the exact spoken Arabic "النتيجة" (NEVER hallucinate French "la recette"!).
+     * NEVER transcribe adhesive/glue residue as "la visibilité", "la recette", or "alcool" / "d'alcool" / "risque d'alcool"!
    - If the speaker says "c'est bon" or "سي بون", write "c'est bon" or "سي بون".
-   - Always write French and foreign loanwords/technical terms in Latin script (e.g. "premier", "nouvelle", "test", "Redfield", "voiture", "projet", "normal").
+   - Always write French and foreign loanwords/technical terms in Latin script (e.g. "premier", "nouvelle", "test", "Redfield", "voiture", "projet", "normal", "vraiment").
    - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: "الـ PPF", "للـ PPF", "يـ percer", "تـ tester".
 2. PRESERVE DEFINITE ARTICLES IN DARIJA IDIOMS:
    - In idioms like "وكان الشرف لشركة..." or "عندي الشرف" / "لي الشرف", ALWAYS preserve the definite article "الشرف". NEVER drop it to "شرف".
@@ -583,6 +589,14 @@ def sanitize_transcription_text(text: str) -> str:
     text = re.sub(r"\br[ée]sidu\s+d['\u2019]alcool\b", "résidu de colle", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(?:al[- ]?)?d['\u2019]?alcool\b", "de colle", text, flags=re.IGNORECASE)
     text = re.sub(r"\bla\s+visibilit[ée]\b(?=\s*(?:ta[e3]|تاع|de|colle|ppf|هيكل))", "résidu de colle", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bla\s+visibilit[ée]\b", "ولا كاش خطر", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bvisibilit[ée]\b", "كاش خطر", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bla\s+recette\b", "النتيجة", text, flags=re.IGNORECASE)
+    text = re.sub(r"\brecette\b(?=\s*(?:ta[e3]|تاع|ديال|اللي|كانت))", "نتيجة", text, flags=re.IGNORECASE)
+    text = re.sub(r"\brecette\b", "النتيجة", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bvryment\b", "vraiment", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bvriment\b", "vraiment", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bRed\s*film[es]?\b", "Redfield", text, flags=re.IGNORECASE)
     # Repair tokenizer clipped Latin words
     text = re.sub(r'\b(le\s+|un\s+)?premi\b', r'\1premier', text, flags=re.IGNORECASE)
     text = re.sub(r'\btechn\b', 'technologie', text, flags=re.IGNORECASE)
@@ -754,15 +768,66 @@ def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0
         if "text" in seg and seg["text"]:
             seg["text"] = sanitize_transcription_text(seg["text"])
         words = interpolate_word_timestamps(seg)
+        # Acoustic hallucination multi-token sequence repairs BEFORE single-word sanitization
+        filtered_words = []
+        skip_next = False
+        for widx in range(len(words)):
+            if skip_next:
+                skip_next = False
+                continue
+            w1 = words[widx]
+            w1_txt = str(w1.get("word", "")).strip()
+            w2 = words[widx + 1] if widx + 1 < len(words) else None
+            w2_txt = str(w2.get("word", "")).strip() if w2 else ""
+
+            # Dropped definite article: 'وكان' + 'شرف' -> 'وكان' + 'الشرف'
+            if w1_txt in ("وكان", "كان") and w2_txt == "شرف":
+                w1_copy = dict(w1)
+                w2_copy = dict(w2)
+                w2_copy["word"] = "الشرف"
+                filtered_words.append(w1_copy)
+                filtered_words.append(w2_copy)
+                skip_next = True
+                continue
+
+            # Hallucinated French 'la visibilité' -> spoken Darija 'ولا كاش خطر'
+            if w1_txt.lower() == "la" and bool(re.match(r'^(?:visibilit[ée]|كاش خطر)$', w2_txt, re.IGNORECASE)):
+                w1_copy = dict(w1)
+                w2_copy = dict(w2)
+                w1_copy["word"] = "ولا"
+                w2_copy["word"] = "كاش خطر"
+                filtered_words.append(w1_copy)
+                filtered_words.append(w2_copy)
+                skip_next = True
+                continue
+
+            # Hallucinated French 'la recette' -> spoken Arabic 'النتيجة'
+            if w1_txt.lower() == "la" and bool(re.match(r'^(?:recette|النتيجة)$', w2_txt, re.IGNORECASE)):
+                filtered_words.append({
+                    "word": "النتيجة",
+                    "start": w1.get("start", 0.0),
+                    "end": w2.get("end", float(w1.get("start", 0.0)) + 0.5)
+                })
+                skip_next = True
+                continue
+
+            # Misheard brand name 'Red film' -> 'Redfield'
+            if w1_txt.lower() == "red" and bool(re.match(r'^(?:film[es]?|Redfield)$', w2_txt, re.IGNORECASE)):
+                filtered_words.append({
+                    "word": "Redfield",
+                    "start": w1.get("start", 0.0),
+                    "end": w2.get("end", float(w1.get("start", 0.0)) + 0.5)
+                })
+                skip_next = True
+                continue
+
+            filtered_words.append(w1)
+        words = filtered_words
+
         for w in words:
             if "word" in w and w["word"]:
                 w["word"] = sanitize_transcription_text(w["word"])
-        # Fix dropped definite article in token sequence: 'وكان' + 'شرف' -> 'وكان' + 'الشرف'
-        for widx in range(len(words) - 1):
-            w1_txt = str(words[widx].get("word", "")).strip()
-            w2_txt = str(words[widx + 1].get("word", "")).strip()
-            if w1_txt in ("وكان", "كان") and w2_txt == "شرف":
-                words[widx + 1]["word"] = "الشرف"
+
         words = split_fused_script_tokens(words)
         words = bind_arabic_articles_to_latin(words)
         if not words:
@@ -918,7 +983,7 @@ def transcribe_with_faster_whisper(audio_path: str, dialect_hint: str = "General
         whisper_prompt = "اللغة العربية الفصحى: أهلا وسهلا بكم جميعا."
     else:
         whisper_lang = "ar"
-        whisper_prompt = "الدارجة الجزائرية والفرنسية التقنية: سلام خويا، واش راك لاباس، PPF, film de protection, aucun résidu de colle, résidu de colle, traces de colle, la colle, premier test, la nouvelle technologie PPF, Redfield, niveau national."
+        whisper_prompt = "الدارجة الجزائرية والفرنسية التقنية: سلام خاوتنا، واش راكم، Redfield, PPF, film de protection, aucun résidu de colle, vraiment, premier test, la nouvelle technologie PPF, النتيجة, ولا كاش خطر, المستوى الوطني, المستوى الإفريقي, وكان الشرف لشركة."
 
     logger.info(f"Starting local Faster-Whisper transcription for {whisper_lang}...")
     processed_audio = extract_audio(audio_path)

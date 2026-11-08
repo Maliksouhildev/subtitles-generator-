@@ -516,15 +516,67 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         """
         if not words:
             return []
+        # 0. Normalization & anti-hallucination sequence repair
+        repaired_w = []
+        skip_w = False
+        for widx in range(len(words)):
+            if skip_w:
+                skip_w = False
+                continue
+            w1 = words[widx]
+            w1_txt = str(w1.get("word", "")).strip()
+            w2 = words[widx + 1] if widx + 1 < len(words) else None
+            w2_txt = str(w2.get("word", "")).strip() if w2 else ""
 
-        # 0. Normalization: restore dropped definite articles in key idioms ('وكان شرف' -> 'وكان الشرف')
-        for widx in range(len(words) - 1):
-            w1_txt = str(words[widx].get("word", "")).strip()
-            w2_txt = str(words[widx + 1].get("word", "")).strip()
             if w1_txt in ("وكان", "كان") and w2_txt == "شرف":
-                words[widx + 1]["word"] = "الشرف"
-            if str(words[widx].get("word", "")).strip().lower() == "premi":
-                words[widx]["word"] = "premier"
+                w1_copy = dict(w1)
+                w2_copy = dict(w2)
+                w2_copy["word"] = "الشرف"
+                repaired_w.append(w1_copy)
+                repaired_w.append(w2_copy)
+                skip_w = True
+                continue
+
+            if w1_txt.lower() == "la" and bool(re.match(r'^visibilit[ée]$', w2_txt, re.IGNORECASE)):
+                w1_copy = dict(w1)
+                w2_copy = dict(w2)
+                w1_copy["word"] = "ولا"
+                w2_copy["word"] = "كاش خطر"
+                repaired_w.append(w1_copy)
+                repaired_w.append(w2_copy)
+                skip_w = True
+                continue
+
+            if w1_txt.lower() == "la" and bool(re.match(r'^recette$', w2_txt, re.IGNORECASE)):
+                repaired_w.append({
+                    "word": "النتيجة",
+                    "start": w1.get("start", 0.0),
+                    "end": w2.get("end", float(w1.get("start", 0.0)) + 0.5)
+                })
+                skip_w = True
+                continue
+
+            if w1_txt.lower() == "red" and bool(re.match(r'^film[es]?$', w2_txt, re.IGNORECASE)):
+                repaired_w.append({
+                    "word": "Redfield",
+                    "start": w1.get("start", 0.0),
+                    "end": w2.get("end", float(w1.get("start", 0.0)) + 0.5)
+                })
+                skip_w = True
+                continue
+
+            if w1_txt.lower() == "premi":
+                w1 = dict(w1)
+                w1["word"] = "premier"
+            elif w1_txt.lower() == "vryment":
+                w1 = dict(w1)
+                w1["word"] = "vraiment"
+            elif re.match(r'^redfilm[es]?$', w1_txt, re.IGNORECASE):
+                w1 = dict(w1)
+                w1["word"] = "Redfield"
+
+            repaired_w.append(w1)
+        words = repaired_w
 
         # 1. Split fused Arabic/Latin tokens (e.g. 'بهاد la' -> 'بهاد' + 'la')
         words = split_fused_script_tokens(words)

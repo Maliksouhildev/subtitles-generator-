@@ -302,3 +302,49 @@ def test_anti_hallucination_and_token_repair():
     text3 = "هذا هو le premi test"
     sanitized3 = sanitize_transcription_text(text3)
     assert "premier" in sanitized3
+
+
+def test_hallucination_and_glossary_repairs():
+    from core.transcriber import sanitize_transcription_text, normalize_transcription_data
+
+    # 1. Phonetic sanitizer fixes
+    assert sanitize_transcription_text("la visibilité") == "ولا كاش خطر"
+    assert sanitize_transcription_text("la recette") == "النتيجة"
+    assert sanitize_transcription_text("vryment") == "vraiment"
+    assert sanitize_transcription_text("Redfilm") == "Redfield"
+    assert sanitize_transcription_text("Red film") == "Redfield"
+
+    # 2. Token sequence normalization repairs
+    data = {
+        "text": "la visibilité et la recette pour Redfilm avec vryment",
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 4.0,
+                "text": "la visibilité et la recette pour Redfilm avec vryment",
+                "words": [
+                    {"word": "la", "start": 0.0, "end": 0.3},
+                    {"word": "visibilité", "start": 0.3, "end": 0.8},
+                    {"word": "et", "start": 0.8, "end": 1.0},
+                    {"word": "la", "start": 1.0, "end": 1.3},
+                    {"word": "recette", "start": 1.3, "end": 1.8},
+                    {"word": "pour", "start": 1.8, "end": 2.0},
+                    {"word": "Red", "start": 2.0, "end": 2.5},
+                    {"word": "film", "start": 2.5, "end": 3.0},
+                    {"word": "avec", "start": 3.0, "end": 3.4},
+                    {"word": "vryment", "start": 3.4, "end": 4.0}
+                ]
+            }
+        ]
+    }
+    norm = normalize_transcription_data(data)
+    words = norm["segments"][0]["words"]
+    words_text = [w["word"] for w in words]
+    assert "ولا كاش خطر" in words_text or ("ولا" in words_text and "كاش خطر" in words_text)
+    assert "النتيجة" in words_text
+    assert "Redfield" in words_text
+    assert "vraiment" in words_text
+    assert "visibilité" not in words_text
+    assert "recette" not in words_text
+    assert "vryment" not in words_text
