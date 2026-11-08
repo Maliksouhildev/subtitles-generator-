@@ -1407,6 +1407,8 @@ export const LetterPopTemplate: React.FC<TemplateProps> = ({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transform: "scale(1.18)",
+                transformOrigin: "center bottom",
                 fontSize: `${fontSize}px`,
                 fontWeight: 900,
                 color: highlightColor,
@@ -1427,7 +1429,7 @@ export const LetterPopTemplate: React.FC<TemplateProps> = ({
                   frame: letterFrame,
                   config: { stiffness: 320, damping: 16, mass: 0.5 },
                 });
-                const scale = interpolate(spr, [0, 0.5, 1], [0.15, 1.32, 1.0]);
+                const scale = interpolate(spr, [0, 0.45, 1], [0.2, 1.35, 1.05]);
                 const opacity = interpolate(spr, [0, 0.2, 1], [0, 1, 1]);
 
                 return (

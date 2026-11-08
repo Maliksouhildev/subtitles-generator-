@@ -39,6 +39,7 @@ STRICT VERBATIM TRANSLATION & SPELLING RULES:
    - If the speaker says "vraiment", you MUST write "vraiment" (in Latin letters, NEVER transliterate as "فريمون").
    - If the speaker says "percer", write "percer" (in Latin letters, e.g. "يـ percer").
    - If the speaker says "PPF", write "PPF" (or "الـ PPF", "للـ PPF").
+   - In car detailing and PPF contexts, accurately transcribe adhesive and film terms: "aucun résidu de colle", "résidu de colle", "sans trace de colle", "premier test", "la nouvelle technologie PPF", "Redfield".
    - If the speaker says "c'est bon" or "سي بون", write "c'est bon" or "سي بون".
    - Always write French and foreign loanwords/technical terms in Latin script (e.g. "premier", "nouvelle", "test", "Redfield", "voiture", "projet", "normal").
    - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: "الـ PPF", "للـ PPF", "يـ percer", "تـ tester".
@@ -444,6 +445,14 @@ def interpolate_word_timestamps(segment: Dict[str, Any]) -> List[Dict[str, Any]]
     if words_data:
         valid = all("start" in w and "end" in w and str(w.get("word", "")).strip() for w in words_data)
         if valid:
+            words_split = text.split() if text else []
+            if len(words_split) == len(words_data):
+                res = []
+                for idx, w in enumerate(words_data):
+                    item = dict(w)
+                    item["word"] = words_split[idx]
+                    res.append(item)
+                return res
             if not text:
                 segment["text"] = " ".join(str(w.get("word", "")).strip() for w in words_data)
             return [dict(w) for w in words_data]
@@ -568,6 +577,10 @@ def sanitize_transcription_text(text: str) -> str:
     text = text.replace("هكذاء", "هكذا").replace("هكداء", "هكدا").replace("هاكداء", "هاكدا").replace("هاكذاء", "هاكذا").replace("خلاصء", "خلاص").replace("صحاء", "صحة")
     text = re.sub(r'\b(و?كان)\s+شرف\b', r'\1 الشرف', text)
     text = re.sub(r'\b(لي|لنا|عندي)\s+شرف\b', r'\1 الشرف', text)
+    # Correct Whisper/Gemini acoustic hallucinations in car detailing & technical French
+    text = re.sub(r"\brisque\s+d['\u2019]alcool\b", "résidu de colle", text, flags=re.IGNORECASE)
+    # Repair tokenizer clipped Latin words
+    text = re.sub(r'\b(le\s+|un\s+)?premi\b', r'\1premier', text, flags=re.IGNORECASE)
     return text
 
 
@@ -621,6 +634,21 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
         # Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle"
         clean_tv = re.sub(r'^[^\w]+|[^\w]+$', '', text_val).lower()
         if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
+
+        clean_prefix_ar = re.sub(r'^[^\w؀-ۿ]+|[^\w؀-ۿ]+$', '', text_val)
+        is_latin_morph_prefix = (
+            (text_val.endswith(("-", "ـ")) and clean_prefix_ar in ("ي", "ت", "ن", "ال", "ل", "لل", "د"))
+            or text_val in ("يـ", "تـ", "نـ", "الـ", "لـ", "للـ", "دـ")
+        )
+        if is_latin_morph_prefix and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
             next_w = words[i + 1]
             bound.append({
                 "word": f"{text_val} {str(next_w.get('word', '')).strip()}",

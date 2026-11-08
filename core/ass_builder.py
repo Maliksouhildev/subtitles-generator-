@@ -222,6 +222,22 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
             i += 2
             continue
 
+        # Bind Arabic verb prefixes (يـ, تـ, نـ) and article prefixes (الـ, لـ, دـ) to Latin loanwords (e.g. 'يـ percer', 'الـ PPF')
+        clean_prefix_ar = re.sub(r'^[^\w؀-ۿ]+|[^\w؀-ۿ]+$', '', text_val)
+        is_latin_morph_prefix = (
+            (text_val.endswith(("-", "ـ")) and clean_prefix_ar in ("ي", "ت", "ن", "ال", "ل", "لل", "د"))
+            or text_val in ("يـ", "تـ", "نـ", "الـ", "لـ", "للـ", "دـ")
+        )
+        if is_latin_morph_prefix and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
+            next_w = words[i + 1]
+            bound.append({
+                "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
+                "start": w.get("start", 0.0),
+                "end": next_w.get("end", next_w.get("start", 0.0) + 0.3)
+            })
+            i += 2
+            continue
+
         # Bind Arabic-only clitics (e.g. 'و' + 'السيارة', 'في' + 'الدار') - strictly Arabic only, never across to Latin!
         if is_prefix_token(text_val, next_w_val) and i + 1 < len(words) and not bool(LATIN_REGEX.search(str(next_w_val or ""))):
             chain = [w]
@@ -506,6 +522,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             w2_txt = str(words[widx + 1].get("word", "")).strip()
             if w1_txt in ("وكان", "كان") and w2_txt == "شرف":
                 words[widx + 1]["word"] = "الشرف"
+            if str(words[widx].get("word", "")).strip().lower() == "premi":
+                words[widx]["word"] = "premier"
 
         # 1. Split fused Arabic/Latin tokens (e.g. 'بهاد la' -> 'بهاد' + 'la')
         words = split_fused_script_tokens(words)
@@ -539,11 +557,32 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             prev_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', prev_text.lower())
             has_major_stop = any(prev_text.endswith(p) for p in (".", "!", "?", "،", ","))
 
-            # Never break after a negative existential copula before 'حتى' or noun
+            # Grammatical clause grouping:
+            # 1. Inseparable Noun-Adjective / Genitive constructs (e.g. 'المستوى الوطني', 'المستوى الأفريقي', 'الهيكل تاعها', 'السيارة الشخصية')
+            is_noun_adjective = (
+                (prev_clean in ("المستوى", "مستوى", "الهيكل", "السيارة", "النتيجة", "التجربة", "القطاع", "المجال", "الشخصية", "الوطني", "الأفريقي", "الإفريقي")
+                 and (w_text.startswith("ال") or w_text.startswith("الإ") or w_text.startswith("الأ") or w_text.startswith("تاع") or w_text.startswith("ديال")))
+            )
+
             is_inseparable = (
                 (prev_clean in ("ما كاين", "ماكاين", "ما كاش", "ماكاش", "ما كانش") and (w_text.startswith("حتى") or not is_non_terminal_token(w_text)))
                 or (prev_clean == "بلي" and (w_text.startswith("ما") or w_text in ("ما", "ماكاين", "ما كاين")))
                 or (prev_clean == "حتى" and not is_non_terminal_token(w_text))
+                or is_noun_adjective
+            )
+
+            # Coordinating conjunction boundary: e.g. 'والمستوى', 'والنتيجة', 'وعلى', 'وهادي'
+            is_conjunction_boundary = (
+                len(current_chunk) >= 2
+                and (w_text.startswith("و") or w_text.startswith("ف"))
+                and len(w_text) > 2
+                and not is_noun_adjective
+            )
+
+            # Relative clause boundary: e.g. 'اللي', 'اللي كانت'
+            is_relative_clause_boundary = (
+                len(current_chunk) >= 2
+                and (w_text.startswith("اللي") or w_text.startswith("الي"))
             )
 
             should_break = False
@@ -553,6 +592,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     should_break = True
                 # Hard silence boundary: never cross pause > 0.50s
                 elif pause_gap > 0.50:
+                    should_break = True
+                elif is_conjunction_boundary:
+                    should_break = True
+                elif is_relative_clause_boundary:
                     should_break = True
                 elif is_inseparable:
                     should_break = False
@@ -631,18 +674,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 dur_ms = max(120, int((w_end - w_start) * 1000))
 
-                # Remotion-calibrated 4-stage harmonic spring: overshoot -> recoil -> micro-bounce -> settle
-                t1 = max(35, min(int(dur_ms * 0.32), int(95 / spd)))
-                t2 = max(t1 + 25, min(int(dur_ms * 0.62), int(185 / spd)))
-                t3 = max(t2 + 25, min(int(dur_ms * 0.85), int(260 / spd)))
-                t4 = max(t3 + 20, min(dur_ms, int(330 / spd)))
+                # Active word springs forward with 1.28x dynamic pop and remains enlarged at 1.18x (118%) while spoken
+                t1 = max(35, min(int(dur_ms * 0.30), int(85 / spd)))
+                t2 = max(t1 + 25, min(int(dur_ms * 0.60), int(165 / spd)))
 
                 active_pop_transform = (
                     f"\\blur1.8\\fscx100\\fscy100"
-                    f"\\t(0,{t1},0.45,\\fscx120\\fscy120)"
-                    f"\\t({t1},{t2},1.6,\\fscx108\\fscy108)"
-                    f"\\t({t2},{t3},0.8,\\fscx114\\fscy114)"
-                    f"\\t({t3},{t4},1.3,\\fscx100\\fscy100)"
+                    f"\\t(0,{t1},0.45,\\fscx128\\fscy128)"
+                    f"\\t({t1},{t2},1.4,\\fscx118\\fscy118)"
                 )
 
                 start_str = format_ass_time(w_start)

@@ -4062,11 +4062,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // FILE UPLOAD AND DRAG-AND-DROP HANDLERS
 
+  function updateStartBtnReadyAnimation() {
+    if (!startBtn) return;
+    if (currentFile || (batchQueue && batchQueue.length > 0)) {
+      startBtn.classList.add("is-ready-to-render");
+    } else {
+      startBtn.classList.remove("is-ready-to-render");
+    }
+  }
+
   function setFile(file, fromQueue = false) {
 
     if (!file) return;
 
     currentFile = file;
+    updateStartBtnReadyAnimation();
 
     fileName.innerText = file.name;
 
@@ -4197,6 +4207,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function clearFile() {
 
     currentFile = null;
+    updateStartBtnReadyAnimation();
 
     if (fileInput) fileInput.value = "";
 
@@ -4225,6 +4236,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // BATCH QUEUE FUNCTIONS
 
   function renderQueueList() {
+    updateStartBtnReadyAnimation();
 
     if (!queueItemsList || !queueSection) return;
 
@@ -4595,6 +4607,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       isProcessingBatch = false;
       if (startBtn) startBtn.disabled = false;
+    updateStartBtnReadyAnimation();
       if (reRenderBtn) reRenderBtn.disabled = false;
       cancelRenderBtn.classList.add("hidden");
       updateProgress(0, "Cancelled", "Render cancelled by user.", "");
@@ -4915,6 +4928,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     currentAbortController = new AbortController();
     startBtn.disabled = true;
+    startBtn.classList.remove("is-ready-to-render");
     isProcessingBatch = true;
 
 
@@ -4958,6 +4972,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } finally {
 
       startBtn.disabled = false;
+    updateStartBtnReadyAnimation();
 
       isProcessingBatch = false;
 
@@ -5259,7 +5274,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  const autoDownloadedTasks = new Set();
   function handleAutoDownloads(resultData, taskId) {
+    const taskKey = `${taskId || 'default'}_${resultData ? (resultData.video_url || '') : ''}`;
+    if (autoDownloadedTasks.has(taskKey)) {
+      return;
+    }
+    autoDownloadedTasks.add(taskKey);
+    setTimeout(() => autoDownloadedTasks.delete(taskKey), 15000);
     if (!resultData) return;
     const shouldDlVideo = autoDownloadVideoToggle ? autoDownloadVideoToggle.checked : false;
     const shouldDlSubs = autoDownloadSubtitlesToggle ? autoDownloadSubtitlesToggle.checked : false;
@@ -5365,7 +5387,7 @@ document.addEventListener("DOMContentLoaded", () => {
       autoDownloadVideoToggle.checked = (savedDlVideo !== null) ? (savedDlVideo === "1") : true;
     }
     if (autoDownloadSubtitlesToggle) {
-      autoDownloadSubtitlesToggle.checked = (savedDlSubs !== null) ? (savedDlSubs === "1") : true;
+      autoDownloadSubtitlesToggle.checked = (savedDlSubs !== null) ? (savedDlSubs === "1") : false;
     }
     if (autoDownloadBothToggle && autoDownloadVideoToggle && autoDownloadSubtitlesToggle) {
       autoDownloadBothToggle.checked = (autoDownloadVideoToggle.checked && autoDownloadSubtitlesToggle.checked);

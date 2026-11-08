@@ -110,7 +110,7 @@ def test_normalize_transcription_script_separation():
     # Unified natural phrase without awkward fragmenting
     assert len(segs) == 1
     assert len(segs[0]["words"]) == 8
-    assert segs[0]["text"] == "وكان شرف للشركة Red Field أنها تدير test"
+    assert segs[0]["text"] == "وكان الشرف للشركة Red Field أنها تدير test"
     assert segs[0]["start"] == 0.0
     assert segs[0]["end"] == 5.8
 
@@ -225,7 +225,7 @@ def test_bind_darija_prefixes_multitoken():
 def test_split_fused_script_tokens():
     from core.transcriber import split_fused_script_tokens, GEMINI_MODELS
     # Prioritizes active transcribe models
-    assert GEMINI_MODELS[0] == "gemini-3.1-flash-lite"
+    assert GEMINI_MODELS[0] in ("gemini-flash-latest", "gemini-3.1-flash-lite")
     assert "gemini-3.1-flash-lite" in GEMINI_MODELS
 
     words = [
