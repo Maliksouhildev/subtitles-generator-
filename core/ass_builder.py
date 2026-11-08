@@ -631,12 +631,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 or is_noun_adjective
             )
 
-            # Coordinating conjunction boundary: e.g. 'والمستوى', 'والنتيجة', 'وعلى', 'وهادي'
+            chunk_words_text = [str(cw.get("word", "")).strip() for cw in current_chunk]
+            # Coordinated parallel clause protection (e.g. 'على المستوى الأفريقي والمستوى الوطني')
+            is_parallel_coordination = (
+                any(n in cw for n in ("المستوى", "مستوى", "القطاع", "المجال") for cw in chunk_words_text)
+                and (w_text.startswith("والمستوى") or w_text.startswith("ومستوى") or w_text.startswith("والوطني") or w_text.startswith("والإفريقي") or w_text.startswith("والأفريقي"))
+            )
+
+            # Coordinating conjunction boundary (only when not inside parallel coordinated phrase)
             is_conjunction_boundary = (
                 len(current_chunk) >= 2
                 and (w_text.startswith("و") or w_text.startswith("ف"))
                 and len(w_text) > 2
                 and not is_noun_adjective
+                and not is_parallel_coordination
             )
 
             # Relative clause boundary: e.g. 'اللي', 'اللي كانت'
@@ -645,22 +653,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 and (w_text.startswith("اللي") or w_text.startswith("الي"))
             )
 
+            effective_limit = target_size + 1 if is_parallel_coordination else target_size
+
             should_break = False
             if current_chunk:
-                # Forced break before and after Latin loan strings to eliminate BiDi layout collisions
-                if w_script != current_script:
-                    should_break = True
                 # Hard silence boundary: never cross pause > 0.50s
-                elif pause_gap > 0.50:
+                if pause_gap > 0.50:
                     should_break = True
                 elif is_conjunction_boundary:
                     should_break = True
                 elif is_relative_clause_boundary:
                     should_break = True
-                elif is_inseparable:
+                elif is_inseparable or is_parallel_coordination:
                     should_break = False
-                # Strict 3-4 words max per chunk
-                elif len(current_chunk) >= target_size:
+                # Strict 3-4 words max per chunk (up to 5 for parallel coordination)
+                elif len(current_chunk) >= effective_limit:
                     should_break = True
                 # Break before non-terminal particles when chunk already has >= 2 words to preserve natural phrasing
                 elif len(current_chunk) >= 2 and is_non_terminal_token(w_text):
@@ -691,7 +698,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 prev_end = float(prev_c[-1].get("end", float(prev_c[-1].get("start", 0.0)) + 0.3))
                 gap = float(c[0].get("start", 0.0)) - prev_end
 
-                if prev_script == curr_script and gap <= 0.40 and len(prev_c) + len(c) <= target_size and (len(c) == 1 or len(prev_c) == 1):
+                if gap <= 0.35 and len(prev_c) + len(c) <= target_size and (len(c) == 1 or len(prev_c) == 1):
                     prev_c.extend(c)
                     continue
 

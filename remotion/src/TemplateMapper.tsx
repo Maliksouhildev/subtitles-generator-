@@ -96,54 +96,66 @@ function groupScriptRuns(words: WordToken[]) {
   return runs;
 }
 
+// Helper: robustly resolves currently spoken word index across chunk timeline
+export function getActiveWordIndex(
+  words: WordToken[],
+  currentTime: number,
+  chunkStart: number,
+  chunkEnd: number
+): number {
+  if (!words || words.length === 0) return -1;
+  for (let idx = 0; idx < words.length; idx++) {
+    const cw = words[idx];
+    const nextStart = idx + 1 < words.length ? (cw.end > cw.start ? cw.end : words[idx + 1].start) : Math.max(cw.end, chunkEnd);
+    if (currentTime >= cw.start && currentTime <= nextStart) {
+      return idx;
+    }
+  }
+  if (currentTime < words[0].start && currentTime >= chunkStart) {
+    return 0;
+  }
+  if (currentTime >= words[words.length - 1].start && currentTime <= chunkEnd) {
+    return words.length - 1;
+  }
+  return -1;
+}
+
+
 // 1. Hormozi Pop Template (Viral, high bounce, punchy highlight)
 
 export const HormoziPopTemplate: React.FC<TemplateProps> = ({
-
   chunk,
-
   currentTime,
-
   frame,
-
   fps,
-
   style,
-
 }) => {
-
   const fontSize = style.font_size || 58;
-
   const primaryColor = style.primary_color || "#FFFFFF";
-
   const highlightColor = style.highlight_color || "#FFE600";
-
   const outlineColor = style.outline_color || "#000000";
-
-  const outlineWidth = style.outline_width ?? 3.5;
-
+  const strokeWidth = style.outline_width ?? Math.max(3.0, Math.min(4.5, Math.round(fontSize * 0.065)));
   const spd = style.animation_speed ?? 1.0;
 
+  const textStroke = `${strokeWidth}px ${outlineColor}`;
+  const textShadow = `
+    -${strokeWidth}px -${strokeWidth}px 0 ${outlineColor},
+     ${strokeWidth}px -${strokeWidth}px 0 ${outlineColor},
+    -${strokeWidth}px  ${strokeWidth}px 0 ${outlineColor},
+     ${strokeWidth}px  ${strokeWidth}px 0 ${outlineColor},
+     0px 4px 10px rgba(0, 0, 0, 0.75)
+  `;
+
+  const activeWordIdx = getActiveWordIndex(chunk.words, currentTime, chunk.start, chunk.end);
   const runs = groupScriptRuns(chunk.words);
+  let globalWordCounter = 0;
 
   return (
-
     <>
-
       {runs.map((run, rIdx) => {
-
-        const strokeWidth = style.outline_width ?? Math.max(3.0, Math.min(4.5, Math.round(fontSize * 0.065)));
-        const textStroke = ${strokeWidth}px ;
-        const textShadow = 
-          -px -px 0 ,
-           px -px 0 ,
-          -px  px 0 ,
-           px  px 0 ,
-           0px 3px 6px rgba(0, 0, 0, 0.65)
-        ;
-
         const wordsContent = run.words.map((w, wIdx) => {
-          const isSpoken = currentTime >= w.start && currentTime <= w.end;
+          const globalIdx = globalWordCounter++;
+          const isActive = globalIdx === activeWordIdx;
           const wordStartFrame = Math.round(w.start * fps);
           const wordEndFrame = Math.round(w.end * fps);
 
@@ -151,35 +163,35 @@ export const HormoziPopTemplate: React.FC<TemplateProps> = ({
           const popSpring = spring({
             fps,
             frame: Math.max(0, (frame - wordStartFrame) * spd),
-            config: { damping: 10, mass: 0.4, stiffness: 220 },
+            config: { damping: 10, mass: 0.4, stiffness: 240 },
           });
+
+          // Active word physically pops up to 1.25 on impact -> settles at 1.15 while spoken
+          const activeScale = interpolate(
+            popSpring,
+            [0, 0.4, 1.0],
+            [1.0, 1.25, 1.15],
+            { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+          );
 
           // Smooth decay when active word finishes
           const decaySpring = spring({
             fps,
             frame: Math.max(0, (frame - wordEndFrame) * spd),
-            config: { damping: 14, mass: 0.45, stiffness: 190 },
+            config: { damping: 14, mass: 0.45, stiffness: 200 },
           });
 
-          // Active word physically pops up to 1.28 on impact -> settles at 1.15
-          const activeScale = interpolate(
-            popSpring,
-            [0, 0.4, 0.75, 1.0],
-            [1.0, 1.28, 1.12, 1.15],
-            { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-          );
-
           let scale = 1.0;
-          if (currentTime >= w.start && currentTime <= w.end) {
+          if (isActive) {
             scale = activeScale;
-          } else if (currentTime > w.end && frame - wordEndFrame < 10) {
+          } else if (currentTime > w.end && frame - wordEndFrame < 8) {
             scale = interpolate(decaySpring, [0, 1], [1.15, 1.0], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             });
           }
 
-          const color = isSpoken ? highlightColor : primaryColor;
+          const color = isActive ? highlightColor : primaryColor;
 
           return (
             <span
@@ -198,6 +210,8 @@ export const HormoziPopTemplate: React.FC<TemplateProps> = ({
                 lineHeight: 1.15,
                 userSelect: "none",
                 whiteSpace: "nowrap",
+                willChange: "transform",
+                transition: "color 0.08s ease-out",
               }}
             >
               {w.word}
@@ -206,39 +220,22 @@ export const HormoziPopTemplate: React.FC<TemplateProps> = ({
         });
 
         if (run.isLatin) {
-
           return (
-
             <span
-
               key={rIdx}
-
               dir="ltr"
-
               style={{
-
                 display: "inline-flex",
-
                 direction: "ltr",
-
                 unicodeBidi: "isolate",
-
                 alignItems: "center",
-
                 gap: "8px",
-
                 margin: "0 4px",
-
               }}
-
             >
-
               {wordsContent}
-
             </span>
-
           );
-
         }
 
         return (
@@ -257,17 +254,12 @@ export const HormoziPopTemplate: React.FC<TemplateProps> = ({
             {wordsContent}
           </span>
         );
-
       })}
-
     </>
-
   );
-
 };
 
 // 2. Minimal Slide Template (Clean, modern upward slide with smooth opacity)
-
 export const MinimalSlideTemplate: React.FC<TemplateProps> = ({
 
   chunk,

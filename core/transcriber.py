@@ -53,6 +53,20 @@ STRICT VERBATIM TRANSLATION & SPELLING RULES:
    - In idioms like "وكان الشرف لشركة..." or "عندي الشرف" / "لي الشرف", ALWAYS preserve the definite article "الشرف". NEVER drop it to "شرف".
    - Preserve "ال" on sun/moon letters exactly as intended in authentic speech.
 
+3. STRICT PHONETIC DARIJA (NEVER BLEED INTO MODERN STANDARD ARABIC / MSA):
+   - When the speaker says "بهاد" (b'had), write "بهاد" (NEVER substitute formal MSA "بهذه" or "بهده" or "بهذا"!).
+   - When the speaker says "فهاد", write "فهاد" (NEVER substitute formal MSA "في هذه" or "في هذا"!).
+   - When the speaker says "هاد", write "هاد" (NEVER substitute formal MSA "هذا" or "هذه"!).
+   - When the speaker says "هادي", write "هادي" (NEVER substitute formal MSA "هذه"!).
+   - When the speaker says "هادو", write "هادو" (NEVER substitute formal MSA "هؤلاء"!).
+
+3. STRICT PHONETIC DARIJA (NEVER BLEED INTO MODERN STANDARD ARABIC / MSA):
+   - When the speaker says "بهاد" (b'had), write "بهاد" (NEVER substitute formal MSA "بهذه" or "بهده" or "بهذا"!).
+   - When the speaker says "فهاد", write "فهاد" (NEVER substitute formal MSA "في هذه" or "في هذا"!).
+   - When the speaker says "هاد", write "هاد" (NEVER substitute formal MSA "هذا" or "هذه"!).
+   - When the speaker says "هادي", write "هادي" (NEVER substitute formal MSA "هذه"!).
+   - When the speaker says "هادو", write "هادو" (NEVER substitute formal MSA "هؤلاء"!).
+
 2. NEVER PARAPHRASE, "STANDARDIZE", OR "CORRECT" ALGERIAN DARIJA:
    - If the speaker says "خويا يدخل", write EXACTLY "خويا يدخل" (NEVER change to "راهو يدخل").
    - If the speaker says "سي بون خلاص هكذا", write ALL THREE: "سي بون", "خلاص", "هكذا" (DO NOT drop "سي بون" or "هكذا").
@@ -583,6 +597,13 @@ def sanitize_transcription_text(text: str) -> str:
     text = text.replace("هكذاء", "هكذا").replace("هكداء", "هكدا").replace("هاكداء", "هاكدا").replace("هاكذاء", "هاكذا").replace("خلاصء", "خلاص").replace("صحاء", "صحة")
     text = re.sub(r'\b(و?كان)\s+شرف\b', r'\1 الشرف', text)
     text = re.sub(r'\b(لي|لنا|عندي)\s+شرف\b', r'\1 الشرف', text)
+    # Enforce authentic Algerian Darija phonetics and prevent Modern Standard Arabic (MSA) bleed
+    text = re.sub(r'\bبه[ذد]ه\b', 'بهاد', text)
+    text = re.sub(r'\bفه[ذد]ه\b', 'فهاد', text)
+    text = re.sub(r'\bبهذا\b', 'بهاد', text)
+    text = re.sub(r'\bفهذا\b', 'فهاد', text)
+    text = re.sub(r'\bله[ذد]ه\b', 'لهاد', text)
+    text = re.sub(r'\bلهذا\b', 'لهاد', text)
     # Correct Whisper/Gemini acoustic hallucinations in car detailing & technical French
     text = re.sub(r"\bla\s+visibilit[ée]\s+ta[e3]\s+(?:al[- ]?)?d['\u2019]?alcool\b", "aucun résidu de colle", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(aucun\s+)?risque\s+d['\u2019]alcool\b", "aucun résidu de colle", text, flags=re.IGNORECASE)

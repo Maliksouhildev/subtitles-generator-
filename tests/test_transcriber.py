@@ -348,3 +348,42 @@ def test_hallucination_and_glossary_repairs():
     assert "visibilité" not in words_text
     assert "recette" not in words_text
     assert "vryment" not in words_text
+
+
+def test_msa_bleed_and_parallel_clause_chunking():
+    from core.transcriber import sanitize_transcription_text
+    from core.ass_builder import ASSSubtitleBuilder
+
+    # 1. Verify MSA bleed normalization
+    assert sanitize_transcription_text("دير بهده التقنية") == "دير بهاد التقنية"
+    assert sanitize_transcription_text("دير بهذه التقنية") == "دير بهاد التقنية"
+    assert sanitize_transcription_text("فهده الخدمة") == "فهاد الخدمة"
+    assert sanitize_transcription_text("فهذه الخدمة") == "فهاد الخدمة"
+    assert sanitize_transcription_text("بهذا") == "بهاد"
+    assert sanitize_transcription_text("فهذا") == "فهاد"
+
+    # 2. Verify parallel coordinated clause chunking in ass_builder
+    builder = ASSSubtitleBuilder(words_per_line=4)
+    parallel_words = [
+        {"word": "على", "start": 5.0, "end": 5.3},
+        {"word": "المستوى", "start": 5.3, "end": 5.8},
+        {"word": "الأفريقي", "start": 5.8, "end": 6.3},
+        {"word": "والمستوى", "start": 6.3, "end": 6.8},
+        {"word": "الوطني", "start": 6.8, "end": 7.3},
+    ]
+    chunks = builder.chunk_words(parallel_words)
+    # The coordinated clause 'على المستوى الأفريقي والمستوى الوطني' must remain together
+    assert len(chunks) == 1, f"Expected 1 chunk, got {len(chunks)}: {chunks}"
+    assert len(chunks[0]) == 5
+    assert [w["word"] for w in chunks[0]] == ["على", "المستوى", "الأفريقي", "والمستوى", "الوطني"]
+
+    # 3. Verify bilingual smooth chunking (eliminating visual whiplash)
+    bilingual_words = [
+        {"word": "وكان", "start": 0.0, "end": 0.3},
+        {"word": "الشرف", "start": 0.3, "end": 0.7},
+        {"word": "لشركة", "start": 0.7, "end": 1.1},
+        {"word": "Redfield", "start": 1.1, "end": 1.6},
+    ]
+    bi_chunks = builder.chunk_words(bilingual_words)
+    assert len(bi_chunks) == 1, f"Expected 1 chunk for bilingual phrase, got {len(bi_chunks)}: {bi_chunks}"
+    assert len(bi_chunks[0]) == 4

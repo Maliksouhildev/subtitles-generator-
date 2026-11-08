@@ -539,45 +539,54 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
 
 
     for (const w of allWords) {
-
       const wText = (w.word || "").trim();
-
       if (!wText) continue;
-
-
 
       const wScript: "arabic" | "latin" = LATIN_REGEX.test(wText) ? "latin" : "arabic";
 
-
-
       let pauseGap = 0;
-
       if (curChunk.length > 0) {
-
         const prevEnd = curChunk[curChunk.length - 1].end ?? (curChunk[curChunk.length - 1].start + 0.3);
-
         pauseGap = w.start - prevEnd;
-
       }
-
-
 
       const prevText = curChunk.length > 0 ? (curChunk[curChunk.length - 1].word || "").trim() : "";
       const prevClean = prevText.replace(/^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$/g, "").toLowerCase().trim();
       const hasMajorStop = [".", "!", "?", "،", ","].some((p) => prevText.endsWith(p));
 
-      const isInseparable = (["ما كاين", "ماكاين", "ما كاش", "ماكاش", "ما كانش"].includes(prevClean) && wText.startsWith("حتى")) || (prevClean === "حتى" && !isNonTerminalToken(wText));
+      const chunkWordsText = curChunk.map((cw) => (cw.word || "").trim());
+      // Coordinated parallel clause protection (e.g. 'على المستوى الأفريقي والمستوى الوطني')
+      const isParallelCoordination = (
+        chunkWordsText.some((cw) => ["المستوى", "مستوى", "القطاع", "المجال"].some((k) => cw.includes(k))) &&
+        (wText.startsWith("والمستوى") || wText.startsWith("ومستوى") || wText.startsWith("والوطني") || wText.startsWith("والإفريقي") || wText.startsWith("والأفريقي"))
+      );
+
+      const isInseparable = (
+        (["ما كاين", "ماكاين", "ما كاش", "ماكاش", "ما كانش"].includes(prevClean) && (wText.startsWith("حتى") || !isNonTerminalToken(wText))) ||
+        (prevClean === "بلي" && (wText.startsWith("ما") || wText === "ما")) ||
+        (prevClean === "حتى" && !isNonTerminalToken(wText)) ||
+        isParallelCoordination
+      );
+
+      // Coordinating conjunction boundary (only when not inside parallel coordinated phrase)
+      const isConjunctionBoundary = (
+        curChunk.length >= 2 &&
+        (wText.startsWith("و") || wText.startsWith("ف")) &&
+        wText.length > 2 &&
+        !isParallelCoordination
+      );
+
+      const effectiveChunkLimit = isParallelCoordination ? effectiveTarget + 1 : effectiveTarget;
 
       let shouldBreak = false;
       if (curChunk.length > 0) {
-        // Forced break before and after Latin loan strings to eliminate BiDi layout collisions
-        if (wScript !== curScript) {
+        if (pauseGap > 0.50) {
           shouldBreak = true;
-        } else if (pauseGap > 0.50) {
+        } else if (isConjunctionBoundary) {
           shouldBreak = true;
         } else if (isInseparable) {
           shouldBreak = false;
-        } else if (curChunk.length >= effectiveTarget) {
+        } else if (curChunk.length >= effectiveChunkLimit) {
           shouldBreak = true;
         } else if (curChunk.length >= 2 && isNonTerminalToken(wText)) {
           shouldBreak = true;
@@ -586,11 +595,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
         }
       }
 
-      }
-
-
-
-      if (shouldBreak && curChunk.length > 0 && curScript) {
+      if (shouldBreak && curChunk.length > 0) {
 
         rawChunks.push({ words: curChunk, script: curScript });
 
@@ -632,7 +637,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
 
         const gap = rc.words[0].start - prevEnd;
 
-        if (prev.script === rc.script && gap <= 0.40 && prev.words.length + rc.words.length <= effectiveTarget && (rc.words.length === 1 || prev.words.length === 1)) {
+        if (gap <= 0.35 && prev.words.length + rc.words.length <= effectiveTarget && (rc.words.length === 1 || prev.words.length === 1)) {
 
           prev.words.push(...rc.words);
 
@@ -802,7 +807,7 @@ export const Captions: React.FC<CaptionsCompositionProps> = ({
 
       {activeChunkInfo && (() => {
 
-        const isChunkRtl = activeChunkInfo.script === "arabic";
+        const isChunkRtl = activeChunkInfo.words.some((cw) => ARABIC_REGEX.test(cw.word));
 
         const activeTemplateId = template_id || style.animation_style || DEFAULT_TEMPLATE_ID;
 
