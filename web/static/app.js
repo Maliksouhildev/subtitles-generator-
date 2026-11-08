@@ -552,7 +552,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tag_optional: "Preconfigured on server",
 
-      btn_generate: "GENERATE ANIMATED SUBTITLES",
+      btn_generate: "DZ SUBTITLES",
       btn_new_project: "New Project",
 
       btn_cancel_render: "Cancel",
@@ -826,7 +826,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tag_optional: "Préconfiguré sur serveur",
 
-      btn_generate: "GÉNÉRER LES SOUS-TITRES ANIMÉS",
+      btn_generate: "DZ SUBTITLES",
       btn_new_project: "Nouveau Projet",
 
       btn_cancel_render: "Annuler",
@@ -1100,7 +1100,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tag_optional: "مضبوط مسبقاً على السيرفر",
 
-      btn_generate: "توليد الترجمة المتحركة الآن",
+      btn_generate: "DZ SUBTITLES",
       btn_new_project: "مشروع جديد",
 
       btn_cancel_render: "إلغاء",

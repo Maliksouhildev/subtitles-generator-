@@ -284,3 +284,21 @@ def test_sanitize_transcription_text_and_verb_prefixes():
     norm = normalize_transcription_data(raw_data)
     assert norm["text"] == "سي بون خلاص هكذا"
     assert norm["segments"][0]["words"][2]["word"] == "هكذا"
+
+
+def test_anti_hallucination_and_token_repair():
+    from core.transcriber import sanitize_transcription_text
+
+    text = "هل يؤثر على la visibilité تاع الـ d'alcool ولا كاش خطر"
+    sanitized = sanitize_transcription_text(text)
+    assert "visibilité" not in sanitized
+    assert "d'alcool" not in sanitized
+    assert "de colle" in sanitized or "aucun résidu de colle" in sanitized
+
+    text2 = "هادي la nouvelle techn"
+    sanitized2 = sanitize_transcription_text(text2)
+    assert "technologie" in sanitized2
+
+    text3 = "هذا هو le premi test"
+    sanitized3 = sanitize_transcription_text(text3)
+    assert "premier" in sanitized3

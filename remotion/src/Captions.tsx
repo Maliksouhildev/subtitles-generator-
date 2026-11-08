@@ -301,7 +301,8 @@ export function bindArabicArticlesToLatin(words: WordToken[]): WordToken[] {
 
     const cleanTv = text.replace(/^[^\w]+|[^\w]+$/g, "").toLowerCase();
 
-    if (["la", "le", "les", "un", "une", "des", "du"].includes(cleanTv) && nextWText && LATIN_REGEX.test(nextWText)) {
+    const wDur = (w.end ?? (w.start + 0.3)) - w.start;
+    if (["la", "le", "les", "un", "une", "des", "du"].includes(cleanTv) && nextWText && LATIN_REGEX.test(nextWText) && wDur < 0.12) {
 
       bound.push({
 

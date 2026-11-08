@@ -122,7 +122,8 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
 
         # Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle"
         clean_tv = re.sub(r'^[^\w]+|[^\w]+$', '', text_val).lower()
-        if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
+        w_dur = float(w.get("end", 0.0)) - float(w.get("start", 0.0))
+        if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))) :
             next_w = words[i + 1]
             bound.append({
                 "word": f"{text_val} {str(next_w.get('word', '')).strip()}",

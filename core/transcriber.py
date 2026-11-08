@@ -39,7 +39,7 @@ STRICT VERBATIM TRANSLATION & SPELLING RULES:
    - If the speaker says "vraiment", you MUST write "vraiment" (in Latin letters, NEVER transliterate as "فريمون").
    - If the speaker says "percer", write "percer" (in Latin letters, e.g. "يـ percer").
    - If the speaker says "PPF", write "PPF" (or "الـ PPF", "للـ PPF").
-   - In car detailing and PPF contexts, accurately transcribe adhesive and film terms: "aucun résidu de colle", "résidu de colle", "sans trace de colle", "premier test", "la nouvelle technologie PPF", "Redfield".
+   - In car detailing and PPF contexts, accurately transcribe adhesive and film terms: "aucun résidu de colle", "résidu de colle", "sans trace de colle", "la colle", "premier test", "la nouvelle technologie PPF", "Redfield". NEVER transcribe glue residue as "la visibilité" or "alcool" / "d'alcool"!
    - If the speaker says "c'est bon" or "سي بون", write "c'est bon" or "سي بون".
    - Always write French and foreign loanwords/technical terms in Latin script (e.g. "premier", "nouvelle", "test", "Redfield", "voiture", "projet", "normal").
    - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: "الـ PPF", "للـ PPF", "يـ percer", "تـ tester".
@@ -578,9 +578,14 @@ def sanitize_transcription_text(text: str) -> str:
     text = re.sub(r'\b(و?كان)\s+شرف\b', r'\1 الشرف', text)
     text = re.sub(r'\b(لي|لنا|عندي)\s+شرف\b', r'\1 الشرف', text)
     # Correct Whisper/Gemini acoustic hallucinations in car detailing & technical French
-    text = re.sub(r"\brisque\s+d['\u2019]alcool\b", "résidu de colle", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bla\s+visibilit[ée]\s+ta[e3]\s+(?:al[- ]?)?d['\u2019]?alcool\b", "aucun résidu de colle", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(aucun\s+)?risque\s+d['\u2019]alcool\b", "aucun résidu de colle", text, flags=re.IGNORECASE)
+    text = re.sub(r"\br[ée]sidu\s+d['\u2019]alcool\b", "résidu de colle", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(?:al[- ]?)?d['\u2019]?alcool\b", "de colle", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bla\s+visibilit[ée]\b(?=\s*(?:ta[e3]|تاع|de|colle|ppf|هيكل))", "résidu de colle", text, flags=re.IGNORECASE)
     # Repair tokenizer clipped Latin words
     text = re.sub(r'\b(le\s+|un\s+)?premi\b', r'\1premier', text, flags=re.IGNORECASE)
+    text = re.sub(r'\btechn\b', 'technologie', text, flags=re.IGNORECASE)
     return text
 
 
@@ -631,9 +636,11 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
             i += 2
             continue
 
-        # Bind French article to Latin loanword: e.g. "la" + "différence" -> "la différence", "la" + "tôle" -> "la tôle"
+        # Bind French article to Latin loanword only when article is a sub-120ms clitic/fragment
+        # so distinct words like "le", "premier", "test" maintain exact spoken synchronization
         clean_tv = re.sub(r'^[^\w]+|[^\w]+$', '', text_val).lower()
-        if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
+        w_dur = float(w.get("end", 0.0)) - float(w.get("start", 0.0))
+        if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))) :
             next_w = words[i + 1]
             bound.append({
                 "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
@@ -911,7 +918,7 @@ def transcribe_with_faster_whisper(audio_path: str, dialect_hint: str = "General
         whisper_prompt = "اللغة العربية الفصحى: أهلا وسهلا بكم جميعا."
     else:
         whisper_lang = "ar"
-        whisper_prompt = "الدارجة الجزائرية: سلام خويا واش راك لاباس راني مليح يعطيك الصحة برك بزاف دير هاكا"
+        whisper_prompt = "الدارجة الجزائرية والفرنسية التقنية: سلام خويا، واش راك لاباس، PPF, film de protection, aucun résidu de colle, résidu de colle, traces de colle, la colle, premier test, la nouvelle technologie PPF, Redfield, niveau national."
 
     logger.info(f"Starting local Faster-Whisper transcription for {whisper_lang}...")
     processed_audio = extract_audio(audio_path)

@@ -212,7 +212,8 @@ def bind_arabic_articles_to_latin(words: List[Dict[str, Any]]) -> List[Dict[str,
             continue
 
         clean_tv = re.sub(r'^[^\w]+|[^\w]+$', '', text_val).lower()
-        if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))):
+        w_dur = float(w.get("end", 0.0)) - float(w.get("start", 0.0))
+        if clean_tv in ("la", "le", "les", "un", "une", "des", "du") and next_w_val and bool(LATIN_REGEX.search(str(next_w_val))) :
             next_w = words[i + 1]
             bound.append({
                 "word": f"{text_val} {str(next_w.get('word', '')).strip()}",
@@ -555,12 +556,19 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
             prev_text = str(current_chunk[-1].get("word", "")).strip() if current_chunk else ""
             prev_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', prev_text.lower())
+            prev_base = re.sub(r'^[وفبك]', '', prev_clean)
             has_major_stop = any(prev_text.endswith(p) for p in (".", "!", "?", "،", ","))
 
             # Grammatical clause grouping:
             # 1. Inseparable Noun-Adjective / Genitive constructs (e.g. 'المستوى الوطني', 'المستوى الأفريقي', 'الهيكل تاعها', 'السيارة الشخصية')
+            noun_patterns = (
+                "المستوى", "مستوى", "الهيكل", "هيكل", "السيارة", "سيارة",
+                "النتيجة", "نتيجة", "التجربة", "تجربة", "القطاع", "قطاع",
+                "المجال", "مجال", "الشخصية", "شخصية", "الوطني", "وطني",
+                "الأفريقي", "أفريقي", "الإفريقي", "إفريقي", "الطلاء", "طلاء"
+            )
             is_noun_adjective = (
-                (prev_clean in ("المستوى", "مستوى", "الهيكل", "السيارة", "النتيجة", "التجربة", "القطاع", "المجال", "الشخصية", "الوطني", "الأفريقي", "الإفريقي")
+                ((prev_clean in noun_patterns or prev_base in noun_patterns)
                  and (w_text.startswith("ال") or w_text.startswith("الإ") or w_text.startswith("الأ") or w_text.startswith("تاع") or w_text.startswith("ديال")))
             )
 
@@ -1097,21 +1105,27 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     if j == i:
                         letters = shape_arabic_word_to_letters(raw_word) if word_is_ar else list(raw_word)
                         N = max(1, len(letters))
-                        stagger_step = max(15, min(45, int(dur_ms * 0.35 / N))) / spd
-                        t_rise = max(20, int(dur_ms * 0.22 / spd))
-                        t_fall = max(20, int(dur_ms * 0.25 / spd))
+                        max_stagger_span = min(int(dur_ms * 0.35), 100)
+                        stagger_step = (max(4, int(max_stagger_span / max(1, N - 1))) if N > 1 else 0) / spd
+                        t_rise = max(15, min(int(dur_ms * 0.18 / spd), 75))
+                        t_fall = max(15, min(int(dur_ms * 0.20 / spd), 85))
 
                         letter_tags = []
                         for k, ch in enumerate(letters):
+                            if ch == " ":
+                                letter_tags.append(" ")
+                                continue
                             t0 = int(k * stagger_step)
                             t1 = t0 + t_rise
                             t2 = t1 + t_fall
+                            # Keep letters visible at full opacity (\alpha&H00&) so long words like 'technologie'
+                            # and 'premier' are never chopped mid-word or invisible during active speech
                             if style_type == "drop":
-                                anim = f"\\alpha&HFF&\\t({t0},{t1},0.45,\\alpha&H00&\\fscx125\\fscy125)\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
+                                anim = f"\\alpha&H00&\\t({t0},{t1},0.45,\\fscx125\\fscy125)\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
                             elif style_type == "rise":
-                                anim = f"\\alpha&HFF&\\t({t0},{t1},0.5,\\alpha&H00&\\fscx120\\fscy120)\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
+                                anim = f"\\alpha&H00&\\t({t0},{t1},0.5,\\fscx120\\fscy120)\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
                             else:
-                                anim = f"\\alpha&HFF&\\t({t0},{t1},0.35,\\alpha&H00&\\fscx135\\fscy135)\\t({t1},{t2},1.5,\\fscx100\\fscy100)"
+                                anim = f"\\alpha&H00&\\t({t0},{t1},0.35,\\fscx135\\fscy135)\\t({t1},{t2},1.5,\\fscx100\\fscy100)"
                             letter_tags.append(f"{{{anim}}}{ch}")
 
                         word_str = "{" + hl_tag + "\\blur0.8}" + "".join(letter_tags) + "{" + pri_tag + "\\alpha&H00&" + reset_tag + "}"

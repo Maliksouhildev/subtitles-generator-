@@ -386,3 +386,33 @@ def test_grammatical_cohesion_anti_dangling_particles():
     chunks = builder.chunk_words(words)
     # 'la' and 'tôle' bind together into 'la tôle' and must not be separated
     assert any("la tôle" in [w["word"] for w in ch] for ch in chunks)
+
+
+def test_noun_adjective_cohesion_and_letter_pop_visibility():
+    builder = ASSSubtitleBuilder(words_per_line=3, animation_style="letter_drop")
+    words = [
+        {"word": "على", "start": 4.96, "end": 5.48},
+        {"word": "المستوى", "start": 5.48, "end": 5.92},
+        {"word": "الأفريقي", "start": 5.92, "end": 6.56},
+        {"word": "والمستوى", "start": 6.84, "end": 7.36},
+        {"word": "الوطني", "start": 7.36, "end": 7.82},
+        {"word": "اللي كانت", "start": 7.82, "end": 8.35},
+        {"word": "النتيجة", "start": 8.35, "end": 8.78},
+        {"word": "تاعها", "start": 8.78, "end": 9.14}
+    ]
+    chunks = builder.chunk_words(words)
+    # Ensure 'والمستوى' and 'الوطني' are never split across chunks
+    has_wal_mustawa_watani = any(
+        "والمستوى" in [w["word"] for w in ch] and "الوطني" in [w["word"] for w in ch]
+        for ch in chunks
+    )
+    assert has_wal_mustawa_watani, "Noun-adjective pair 'والمستوى الوطني' was split!"
+
+    # Letter pop events must never use \\alpha&HFF& (100% invisible letters)
+    chunk_french = [
+        {"word": "la nouvelle", "start": 3.91, "end": 4.43},
+        {"word": "technologie", "start": 4.43, "end": 4.81},
+        {"word": "PPF", "start": 4.81, "end": 4.96}
+    ]
+    events = builder.build_letter_pop_events([chunk_french], style_type="drop")
+    assert all("\\alpha&HFF&" not in e for e in events)
