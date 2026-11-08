@@ -553,6 +553,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tag_optional: "Preconfigured on server",
 
       btn_generate: "GENERATE ANIMATED SUBTITLES",
+      btn_new_project: "New Project",
 
       btn_cancel_render: "Cancel",
 
@@ -826,6 +827,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tag_optional: "Préconfiguré sur serveur",
 
       btn_generate: "GÉNÉRER LES SOUS-TITRES ANIMÉS",
+      btn_new_project: "Nouveau Projet",
 
       btn_cancel_render: "Annuler",
 
@@ -1099,6 +1101,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tag_optional: "مضبوط مسبقاً على السيرفر",
 
       btn_generate: "توليد الترجمة المتحركة الآن",
+      btn_new_project: "مشروع جديد",
 
       btn_cancel_render: "إلغاء",
 
@@ -4715,11 +4718,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       input.addEventListener("input", (e) => {
-
         const segIdx = parseInt(e.target.dataset.index);
-
         transcription.segments[segIdx].text = e.target.value;
-
+        try {
+          const stored = localStorage.getItem("dz_subtitles_last_render");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            parsed.transcription = transcription;
+            localStorage.setItem("dz_subtitles_last_render", JSON.stringify(parsed));
+          }
+        } catch (err) {}
       });
 
 
@@ -5222,7 +5230,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     handleAutoDownloads(data, currentTaskId);
 
-
+    // Save completed session state to survive page reloads
+    const renderSessionState = {
+      task_id: currentTaskId,
+      video_url: data.video_url,
+      ass_url: data.ass_url,
+      srt_url: data.srt_url,
+      vtt_url: data.vtt_url,
+      json_url: data.json_url || `/api/download/${currentTaskId}/transcript.json`,
+      remotion_url: data.remotion_url || `/api/download/${currentTaskId}/remotion_props.json`,
+      ae_url: data.ae_url || `/api/download/${currentTaskId}/subtitles_after_effects.jsx`,
+      txt_url: data.txt_url || `/api/download/${currentTaskId}/subtitles_timestamps.txt`,
+      transcription: currentTranscription,
+      timestamp: Date.now()
+    };
+    try {
+      localStorage.setItem("dz_subtitles_last_render", JSON.stringify(renderSessionState));
+    } catch (e) {
+      console.warn("Could not save render state to localStorage:", e);
+    }
 
     return data;
 
@@ -5230,7 +5256,97 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-    // INITIAL SETUP CALLS
+    
+  // RENDER PERSISTENCE & RESTORATION ENGINE
+  function restoreRenderSession(data) {
+    if (!data || !data.task_id || !data.video_url) return;
+    currentTaskId = data.task_id;
+    if (data.transcription) {
+      currentTranscription = data.transcription;
+    }
+
+    if (resultVideo) {
+      resultVideo.src = data.video_url;
+      resultVideo.load();
+    }
+    if (downloadVideoBtn) downloadVideoBtn.href = data.video_url;
+    if (downloadAssBtn) downloadAssBtn.href = data.ass_url || `/api/download/${data.task_id}/subtitles.ass`;
+    if (downloadSrtBtn) downloadSrtBtn.href = data.srt_url || `/api/download/${data.task_id}/subtitles.srt`;
+    if (downloadJsonBtn) downloadJsonBtn.href = data.json_url || `/api/download/${data.task_id}/transcript.json`;
+    if (downloadRemotionBtn) downloadRemotionBtn.href = data.remotion_url || `/api/download/${data.task_id}/remotion_props.json`;
+    if (downloadAeBtn) {
+      downloadAeBtn.href = data.ae_url || `/api/download/${data.task_id}/subtitles_after_effects.jsx`;
+      downloadAeBtn.setAttribute("download", `subtitles_${data.task_id}.jsx`);
+    }
+    if (downloadTxtBtn) {
+      downloadTxtBtn.href = data.txt_url || `/api/download/${data.task_id}/subtitles_timestamps.txt`;
+      downloadTxtBtn.setAttribute("download", `subtitles_${data.task_id}.txt`);
+    }
+
+    if (videoContainer) videoContainer.classList.remove("hidden");
+    if (emptyState) emptyState.classList.add("hidden");
+
+    if (currentTranscription) {
+      renderEditor(currentTranscription);
+    }
+    console.log("[Persistence] Render session restored for task:", currentTaskId);
+  }
+
+  async function checkAndRestoreLastSession() {
+    // 1. Check client-side localStorage
+    try {
+      const stored = localStorage.getItem("dz_subtitles_last_render");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.task_id && parsed.video_url) {
+          restoreRenderSession(parsed);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Error reading localStorage:", e);
+    }
+
+    // 2. Query server for latest completed render
+    try {
+      const res = await fetch("/api/latest_render");
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.status === "success" && data.video_url) {
+          restoreRenderSession(data);
+          try {
+            localStorage.setItem("dz_subtitles_last_render", JSON.stringify(data));
+          } catch (e) {}
+        }
+      }
+    } catch (e) {
+      console.debug("No server latest render available:", e);
+    }
+  }
+
+  const clearSessionBtn = document.getElementById("clearSessionBtn");
+  if (clearSessionBtn) {
+    clearSessionBtn.addEventListener("click", () => {
+      try {
+        localStorage.removeItem("dz_subtitles_last_render");
+      } catch (e) {}
+      currentTaskId = null;
+      currentTranscription = null;
+      if (resultVideo) {
+        resultVideo.pause();
+        resultVideo.removeAttribute("src");
+        resultVideo.load();
+      }
+      if (videoContainer) videoContainer.classList.add("hidden");
+      if (emptyState) emptyState.classList.remove("hidden");
+      if (editorContainer) editorContainer.classList.add("hidden");
+      if (segmentsList) segmentsList.innerHTML = "";
+      clearFile();
+    });
+  }
+
+
+  // INITIAL SETUP CALLS
   enhanceSelectsToComicDropdowns();
   const initDh = (dialectHint && dialectHint.value) ? dialectHint.value : "General Algerian";
   const initIsArabic = (initDh === "General Algerian" || initDh === "Modern Standard Arabic" || (!initDh.includes("Latin") && !initDh.includes("French") && !initDh.includes("English")));
@@ -5238,6 +5354,7 @@ document.addEventListener("DOMContentLoaded", () => {
   applyLanguage(currentLang);
   applyTheme(currentTheme);
   renderCustomPresets();
+  checkAndRestoreLastSession();
   if (typeof syncPhoneBackgroundUI === "function") {
     syncPhoneBackgroundUI(
       backgroundMode ? backgroundMode.value : "transparent",

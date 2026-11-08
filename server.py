@@ -606,6 +606,48 @@ async def set_autostart_endpoint(req: AutostartRequest):
     return set_autostart(req.enabled)
 
 
+@app.get("/api/latest_render")
+async def get_latest_render():
+    """Returns the most recent completed render session and transcription from output directory."""
+    try:
+        task_dirs = [d for d in OUTPUT_DIR.iterdir() if d.is_dir() and d.name != "__pycache__"]
+        if not task_dirs:
+            return {"status": "none"}
+
+        # Sort by modification time, newest first
+        task_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+
+        for task_folder in task_dirs:
+            task_id = task_folder.name
+            video_files = list(task_folder.glob("result.*"))
+            transcript_file = task_folder / "transcript.json"
+            if video_files and transcript_file.exists():
+                video_name = video_files[0].name
+                try:
+                    with open(transcript_file, "r", encoding="utf-8") as f:
+                        transcription = json.load(f)
+                except Exception:
+                    transcription = None
+
+                return {
+                    "status": "success",
+                    "task_id": task_id,
+                    "video_url": f"/api/download/{task_id}/{video_name}",
+                    "srt_url": f"/api/download/{task_id}/subtitles.srt",
+                    "ass_url": f"/api/download/{task_id}/subtitles.ass",
+                    "vtt_url": f"/api/download/{task_id}/subtitles.vtt",
+                    "json_url": f"/api/download/{task_id}/transcript.json",
+                    "remotion_url": f"/api/download/{task_id}/remotion_props.json",
+                    "ae_url": f"/api/download/{task_id}/subtitles_after_effects.jsx",
+                    "txt_url": f"/api/download/{task_id}/subtitles_timestamps.txt",
+                    "transcription": transcription
+                }
+        return {"status": "none"}
+    except Exception as e:
+        logger.warning(f"Failed to fetch latest render: {e}")
+        return {"status": "none"}
+
+
 # Serve Static UI files
 if STATIC_DIR.exists():
     app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

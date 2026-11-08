@@ -2978,23 +2978,15 @@ html, body, :root, *,
 /* SUB-COLUMN 2: Controls & Form Grid - Independently scrollable while Phone stays pinned */
 
 .subcol-controls {
-
   display: flex;
-
   flex-direction: column;
-
   gap: 5px;
-
   height: 100%;
-
   min-height: 0;
-
   overflow-y: auto;
-
   overflow-x: hidden;
-
-  padding-right: 5px;
-
+  padding: 0 4px 8px 4px;
+  box-sizing: border-box;
 }
 
 
@@ -3835,222 +3827,181 @@ html, body, :root, *,
 
 
 
-/* Master CTA Button (Tactile, Punchy, Animated) - Sticky to Bottom & Always Visible */
+/* Master CTA Button (Retro Studio Badge Aesthetic) - Sticky to Bottom & Seamless Zone Fit */
 .cta-wrapper {
   position: sticky;
   bottom: 0px;
   z-index: 60;
   margin-top: 10px;
-  padding: 8px 0 4px;
-  background: var(--card-bg, #1e1e2d);
-  border-top: 2px solid var(--border-color, #000000);
-  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.45);
+  padding: 8px 2px 10px 2px;
+  background: linear-gradient(180deg, rgba(28, 30, 38, 0) 0%, rgba(28, 30, 38, 0.96) 24%, var(--bg-card, #1C1E26) 100%);
+  border-top: none;
+  box-shadow: none;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Master CTA Button - Ready & Waiting Idle Animation */
 .comic-btn-master.is-ready-to-render {
-  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #f59e0b 100%) !important;
-  background-size: 200% 200% !important;
-  border-color: #000000 !important;
-  box-shadow: 0 0 0 2px #000000, 0 0 16px rgba(245, 158, 11, 0.8), 4px 4px 0 #000000 !important;
-  animation: masterCtaGradient 3s ease infinite, masterCtaPulse 1.8s ease-in-out infinite alternate !important;
+  background: linear-gradient(180deg, #F06132 0%, #DC4519 100%) !important;
+  box-shadow: 0 5px 0 #000000, 0 0 16px rgba(243, 168, 51, 0.65) !important;
+  animation: retroButtonJiggle 2.5s ease-in-out infinite !important;
 }
 
-@keyframes masterCtaGradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes masterCtaPulse {
-  0% {
-    transform: translateY(0);
-    box-shadow: 0 0 0 2px #000000, 0 0 12px rgba(245, 158, 11, 0.5), 3.5px 3.5px 0 #000000;
+@keyframes retroButtonJiggle {
+  0%, 100% {
+    transform: rotate(-0.6deg) translateY(0);
+    box-shadow: 0 4.5px 0 #000000, 0 0 8px rgba(243, 168, 51, 0.3);
   }
-  100% {
-    transform: translateY(-2px);
-    box-shadow: 0 0 0 2.5px #000000, 0 0 24px rgba(255, 230, 0, 0.95), 5.5px 5.5px 0 #000000;
+  50% {
+    transform: rotate(0.4deg) translateY(-2px);
+    box-shadow: 0 6.5px 0 #000000, 0 0 20px rgba(255, 174, 25, 0.75);
   }
 }
 
-.comic-btn-master.is-ready-to-render .btn-icon-bubble {
-  background: #ffe600 !important;
-  animation: masterIconJiggle 1.8s ease-in-out infinite !important;
+.comic-btn-master.is-ready-to-render .retro-star-badge {
+  animation: retroStarTwinkle 1.8s ease-in-out infinite !important;
 }
 
-@keyframes masterIconJiggle {
-  0%, 100% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(-8deg) scale(1.15); }
-  75% { transform: rotate(8deg) scale(1.15); }
+@keyframes retroStarTwinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.22) rotate(18deg); }
 }
 
-.comic-btn-master.is-ready-to-render .btn-arrow-icon {
-  animation: masterArrowNudge 1.2s ease-in-out infinite alternate !important;
+.comic-btn-master.is-ready-to-render .retro-badge-studio {
+  animation: retroStudioNudge 1.4s ease-in-out infinite alternate !important;
 }
 
-@keyframes masterArrowNudge {
+@keyframes retroStudioNudge {
   0% { transform: translateX(0); }
-  100% { transform: translateX(5px); }
+  100% { transform: translateX(3px); }
 }
-
-.comic-btn-master.is-ready-to-render::after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -70%;
-  width: 50%;
-  height: 200%;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
-  transform: rotate(30deg);
-  animation: masterShineSweep 2.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
-}
-
-@keyframes masterShineSweep {
-  0% { left: -70%; }
-  35% { left: 150%; }
-  100% { left: 150%; }
-}
-
-
 
 .comic-btn-master {
-
   width: 100%;
-
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
-
-  padding: 6.5px 12px;
-
-  background: var(--terracotta);
-
-  color: #fff;
-
-  border: 2.5px solid var(--pitch-black);
-
-  border-radius: var(--radius-sm);
-
+  padding: 7px 12px;
+  background: linear-gradient(180deg, #E2582E 0%, #D4471D 100%);
+  color: #FFFFFF;
+  border: 2.8px solid #000000;
+  border-radius: 9px;
   cursor: pointer;
-
-  box-shadow: 3.5px 3.5px 0 var(--pitch-black);
-
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, background 0.15s ease;
-
+  box-shadow: 0 4.5px 0 #000000;
+  transform: rotate(-0.6deg);
+  transform-origin: center center;
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s ease, background 0.16s ease;
   user-select: none;
-
   position: relative;
-
-  overflow: hidden;
-
+  overflow: visible;
+  box-sizing: border-box;
+  text-decoration: none;
 }
-
-
 
 .comic-btn-master:hover {
-
-  background: var(--terracotta-hover);
-
-  transform: translate(-2px, -2px);
-
-  box-shadow: 5.5px 5.5px 0 var(--pitch-black);
-
+  background: linear-gradient(180deg, #EB6338 0%, #DC4C21 100%);
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow: 0 6.5px 0 #000000;
 }
-
-
 
 .comic-btn-master:active {
-
-  transform: translate(2px, 2px);
-
-  box-shadow: 0px 0px 0 var(--pitch-black);
-
+  transform: rotate(0deg) translateY(2.5px);
+  box-shadow: 0 1.5px 0 #000000;
 }
-
-
 
 .comic-btn-master:disabled {
-
-  opacity: 0.6;
-
+  opacity: 0.95;
   cursor: not-allowed;
-
-  transform: none;
-
-  box-shadow: 1.5px 1.5px 0 var(--pitch-black);
-
+  transform: rotate(-0.6deg);
+  box-shadow: 0 4.5px 0 #000000;
 }
 
-
-
-.btn-icon-bubble {
-
-  width: 28px;
-
-  height: 28px;
-
-  background: var(--amber);
-
-  color: var(--pitch-black);
-
-  border: 1.5px solid var(--pitch-black);
-
-  border-radius: 6px;
-
+/* Retro Star Badge (Mid-century 4-point sparkle) */
+.retro-star-badge {
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-  box-shadow: 1.5px 1.5px 0 var(--pitch-black);
-
+  flex-shrink: 0;
+  margin-right: 6px;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45));
+  transition: transform 0.25s ease;
 }
 
-
-
-.comic-btn-master:hover .btn-icon-bubble {
-
-  animation: starRotate 2s linear infinite;
-
+.comic-btn-master:hover .retro-star-badge {
+  transform: scale(1.18) rotate(12deg);
 }
 
+.retro-sparkle-star {
+  display: block;
+}
 
-
+/* Bold Condensed Retro Headline */
 .btn-title-text {
-
-  font-family: var(--font-headline);
-
-  font-size: 19px;
-
-  letter-spacing: 0.6px;
-
+  font-family: var(--font-headline, 'Bebas Neue', 'Anton', sans-serif);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  color: #FFFFFF;
+  text-shadow: 0 1.5px 2px rgba(0, 0, 0, 0.55);
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex: 1;
+  text-align: center;
+  padding: 0 6px;
+  line-height: 1.1;
 }
 
-
-
-.btn-arrow-icon {
-
+/* Right Cluster: [AI] + [STUDIO ->] Pill */
+.retro-btn-cluster {
   display: flex;
-
   align-items: center;
-
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-
+  gap: 5px;
+  flex-shrink: 0;
 }
 
-
-
-.comic-btn-master:hover .btn-arrow-icon {
-
-  transform: translateX(3px);
-
+.retro-badge-ai {
+  background: #000000;
+  color: #FFAE19;
+  font-family: var(--font-headline, 'Bebas Neue', sans-serif);
+  font-size: 13.5px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
+.retro-badge-studio {
+  background: #F3A833;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 16px;
+  font-family: var(--font-headline, 'Bebas Neue', sans-serif);
+  font-size: 13.5px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  padding: 2.5px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 1px 1.5px 0 #000000;
+  line-height: 1;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
 
+.comic-btn-master:hover .retro-badge-studio {
+  background: #FFB83D;
+  transform: translateX(2px);
+}
 
 /* Usage Guide Modal */
 
