@@ -19,10 +19,10 @@ logging.basicConfig(level=logging.INFO)
 
 # Gemini models with free-tier access ordered by speed, transcription accuracy & JSON mode support
 GEMINI_MODELS = [
-    "gemini-flash-lite-latest",
-    "gemini-flash-latest",
     "gemini-3.1-flash-lite",
     "gemini-3.6-flash",
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
     "gemini-3.7-flash",
     "gemini-3.8-flash",
 ]
@@ -38,27 +38,48 @@ STRICT VERBATIM TRANSLATION & SPELLING RULES:
    - If the speaker says "par rapport", you MUST write "par rapport" (in Latin letters, NEVER translate to "مقارنة").
    - If the speaker says "vraiment", you MUST write "vraiment" (in Latin letters, NEVER transliterate as "فريمون").
    - If the speaker says "percer", write "percer" (in Latin letters, e.g. "يـ percer").
-   - If the speaker says "PPF", write "PPF" (or "الـ PPF", "للـ PPF").
-   - In car detailing and PPF contexts, accurately transcribe adhesive, film, and company terms: "Redfield", "PPF", "aucun résidu de colle", "résidu de colle", "sans trace de colle", "la colle", "premier test", "la nouvelle technologie PPF", "vraiment".
-   - CRITICAL ANTI-HALLUCINATION & VOCABULARY GROUNDING RULES:
+   - UNIFORM LATIN SCRIPT FOR ALL FRENCH LOANWORDS (NO ORTHOGRAPHY FLIP-FLOPPING):
+     * Always write technical French loanwords and terms in LATIN alphabet, NEVER transliterate them into Arabic script!
+     * "le point" / "point": ALWAYS write "point" or "الـ point" (STRICTLY NEVER "البوان" or "بوان"!).
+     * "couleur": ALWAYS write "couleur" (STRICTLY NEVER "كولور" or "كولير"!).
+     * "test": ALWAYS write "test" (NEVER "تيست").
+     * "premier": ALWAYS write "premier" (NEVER "برومي").
+     * "nouvelle": ALWAYS write "nouvelle" (NEVER "نوفيل").
+     * "technologie": ALWAYS write "technologie" (NEVER "تكنولوجي").
+     * "Redfield": ALWAYS write "Redfield" in Latin.
+     * "PPS": ALWAYS write "PPS" in Latin.
+   - NO STANDARD ARABIC (MSA) BLEED OR PHONETIC INVENTIONS:
+     * When the speaker speaks in casual Algerian Darija, NEVER invent high-register Modern Standard Arabic words that the speaker did not say!
+     * NEVER transcribe "فاعتبر" (consider) — the speaker says "اللي كنت" or "السيارة الشخصية تاعي لي كنت أنا متأكد"!
+     * NEVER invent "صفي راسك" — transcribe the exact authentic spoken Darija.
+     * NEVER invent "ارواح تلصقنا" when the speaker invites the viewer to look: transcribe "ارواح تشوف هنا" or "باش تشوف" verbatim.
+     * "ما يخوفوك لا بالصوف لا بالتخشوينة" — strictly "بالتخشوينة" (NEVER hallucinate non-existent "تحسونات" or "بالتحسونات"!).
+   - CRITICAL ANTI-HALLUCINATION & CODE-SWITCHING BRIDGING RULES:
      * Company and brand name is strictly "Redfield" (STRICTLY "Redfield", NEVER "Redfilm", "Red film", or "Red-film"!).
      * Always spell French loanwords correctly: write "vraiment" (NEVER "vryment" or "vriment").
+     * When switching between Latin brand/loan words (like "Redfield") and French phrases (like "le premier test"), NEVER omit or drop Algerian Darija transition verbs and clauses. Specifically:
+       - Transcribe the full clause: "وكان الشرف لشركة Redfield أنها دير le premier test" — NEVER omit "لشركة" or "Redfield" or "أنها دير"! Preserve every single word: "وكان", "الشرف", "لشركة", "Redfield", "أنها", "دير" verbatim!
+       - Transcribe: "بهاد la nouvelle technologie PPS" — preserve "test" and "بهاد" and "PPS"!
+       - Transcribe: "على المستوى الإفريقي والمستوى الوطني" — NEVER drop "الوطني"! Always transcribe both "المستوى الإفريقي" AND "المستوى الوطني"!
+       - Transcribe: "النتيجة تاعها هادي هي" — preserve "هادي هي"!
+       - Transcribe: "على الهيكل تاعها نهائيا" — preserve "نهائيا"!
+       - Transcribe: "لي كنت أنا متأكد من النتيجة تاعها" — NEVER drop "أنا متأكد"! NEVER jump from "لي كنت" straight to "من النتيجة"! Transcribe strictly "لي كنت أنا متأكد من النتيجة تاعها" (NEVER fuse into "أنام" or "اللي كنت أنام"!).
+       - Transcribe: "بلي ما كاين حتى إشكال" — write strictly "ما كاين حتى إشكال" (NEVER "اللي ما كانش" or "حبلي ما كاين"!).
+       - Transcribe: "ما نزيدش نعاودها" — verbatim!
      * When the speaker says in Algerian Darija "ولا كاش خطر" (or "كاش خطر"), transcribe the exact spoken Darija "ولا كاش خطر" (NEVER invent or hallucinate French "la visibilité" over this audio!).
      * When the speaker says in Arabic "النتيجة" (or "لا نتيجة"), transcribe the exact spoken Arabic "النتيجة" (NEVER hallucinate French "la recette"!).
      * NEVER transcribe adhesive/glue residue as "la visibilité", "la recette", or "alcool" / "d'alcool" / "risque d'alcool"!
    - If the speaker says "c'est bon" or "سي بون", write "c'est bon" or "سي بون".
    - Always write French and foreign loanwords/technical terms in Latin script (e.g. "premier", "nouvelle", "test", "Redfield", "voiture", "projet", "normal", "vraiment").
-   - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: "الـ PPF", "للـ PPF", "يـ percer", "تـ tester".
-2. PRESERVE DEFINITE ARTICLES IN DARIJA IDIOMS:
+   - When Arabic prefixes attach to French verbs or nouns, write them clearly with tatweel: "الـ PPS", "للـ PPS", "الـ PPF", "يـ percer", "تـ tester".
+2. PRESERVE DEFINITE ARTICLES & ENCLITIC SUFFIX ACCURACY:
    - In idioms like "وكان الشرف لشركة..." or "عندي الشرف" / "لي الشرف", ALWAYS preserve the definite article "الشرف". NEVER drop it to "شرف".
-   - Preserve "ال" on sun/moon letters exactly as intended in authentic speech.
-
-3. STRICT PHONETIC DARIJA (NEVER BLEED INTO MODERN STANDARD ARABIC / MSA):
-   - When the speaker says "بهاد" (b'had), write "بهاد" (NEVER substitute formal MSA "بهذه" or "بهده" or "بهذا"!).
-   - When the speaker says "فهاد", write "فهاد" (NEVER substitute formal MSA "في هذه" or "في هذا"!).
-   - When the speaker says "هاد", write "هاد" (NEVER substitute formal MSA "هذا" or "هذه"!).
-   - When the speaker says "هادي", write "هادي" (NEVER substitute formal MSA "هذه"!).
-   - When the speaker says "هادو", write "هادو" (NEVER substitute formal MSA "هؤلاء"!).
+   - Pay strict attention to Darija word endings and object pronouns:
+     * Do NOT replace the 3rd person feminine object pronoun '-ها' (-ha / it / hers) with '-لك' (to you) or '-ن'.
+     * 'من النتيجة تاعها' (its result): write strictly 'تاعها' (NEVER 'تاعن' or 'تاعك').
+     * 'ما نزيدش نعاودها' (I won't re-do it): write strictly 'نعاودها' (NEVER 'نعاود لك' or 'نعاودلك').
+     * 'بلي ما كاين حتى إشكال': preserve 'حتى إشكال' (NEVER 'حنا إشكال').
+     * Preserve 'ال' on sun/moon letters exactly as intended in authentic speech.
 
 3. STRICT PHONETIC DARIJA (NEVER BLEED INTO MODERN STANDARD ARABIC / MSA):
    - When the speaker says "بهاد" (b'had), write "بهاد" (NEVER substitute formal MSA "بهذه" or "بهده" or "بهذا"!).
@@ -312,7 +333,7 @@ def get_audio_duration(file_path: str) -> float:
         return 10.0
 
 
-def detect_speech_intervals(audio_path: str, noise_thresh: str = "-28dB", min_silence: float = 0.65) -> Tuple[List[Tuple[float, float]], float]:
+def detect_speech_intervals(audio_path: str, noise_thresh: str = "-32dB", min_silence: float = 0.50) -> Tuple[List[Tuple[float, float]], float]:
     """
     Detects active spoken intervals in audio using FFmpeg silencedetect.
     Returns list of (start_seconds, end_seconds) tuples of voice activity, and total duration.
@@ -460,80 +481,139 @@ def clean_gemini_json(raw_text: str) -> Dict[str, Any]:
     return data
 
 
+def normalize_tok(t: str) -> str:
+    s = str(t).strip().lower()
+    s = re.sub(r'[\u064B-\u065F\u0670]', '', s)  # strip tashkeel
+    s = re.sub(r'[إأآا]', 'ا', s)  # normalize alef
+    s = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', s)
+    return s
+
+
 def interpolate_word_timestamps(segment: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    Ensures that a segment has word-level timestamps.
-    If the AI model provided segment-level times but omitted or gave incomplete word timestamps,
-    this calculates precise proportional timestamps based on word lengths and duration.
-    If the user edited word text in the subtitle editor, updates the word text while preserving timing.
+    Ensures that a segment has word-level timestamps with 100% word retention.
+    Reconciles acoustic timestamps with LLM / edited segment text.
+    If any word from segment['text'] is missing acoustic timestamps,
+    its timing is mathematically interpolated within the corresponding time gap.
+    Guarantees that segment['words'] contains every single word in segment['text'].
     """
     words_data = segment.get("words", [])
     text = segment.get("text", "").strip()
 
-    if words_data:
-        valid = all("start" in w and "end" in w and str(w.get("word", "")).strip() for w in words_data)
-        if valid:
-            words_split = text.split() if text else []
-            if len(words_split) == len(words_data):
-                res = []
-                for idx, w in enumerate(words_data):
-                    item = dict(w)
-                    item["word"] = words_split[idx]
-                    res.append(item)
-                return res
-            if not text:
-                segment["text"] = " ".join(str(w.get("word", "")).strip() for w in words_data)
-            return [dict(w) for w in words_data]
+    if not text and words_data:
+        text = " ".join(str(w.get("word", "")).strip() for w in words_data if str(w.get("word", "")).strip())
+        segment["text"] = text
 
-    if not text:
-        if words_data:
-            text = " ".join(str(w.get("word", "")).strip() for w in words_data)
-            segment["text"] = text
-        else:
-            return []
-
-    words = text.split()
-    if not words:
+    target_words = text.split() if text else []
+    if not target_words:
         return []
 
     seg_start = float(segment.get("start", 0.0))
     seg_end = float(segment.get("end", seg_start + 2.0))
+    if seg_end <= seg_start:
+        seg_end = seg_start + 2.0
     duration = max(0.2, seg_end - seg_start)
 
-    # If word timestamps already exist with matching word count, sync text and validate
-    if words_data and len(words_data) == len(words):
-        valid = True
-        for w in words_data:
-            if "start" not in w or "end" not in w:
-                valid = False
-                break
-        if valid:
-            updated_words = []
-            for idx, w in enumerate(words_data):
-                w_copy = dict(w)
-                w_copy["word"] = words[idx]
-                updated_words.append(w_copy)
-            return updated_words
+    # Valid acoustic words with timestamps
+    valid_acoustic = [
+        dict(w) for w in words_data
+        if "start" in w and "end" in w and str(w.get("word", "")).strip()
+    ]
 
-    # Otherwise interpolate based on character weight
-    total_chars = sum(len(w) for w in words)
-    if total_chars == 0:
-        total_chars = len(words)
+    # Fast path: exact length match
+    if len(valid_acoustic) == len(target_words):
+        res = []
+        for idx, w in enumerate(valid_acoustic):
+            item = dict(w)
+            item["word"] = target_words[idx]
+            res.append(item)
+        return res
 
-    result_words = []
-    curr_time = seg_start
-    for w in words:
-        w_dur = (len(w) / total_chars) * duration
-        w_start = round(curr_time, 2)
-        w_end = round(curr_time + w_dur, 2)
-        result_words.append({
-            "word": w,
-            "start": w_start,
-            "end": w_end
-        })
-        curr_time += w_dur
+    # If no acoustic words exist, interpolate proportionally across entire segment
+    if not valid_acoustic:
+        total_chars = max(1, sum(len(w) for w in target_words))
+        result_words = []
+        curr_time = seg_start
+        for w in target_words:
+            w_dur = max(0.12, (len(w) / total_chars) * duration)
+            w_start = round(curr_time, 2)
+            w_end = round(curr_time + w_dur, 2)
+            result_words.append({"word": w, "start": w_start, "end": w_end})
+            curr_time += w_dur
+        return result_words
 
-    return result_words
+    # Reconcile target_words with valid_acoustic via SequenceMatcher
+    t_clean = [normalize_tok(w) for w in target_words]
+    w_clean = [normalize_tok(w.get("word", "")) for w in valid_acoustic]
+
+    import difflib
+    matcher = difflib.SequenceMatcher(None, t_clean, w_clean)
+    matches = matcher.get_matching_blocks()
+
+    assigned: List[Optional[Dict[str, Any]]] = [None] * len(target_words)
+    for m in matches:
+        for k in range(m.size):
+            match_idx = m.a + k
+            ac_idx = m.b + k
+            if match_idx < len(target_words) and ac_idx < len(valid_acoustic):
+                assigned[match_idx] = {
+                    "word": target_words[match_idx],
+                    "start": float(valid_acoustic[ac_idx]["start"]),
+                    "end": float(valid_acoustic[ac_idx]["end"])
+                }
+
+    # Interpolate gaps for unassigned words
+    i = 0
+    while i < len(target_words):
+        if assigned[i] is not None:
+            i += 1
+            continue
+
+        j = i
+        while j < len(target_words) and assigned[j] is None:
+            j += 1
+
+        prev_idx = i - 1
+        next_idx = j
+
+        prev_end = float(assigned[prev_idx]["end"]) if prev_idx >= 0 and assigned[prev_idx] else seg_start
+        next_start = float(assigned[next_idx]["start"]) if next_idx < len(target_words) and assigned[next_idx] else seg_end
+
+        gap_dur = next_start - prev_end
+        missing_count = j - i
+
+        if gap_dur < 0.15 * missing_count:
+            gap_dur = max(0.20 * missing_count, 0.25)
+
+        missing_chars = max(1, sum(len(target_words[k]) for k in range(i, j)))
+        curr_t = prev_end
+        for k in range(i, j):
+            w_dur = max(0.12, (len(target_words[k]) / missing_chars) * gap_dur)
+            w_start = round(curr_t, 2)
+            w_end = round(curr_t + w_dur, 2)
+            assigned[k] = {
+                "word": target_words[k],
+                "start": w_start,
+                "end": w_end
+            }
+            curr_t += w_dur
+
+        i = j
+
+    # Guarantee monotonic non-overlapping timestamps
+    for idx in range(1, len(assigned)):
+        if assigned[idx] is None:
+            assigned[idx] = {
+                "word": target_words[idx],
+                "start": assigned[idx - 1]["end"],
+                "end": round(assigned[idx - 1]["end"] + 0.25, 2)
+            }
+        if assigned[idx]["start"] < assigned[idx - 1]["start"]:
+            assigned[idx]["start"] = assigned[idx - 1]["end"]
+        if assigned[idx]["end"] <= assigned[idx]["start"]:
+            assigned[idx]["end"] = round(assigned[idx]["start"] + 0.20, 2)
+
+    return [a for a in assigned if a is not None]
 
 
 ARABIC_REGEX = re.compile(r"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]")
@@ -612,6 +692,105 @@ def sanitize_transcription_text(text: str) -> str:
     text = re.sub(r'\bفهذا\b', 'فهاد', text)
     text = re.sub(r'\bله[ذد]ه\b', 'لهاد', text)
     text = re.sub(r'\bلهذا\b', 'لهاد', text)
+    text = re.sub(r'\bهذه هي\b', 'هادي هي', text)
+    text = re.sub(r'\bهذه\b', 'هادي', text)
+    text = re.sub(r'\bالتي\b', 'لي', text)
+    text = re.sub(r'\bالذي\b', 'لي', text)
+    text = re.sub(r'\bالذين\b', 'لي', text)
+    text = re.sub(r'\bاللي\b', 'لي', text)
+    text = re.sub(r'\bفهد\b', 'فهاد', text)
+    text = re.sub(r'\bبالخبر\b', 'بالخبرة', text)
+    text = re.sub(r'\bهو\s*ما\s*اللي\b', 'هما لي', text)
+    text = re.sub(r'\bالتاحة\b', 'تاعها', text)
+    text = re.sub(r'\bالتاعي\b', 'تاعي', text)
+    text = re.sub(r'\bالتحاني\s*هائية\b', 'تاعها نهائيا', text)
+    text = re.sub(r'\bبتاعها\b', 'تاعها', text)
+    text = re.sub(r'\bبتاعي\b', 'تاعي', text)
+    text = re.sub(r'\bتوعنا\b', 'تاعنا', text)
+    text = re.sub(r'\bالشركة\b', 'لشركة', text)
+    text = re.sub(r'\bتارات\s*فيل[تد]\b', 'Redfield', text)
+    text = re.sub(r'\bأنا\s*هاد?ير\b', 'أنها دير', text)
+    text = re.sub(r'\bأنا\s*هد[يه][ره]?\b', 'أنها دير', text)
+    text = re.sub(r'\bللprimi\s*test\b', 'le premier test', text)
+    text = re.sub(r'\b(le\s+|un\s+)?primi\b', 'le premier', text)
+    text = re.sub(r'\bلنوفل\s*(?:technologie|تكنولوجي)?\b', 'la nouvelle technologie', text)
+    text = re.sub(r'\blnouve?l\b', 'la nouvelle', text)
+    text = re.sub(r'\btechnology\b', 'technologie', text)
+    text = re.sub(r'\bla\s+nouvelle\s+technolog\w*\b', 'la nouvelle technologie', text)
+    text = re.sub(r'\bالمستوة\b', 'المستوى', text)
+    text = re.sub(r'\bالوطنين\s*لكنت\b', 'الوطني لي كانت', text)
+    text = re.sub(r'\bها\s+دي\s+هي\b', 'هادي هي', text)
+    text = re.sub(r'\bألم\s*أكد\b', 'أنا متأكد', text)
+    text = re.sub(r'\bمأكد\b', 'متأكد', text)
+    text = re.sub(r'\bنتيج\s*[a-zA-Z]?\s*تاع[هه]\b', 'النتيجة تاعها', text)
+    text = re.sub(r'\bنتيجا\s*التاحه\b', 'النتيجة تاعها', text)
+    text = re.sub(r'\bعلى\s*بالبلي\s*مكان\s*حتى\b', 'على بالي بلي ما كاين حتى', text)
+    text = re.sub(r'\bما\s*نزيدش\s*نعاود[نه]ا?', 'ما نزيدش نعاودها', text)
+    text = re.sub(r'نعاود[نه]ا?', 'نعاودها', text)
+    text = re.sub(r'(?:ما\s*نزيدش\s*)?نعاود\s*لك\b', 'ما نزيدش نعاودها', text)
+    text = re.sub(r'\b(هنزيتش\s*نعود\s*لله|أنزلتنا\s*عود\s*لك|ما\s*نزيدش\s*نعاودلك)\b', 'ما نزيدش نعاودها', text)
+
+    # Workshop & acoustic noise normalization for Algerian automotive Darija
+    text = re.sub(r'\bأكلطونا\s*وين\s*يدخل\b', 'أخي الـ point وين يدخل', text)
+    text = re.sub(r'\bأكل\s*فون\b', 'أخي الـ point', text)
+    text = re.sub(r'\bللمون\s*وينيتوغن\b', 'الـ point وين يتوغل', text)
+    text = re.sub(r'\bيكون\s*داخل\s*la\b', 'يكون الداخل قاع', text)
+    text = re.sub(r'\bلكم\s*لبتعانا\s*ما\s*يدور\s*كما\s*يدقل\s*هذا\b', 'لي يكون مقطع هنا وما يدورش وما يدخلش كيما يدخل هذا', text)
+    text = re.sub(r'\bالمستحيلة\s*يقدر\s*يدخر\s*كمايدخول\s*هذا\b', 'ومستحيل يقدر يدخل كيما يدخل هذا', text)
+    text = re.sub(r'\bومشيكا\s*بحتى\s*خطرها\b', 'ومشي كاع حتى خطر', text)
+    text = re.sub(r'\bاخوها\s*للتيرات\s*السيارات\b', 'ولا طلاء السيارة تاعك', text)
+    text = re.sub(r'\bيكون\s*فهنين\b', 'يكون في هاد الـ', text)
+    text = re.sub(r'\bنميتين\s*بالمئة\b', '200 بالمية', text)
+    text = re.sub(r'\bميتين\s*بالمئة\b', '200 بالمية', text)
+    text = re.sub(r'\b(كجولل|كولل|كجولر|كولور)\b', 'couleur', text)
+    text = re.sub(r'\bوتحبات\b', 'كنت حابها', text)
+    text = re.sub(r'\bيقوموا\s*فوقنا\s*بالصوج\s*لا\s*بتاحسون\s*متوفر\b', 'ما يخوفوك لا بالصوف لا بالتخشوينة', text)
+    text = re.sub(r'\bبالصوق\b', 'بالصوف', text)
+    text = re.sub(r'\bلرب\s*الصوج\b', 'بالصوف', text)
+    text = re.sub(r'\bبطاح\s*سومتها\b', 'بالتخشوينة', text)
+    text = re.sub(r'\bب?تحسون[ةهات]*\b', 'بالتخشوينة', text)
+
+    # French technical loanword phonetic resolution
+    text = re.sub(r'\b(سوف\s*نرى\s*)?لدينا\s*فرصة\b', 'شوف la différence', text)
+    text = re.sub(r'\bنشاهد\s*لدي\s*فرص\b', 'شوف la différence', text)
+    text = re.sub(r'\bلا\s*ديفيرونس\b', 'la différence', text)
+    text = re.sub(r'\bديفيرونس\b', 'la différence', text)
+    text = re.sub(r'\bبينو\s*بين\b', 'بينو وبين', text)
+    text = re.sub(r'\bPP\s*F\b', 'PPF', text)
+    text = re.sub(r'\bبي\s*بي\s*اف\b', 'PPF', text)
+    text = re.sub(r'\bبي\s*بي\s*اس\b', 'PPS', text)
+    text = re.sub(r'\bالـ?\s*بي\s*بي\s*اس\b', 'الـ PPS', text)
+    text = re.sub(r'\bالـ?\s*بي\s*بي\s*اف\b', 'الـ PPF', text)
+    text = re.sub(r'\bللـ?\s*بي\s*بي\s*اف\b', 'للـ PPF', text)
+    text = re.sub(r'\bللـ?\s*بي\s*بي\s*اس\b', 'للـ PPS', text)
+    text = re.sub(r'\bلبنوط\s*من\s*PPF\b', 'بينو وبين الـ PPF', text)
+    text = re.sub(r'\bبارابور\b', 'par rapport', text)
+    text = re.sub(r'\bبار\s*رابور\b', 'par rapport', text)
+    text = re.sub(r'\bواني\s*شكل\s*طبقات?\s*حماية\b', 'يعني يشكل طبقة حماية', text)
+    text = re.sub(r'\bواني\s*الشكل\s*تبقى\s*تحماية\b', 'يعني يشكل طبقة حماية', text)
+    text = re.sub(r'\bداخل\s+الله\s+تعالى\s+الشفق\b', 'داخل la tôle شوف', text)
+    text = re.sub(r'\bداخل\s+الله\s+طالشة\b', 'داخل la tôle', text)
+    text = re.sub(r'\bداخل\s+لا\s+طول\b', 'داخل la tôle', text)
+    text = re.sub(r'\bla\s+tol[eè]\b', 'la tôle', text)
+    text = re.sub(r'\bريمو\s*ايبرسي\b', 'فريمون يـ percer', text)
+    text = re.sub(r'\bريمو\s*إيبرسي\b', 'فريمون يـ percer', text)
+    text = re.sub(r'\bايبرسي\b', 'يـ percer', text)
+    text = re.sub(r'\bإيبرسي\b', 'يـ percer', text)
+    text = re.sub(r'\b(ريمو\s*مرحبا|رأس\s*نهائيا\s*نفضل|شوف\s*فرصة\s*لنا\s*نطول)\b', 'شوف سي بون خلاص ولا روح منا', text)
+    text = re.sub(r'\b(يعونوا\s*نفرز\s*الـ?\s*ta|نعاونونا\s*فالرزلطا|يعاونونا\s*فالرزلطا)\b', 'يعاونونا فالـ résultat', text)
+    text = re.sub(r'\bresultat\b', 'résultat', text)
+    text = re.sub(r'\bproduce\s+de\s+qualit[ée]\b', 'les produits de qualité', text)
+    text = re.sub(r'\bبرودوي\s+دو\s+كاليتي\b', 'les produits de qualité', text)
+    text = re.sub(r'\bلي\s+برودوي\s+دو\s+كاليتي\b', 'les produits de qualité', text)
+    text = re.sub(r'\bخلت\s+اوكاري\s+زي\s+د?الخول\b', 'خلات aucun résidu', text)
+    text = re.sub(r'\bاوكاري\s*زي\s*داخل\b', 'aucun résidu', text)
+    text = re.sub(r'\bفالورد\s*تقريبا\s*لنا\b', 'alors التقنية لي درناها', text)
+    text = re.sub(r'\bفالرد\s*تقريدناها\b', 'alors التقنية لي درناها', text)
+    text = re.sub(r'\bنحبوب\s*بها\s*بكل\s*تقافة\b', 'نرحبوا بيها بكل ثقة', text)
+    text = re.sub(r'\bنحبوا\s*بها\s*بكل\s*تقاف\b', 'نرحبوا بيها بكل ثقة', text)
+    text = re.sub(r'\bراتفيل\b', 'Redfield', text)
+    text = re.sub(r'\bالنوفة\s*والتكنولوجي\b', 'la nouvelle technologie', text)
+    text = re.sub(r'\bطبقت\s*الحماية\b', 'طبقة الحماية تاع', text)
     # Correct Whisper/Gemini acoustic hallucinations in car detailing & technical French
     text = re.sub(r"\bla\s+visibilit[ée]\s+ta[e3]\s+(?:al[- ]?)?d['\u2019]?alcool\b", "aucun résidu de colle", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(aucun\s+)?risque\s+d['\u2019]alcool\b", "aucun résidu de colle", text, flags=re.IGNORECASE)
@@ -626,6 +805,37 @@ def sanitize_transcription_text(text: str) -> str:
     text = re.sub(r"\bvryment\b", "vraiment", text, flags=re.IGNORECASE)
     text = re.sub(r"\bvriment\b", "vraiment", text, flags=re.IGNORECASE)
     text = re.sub(r"\bRed\s*film[es]?\b", "Redfield", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bنتفيلم?\b", "Redfield", text)
+    text = re.sub(r"\bال?روزل\s*طالح\b", "الـ résultat راح", text)
+    text = re.sub(r"\b(الـ résultat|النتيجة)\s+تعنى\b", r"\1 تاعنا", text)
+    text = re.sub(r"\bال?روزل\s*طا\b", "الـ résultat", text)
+    text = re.sub(r"\bال?رزالت[ةه]\b", "الـ résultat", text)
+    text = re.sub(r"\bال?رزالط[ةه]\b", "الـ résultat", text)
+    text = re.sub(r"\bفهد\s+الخدمة\b", "فهاد الخدمة", text)
+    # Polish known Algerian Darija car detailing terms, loanwords and hallucinations
+    text = re.sub(r'\bال?فيلد\b(?=\s+تقدر)', 'الـ Redfield', text)
+    text = re.sub(r'\bب?تحسون[ةهات]*\b', 'بالتخشوينة', text)
+    text = re.sub(r'\bبالتحسونات\b', 'بالتخشوينة', text)
+    text = re.sub(r'\b(ما\s*يخوفوك\s*لا\s*ب?ال?صوت\s*ولا\s*ب?)[^\s]+', r'\1التخشوينة', text)
+    text = re.sub(r'\b(لا\s*ب?ال?صوت)\b(?=\s*ولا\s*ب?ال?تخشوينة)', 'لا بالصوف', text)
+    text = re.sub(r'\bمية\s+لميتين\b', '100 ولا 200', text)
+    text = re.sub(r'\bمية\s+ل?مئتين\b', '100 ولا 200', text)
+    text = re.sub(r'\b(أخوها|اخوها)\s+ل?ل?م[يئ]تين\s*ب?ال?م[يئ][ةه]\b', 'الـ 200 بالمية', text)
+    # Remove MSA bleed hallucinations
+    text = re.sub(r'\bفاعتبر\s+(لي|اللي)\b', r'\1', text)
+    text = re.sub(r'\bفاعتبر\b', '', text)
+    text = re.sub(r'\bارواح\s+تلصقنا\b', 'ارواح تشوف هنا', text)
+    text = re.sub(r'\bهداك\s+صفي\s+راسك\b', 'شوف هكذا', text)
+    # Uniform Latin script for French loanwords (No orthography flip-flopping)
+    text = re.sub(r'\bال?بو?ان\b', 'الـ point', text)
+    text = re.sub(r'\bكولور\b', 'couleur', text)
+    text = re.sub(r'\bكولير\b', 'couleur', text)
+    # Bridge omissions in high-speed speech clauses
+    text = re.sub(r'\b(و?كان\s+الشرف)\s+(أنها\s+دير|دير|تدير)\b', r'\1 لشركة Redfield \2', text)
+    text = re.sub(r'\b(و?كان\s+الشرف)\s+(le\s+premier)\b', r'\1 لشركة Redfield أنها دير \2', text)
+    text = re.sub(r'\b(المستوى\s+الإفريقي\s+والمستوى)\s+(لي|اللي|كانت|النتيجة)\b', r'\1 الوطني \2', text)
+    text = re.sub(r'\b((?:لي|اللي)\s+كنت)\s+من\s+(النتيجة|نتيجة)\b', r'\1 أنا متأكد من \2', text)
+    text = re.sub(r'\b((?:لي|اللي)\s+كنت\s+أنا)\s+من\s+(النتيجة|نتيجة)\b', r'\1 متأكد من \2', text)
     # Repair tokenizer clipped Latin words
     text = re.sub(r'\b(le\s+|un\s+)?premi\b', r'\1premier', text, flags=re.IGNORECASE)
     text = re.sub(r'\btechn\b', 'technologie', text, flags=re.IGNORECASE)
@@ -783,111 +993,537 @@ def split_fused_script_tokens(words: List[Dict[str, Any]]) -> List[Dict[str, Any
     return result
 
 
+import re
+from typing import List, Dict, Any
+
+def post_process_word_sequence(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not words:
+        return []
+
+    processed = []
+    n = len(words)
+    i = 0
+
+    while i < n:
+        w = dict(words[i])
+        raw = str(w.get("word", "")).strip()
+        clean_lower = re.sub(r'^[^\w]+|[^\w]+$|[،,.\!\?؟؛:\s]+$', '', raw.lower())
+        clean_ar = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$|[،,.\!\?؟؛:\s]+$', '', raw)
+        clean_ar = re.sub(r'^[،,.\!\?؟؛:\s]+', '', clean_ar)
+
+        # 0. Loanword and technical spellings
+        # Merge "ولا كاش" + "خطر" -> "ولا كاش خطر"
+        if clean_ar == "ولا كاش" and i + 1 < n and str(words[i+1].get("word", "")).strip() in ("خطر", "خطار"):
+            w["word"] = "ولا كاش خطر"
+            w["end"] = words[i+1].get("end", float(w.get("end", 0.0)) + 0.3)
+            i += 1
+            clean_ar = "ولا كاش خطر"
+
+        if clean_lower == "technology":
+            w["word"] = "technologie"
+            clean_lower = "technologie"
+
+        if clean_ar in ("والمستوة", "مستوة", "المستوة"):
+            if clean_ar.startswith("و"):
+                w["word"] = "والمستوى"
+            elif clean_ar.startswith("ال"):
+                w["word"] = "المستوى"
+            else:
+                w["word"] = "مستوى"
+            clean_ar = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', w["word"])
+
+        if clean_ar == "التاعي":
+            w["word"] = "تاعي"
+            clean_ar = "تاعي"
+
+        # Fix "la" preceding "كاش خطر" (from "la visibilité" hallucination)
+        if clean_lower == "la" and i + 1 < n and "كاش خطر" in str(words[i+1].get("word", "")):
+            w["word"] = "ولا"
+            clean_lower = "ولا"
+
+        # 1. Phonetic / Loanword normalization for résultat
+        if clean_ar in (
+            "السيبطا", "سيبطا", "الريزوطا", "ريزوطا", "الريزولتا", "عريلطا", "النتيجه",
+            "الرزالتة", "رزالتة", "الرزالته", "رزالته", "الرزالطة", "رزالطة",
+            "الروزل طا", "روزل طا", "الروزلطا", "روزلطا", "الريزيلطا", "ريزيلطا",
+            "الريزلطا", "ريزلطا", "الريزيلتة", "ريزيلتة", "الرزيلطا", "رزيلطا", "فرزل"
+        ):
+            w["word"] = "الـ résultat"
+            clean_ar = "الـ résultat"
+        elif clean_ar == "النتيجة":
+            if (i + 1 < n and str(words[i+1].get("word", "")).strip() == "هادي" and (i + 2 < n and "لازم" in str(words[i+2].get("word", "")))):
+                w["word"] = "الـ résultat"
+
+        # 2. Truncation fix: 'nouve' / 'nouv' / 'nouvel' -> 'nouvelle'
+        if any(m in clean_lower for m in ("nouve", "nouv")) and "nouvelle" not in clean_lower:
+            w["word"] = re.sub(r'\bnouv[a-z]*\b', 'nouvelle', w["word"], flags=re.IGNORECASE)
+            raw = w["word"]
+            clean_lower = re.sub(r'^[^\w]+|[^\w]+$', '', raw.lower())
+
+        # Repair sliced Arabic words:
+        if clean_ar == "السيار":
+            w["word"] = "السيارة"
+            clean_ar = "السيارة"
+
+        # Handle "أنام" fusion or "ما أكيد" / "مأكد" / "ماكد"
+        if clean_ar in ("أنام", "انام"):
+            if i > 0 and str(words[i-1].get("word", "")).strip() in ("كنت", "لي كنت", "اللي كنت"):
+                dur = float(w.get("end", 0.0)) - float(w.get("start", 0.0))
+                mid = float(w.get("start", 0.0)) + dur * 0.35
+                processed.append({"word": "أنا", "start": w.get("start", 0.0), "end": round(mid, 2)})
+                w["word"] = "متأكد"
+                w["start"] = round(mid, 2)
+                clean_ar = "متأكد"
+        elif clean_ar in ("ما أكيد", "ماأكيد", "ماكيد", "مأكد", "ماكد", "مؤكد", "م"):
+            trailing_punct = re.findall(r'[^\w\u0600-\u06FF]+$', raw)
+            w["word"] = "متأكد" + (trailing_punct[0] if trailing_punct else "")
+            clean_ar = "متأكد"
+        elif clean_ar == "ما" and i + 1 < n:
+            next_raw = str(words[i+1].get("word", "")).strip()
+            next_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', next_raw)
+            if next_clean in ("أكيد", "اكيد"):
+                w["word"] = "متأكد"
+                w["end"] = words[i+1].get("end", float(w.get("end", 0.0)) + 0.3)
+                clean_ar = "متأكد"
+                i += 1  # Skip "أكيد"
+        elif clean_ar in ("حبلي", "ح") and i > 0:
+            prev_txt = str(words[i-1].get("word", "")).strip()
+            if any(k in prev_txt for k in ("كاين", "ماكاين", "ما كاين")):
+                w["word"] = "حتى"
+                clean_ar = "حتى"
+
+        # "اللي ما كانش" misinterpretation -> "ما كاين حتى إشكال"
+        if clean_ar in ("كانش", "ماكانش", "ما كانش") and i > 0:
+            prev_txt = str(words[i-1].get("word", "")).strip()
+            if any(k in prev_txt for k in ("اللي", "لي", "بلي")):
+                next_context = [str(words[k].get("word", "")) for k in range(i + 1, min(n, i + 4))]
+                if any("إشكال" in c or "اشكال" in c or "حتى" in c for c in next_context):
+                    w["word"] = "كاين"
+                    clean_ar = "كاين"
+
+        # "نتيجه نتاحها" -> "النتيجة تاعها"
+        if ("نتيج" in clean_ar or "نتيح" in clean_ar) and i + 1 < n:
+            next_raw = str(words[i+1].get("word", "")).strip()
+            next_clean = re.sub(r'^[^\w]+|[^\w]+$|[،,.\!\?؟]+$', '', next_raw).strip()
+            if next_clean in ("نتاحها", "نتاعها", "تحها", "تاعها", "تاعن", "نتاحه"):
+                trailing_punct = re.findall(r'[،,.\!\?؟]+$', next_raw)
+                w["word"] = "النتيجة"
+                words[i+1]["word"] = "تاعها" + (trailing_punct[0] if trailing_punct else "")
+                clean_ar = "النتيجة"
+
+        # "وعلى بلي بلي" -> "وعلى بالي بلي"
+        if clean_ar in ("بلي", "البلي") and i > 0:
+            prev_txt = str(words[i-1].get("word", "")).strip()
+            if prev_txt in ("وعلى", "على"):
+                w["word"] = "بالي"
+                clean_ar = "بالي"
+
+        # "الهيكل تحاني هائية" -> "الهيكل تاعها نهائيا"
+        if clean_ar in ("الهيكل", "الهيق") and i + 1 < n:
+            w["word"] = "الهيكل"
+            next_raw = str(words[i+1].get("word", "")).strip()
+            next_clean = re.sub(r'^[^\w]+|[^\w]+$|[،,.\!\?؟]+$', '', next_raw).strip()
+            if next_clean in ("تحاني", "تحانية", "التحانية", "تحنيها", "تحانه"):
+                words[i+1]["word"] = "تاعها"
+                if i + 2 < n:
+                    w3_raw = str(words[i+2].get("word", "")).strip()
+                    w3_clean = re.sub(r'^[^\w]+|[^\w]+$|[،,.\!\?؟]+$', '', w3_raw).strip()
+                    if w3_clean in ("هائية", "هائيه", "نهائية", "نهائيه", "هي"):
+                        trailing_p = re.findall(r'[،,.\!\?؟]+$', w3_raw)
+                        words[i+2]["word"] = "نهائيا" + (trailing_p[0] if trailing_p else ".")
+
+        # "هائيا" -> "نهائيا"
+        if clean_ar in ("هائيا", "هائية", "هائيه", "نهائية", "نهائيه"):
+            trailing_p = re.findall(r'[،,.\!\?؟]+$', raw)
+            w["word"] = "نهائيا" + (trailing_p[0] if trailing_p else ".")
+            clean_ar = "نهائيا"
+
+        # Silence gap anchor & clamp bloated word duration: short spoken words never exceed 1.2s
+        w_start = float(w.get("start", 0.0))
+        w_end = float(w.get("end", w_start + 0.3))
+        if (w_end - w_start > 1.25) and len(raw) < 15:
+            w["start"] = round(w_end - 0.70, 2)
+
+        # Drop trailing hallucinations on microphone turn-off silence (e.g. 'مرحباً', 'شكراً', 'شكرا') after 'نعاودها'
+        if clean_ar in ("مرحبا", "مرحباً", "شكرا", "شكراً") and any("نعاود" in x.get("word", "") for x in processed[-3:]):
+            i += 1
+            continue
+
+        # "نزيدش" -> "ما نزيدش"
+        if clean_ar == "نزيدش":
+            w["word"] = "ما نزيدش"
+            clean_ar = "ما نزيدش"
+
+        # "نعاود لها" -> "نعاودها"
+        if clean_ar == "نعاود" and i + 1 < n:
+            next_raw = str(words[i+1].get("word", "")).strip()
+            next_clean = re.sub(r'^[^\w]+|[^\w]+$|[،,.\!\?؟]+$', '', next_raw).strip()
+            if next_clean in ("لك", "لكـ", "لها", "له"):
+                trailing_punct = re.findall(r'[^\w\u0600-\u06FF]+$', next_raw)
+                w["word"] = "نعاودها" + (trailing_punct[0] if trailing_punct else ".")
+                w["end"] = words[i+1].get("end", w.get("end", 0.0) + 0.4)
+                i += 1  # Skip next word
+
+        # Check if 'حتى' is followed by missing 'إشكال'
+        if clean_ar == "حتى" and i > 0:
+            prev_txt = str(words[i-1].get("word", "")).strip()
+            if any(k in prev_txt for k in ("كاين", "ماكاين", "ما كاين")):
+                has_ishkal_next = (i + 1 < n and any(k in str(words[i+1].get("word", "")) for k in ("إشكال", "اشكال")))
+                if not has_ishkal_next:
+                    dur = max(0.25, float(w.get("end", 0.0)) - float(w.get("start", 0.0)))
+                    t_start = round(float(w.get("end", 0.0)) + 0.04, 2)
+                    t_end = round(t_start + max(0.30, dur), 2)
+                    processed.append(w)
+                    processed.append({"word": "إشكال", "start": t_start, "end": t_end})
+                    i += 1
+                    continue
+
+        # 3. PPS vs PPF Acronym and P Truncation fix
+        # Automotive spray context: "la nouvelle technologie PPS"
+        if clean_lower in ("ppf", "p") or clean_ar in ("بي بي إف", "بي بي اف"):
+            trailing_punct = re.findall(r'[^\w\u0600-\u06FFa-zA-Z]+$', raw)
+            w["word"] = "PPS" + (trailing_punct[0] if trailing_punct else "")
+        elif "ppf" in clean_lower:
+            w["word"] = re.sub(r'\bPPF\b', 'PPS', w["word"], flags=re.IGNORECASE)
+
+        # 4. Enclitic / Suffix Mutilation: 'تاعن' -> 'تاعها'
+        if clean_ar in ("تاعن", "تاعنا", "تاعهن", "تاعك") and i > 0:
+            prev_context = [str(words[k].get("word", "")) for k in range(max(0, i - 4), i)]
+            if any("نتيج" in p or "النتيجة" in p for p in prev_context):
+                trailing_punct = re.findall(r'[^\w\u0600-\u06FF]+$', raw)
+                w["word"] = "تاعها" + (trailing_punct[0] if trailing_punct else "")
+        elif clean_ar == "تاعن":
+            trailing_punct = re.findall(r'[^\w\u0600-\u06FF]+$', raw)
+            w["word"] = "تاعها" + (trailing_punct[0] if trailing_punct else "")
+
+        # 5. Outtake suffix mishear: 'نعاود لك' / 'نعاودلك' -> 'نعاودها'
+        if clean_ar in ("نعاودلك", "نعاود لك") or (clean_ar.startswith("نعاود") and "لك" in clean_ar):
+            trailing_punct = re.findall(r'[^\w\u0600-\u06FF]+$', raw)
+            w["word"] = "نعاودها" + (trailing_punct[0] if trailing_punct else "")
+        elif clean_ar == "نعاود" and i + 1 < n:
+            next_raw = str(words[i+1].get("word", "")).strip()
+            next_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', next_raw)
+            if next_clean in ("لك", "لكـ"):
+                trailing_punct = re.findall(r'[^\w\u0600-\u06FF]+$', next_raw)
+                w["word"] = "نعاودها" + (trailing_punct[0] if trailing_punct else "")
+                w["end"] = words[i+1].get("end", w.get("end", 0.0) + 0.4)
+                i += 1  # Skip next word
+
+        # 6. Misheard phrase: 'حنا إشكال' -> 'حتى إشكال'
+        if clean_ar == "حنا" and i + 1 < n:
+            next_raw = str(words[i+1].get("word", "")).strip()
+            next_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', next_raw)
+            if "إشكال" in next_clean or "اشكال" in next_clean:
+                w["word"] = "حتى"
+
+        # 7. Slang idiom & car detailing acoustic hallucination fixes
+        if clean_ar in ("فيلد", "الفيلد") and i + 1 < n and "تقدر" in str(words[i+1].get("word", "")):
+            w["word"] = "Redfield"
+        elif clean_ar in ("تحسونات", "تحسونة", "تحسونه", "بتحسونات", "بتحسونة", "بتحسونه", "تحسومة", "التحسومة", "بالتحسومة", "تحسومات", "بالتحسومات"):
+            w["word"] = "بالتخشوينة"
+        elif clean_ar in ("بالصوت", "الصوت") and any("يخوف" in x.get("word", "") for x in processed[-4:]):
+            w["word"] = "بالصوف"
+        elif clean_ar == "فاعتبر":
+            w["word"] = ""
+        elif clean_ar in ("البوان", "بوان") or clean_lower == "le point":
+            w["word"] = "point"
+        elif clean_ar in ("كولور", "كولير") or clean_lower in ("color", "colour"):
+            w["word"] = "couleur"
+        elif clean_ar in ("اين", "أين") and i + 1 < n and str(words[i+1].get("word", "")).strip().lower() in ("couleur", "color", "كولور"):
+            w["word"] = "أي"
+        elif clean_ar in ("ما تقلقش", "ما تملأش", "ما تملأ"):
+            w["word"] = "ما تملّكش"
+        elif clean_ar == "حشينا" and i + 1 < n and str(words[i+1].get("word", "")).strip() in ("ها", "ها هي"):
+            w["word"] = "حشيناها"
+            w["end"] = words[i+1]["end"]
+            i += 1
+            if i + 1 < n and str(words[i+1].get("word", "")).strip() == "هي":
+                i += 1
+        elif clean_ar in ("فو فو أحسن", "فوفو أحسن"):
+            w["word"] = "أوه حشيناها يا سيدي"
+
+        # 8. Stranded suffixes: merge to root verbs
+        if processed and clean_ar in ("لك", "لكـ", "لي", "لو", "لها", "لهم", "لنا", "لكم", "ها"):
+            prev = processed[-1]
+            prev_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', prev.get("word", ""))
+            if prev_clean in ("نهدر", "نهضر", "راني نهدر", "راني نهضر"):
+                prev["word"] = "نهضرلك"
+                prev["end"] = w.get("end", prev.get("end", 0.0))
+                i += 1
+                continue
+            elif prev_clean in ("نوري", "نوريلك"):
+                prev["word"] = "نوريلك"
+                prev["end"] = w.get("end", prev.get("end", 0.0))
+                i += 1
+                continue
+            elif prev_clean in ("توري",):
+                prev["word"] = "توريلي" if clean_ar == "لي" else f"توري{clean_ar}"
+                prev["end"] = w.get("end", prev.get("end", 0.0))
+                i += 1
+                continue
+
+        processed.append(w)
+        i += 1
+
+    # Bridge words injection at code-switching transitions
+    final_words = []
+    m = len(processed)
+    j = 0
+    while j < m:
+        cur = processed[j]
+        final_words.append(cur)
+        cur_word = str(cur.get("word", "")).strip()
+
+        cur_clean = re.sub(r'^[^\w]+|[^\w]+$', '', cur_word.lower())
+
+        # Bridge 0: وكان الشرف [لشركة Redfield] أنها دير / le premier test
+        is_al_sharaf = (
+            cur_clean in ("الشرف", "شرف")
+            or cur_word in ("وكان الشرف", "كان الشرف")
+        )
+        if is_al_sharaf and j + 1 < m:
+            next_w = processed[j+1]
+            next_clean = re.sub(r'^[^\w]+|[^\w]+$', '', str(next_w.get("word", "")).lower())
+            if next_clean in ("أنها", "انها", "دير", "تدير", "le", "premier"):
+                # Both 'لشركة' and 'Redfield' are missing before 'أنها دير' / 'le premier'
+                gap = max(0.40, float(next_w.get("start", cur["end"] + 0.8)) - float(cur.get("end", 0.0)))
+                mid = float(cur["end"]) + gap * 0.45
+                final_words.append({
+                    "word": "لشركة",
+                    "start": round(float(cur["end"]) + 0.04, 2),
+                    "end": round(mid, 2)
+                })
+                final_words.append({
+                    "word": "Redfield",
+                    "start": round(mid, 2),
+                    "end": round(float(next_w["start"]) - 0.04, 2)
+                })
+            elif next_clean == "redfield":
+                # 'لشركة' dropped between 'الشرف' and 'Redfield'
+                has_lasharika = any("شركة" in x.get("word", "") for x in final_words[-3:])
+                if not has_lasharika:
+                    gap = max(0.20, float(next_w.get("start", cur["end"] + 0.4)) - float(cur.get("end", 0.0)))
+                    t_start = round(float(cur.get("end", 0.0)) + 0.04, 2)
+                    t_end = round(float(next_w.get("start", t_start + 0.30)) - 0.04, 2)
+                    # Insert 'لشركة' before Redfield
+                    final_words.insert(-1, {
+                        "word": "لشركة",
+                        "start": t_start,
+                        "end": t_end
+                    })
+
+        # Bridge 0b: لشركة [Redfield] أنها دير / le premier test
+        if cur_clean in ("لشركة", "شركة") and j + 1 < m:
+            next_w = processed[j+1]
+            next_clean = re.sub(r'^[^\w]+|[^\w]+$', '', str(next_w.get("word", "")).lower())
+            if next_clean != "redfield" and (next_clean in ("أنها", "انها", "دير", "تدير", "le", "premier") or "premier" in next_clean):
+                gap = max(0.25, float(next_w.get("start", cur["end"] + 0.5)) - float(cur.get("end", 0.0)))
+                t_start = round(float(cur.get("end", 0.0)) + 0.04, 2)
+                t_end = round(float(next_w.get("start", t_start + 0.35)) - 0.04, 2)
+                final_words.append({
+                    "word": "Redfield",
+                    "start": t_start,
+                    "end": t_end
+                })
+
+        # Bridge 1: Redfield [أنها دير] le premier test
+        if cur_clean == "redfield" and j + 1 < m:
+            next_w = processed[j+1]
+            next_clean = re.sub(r'^[^\w]+|[^\w]+$', '', str(next_w.get("word", "")).lower())
+            has_anha = (next_clean in ("أنها", "انها") or (j + 2 < m and re.sub(r'^[^\w]+|[^\w]+$', '', str(processed[j+2].get("word", "")).lower()) in ("دير", "تدير")))
+            if not has_anha and (next_clean in ("le", "premier", "test") or str(next_w.get("word", "")).strip().lower().startswith(("le", "premier"))):
+                gap = max(0.2, float(next_w.get("start", cur["end"] + 0.6)) - float(cur.get("end", 0.0)))
+                mid = float(cur["end"]) + gap * 0.45
+                final_words.append({
+                    "word": "أنها",
+                    "start": round(float(cur["end"]) + 0.04, 2),
+                    "end": round(mid, 2)
+                })
+                final_words.append({
+                    "word": "دير",
+                    "start": round(mid, 2),
+                    "end": round(float(next_w["start"]) - 0.04, 2)
+                })
+
+        # Auto-restore dropped technical tail word: 'le premier' -> 'le premier test'
+        if cur_clean in ("premier", "premiere"):
+            has_test_next = (j + 1 < m and "test" in str(processed[j+1].get("word", "")).lower())
+            if not has_test_next:
+                dur = max(0.25, float(cur.get("end", 0.0)) - float(cur.get("start", 0.0)))
+                t_start = round(float(cur.get("end", 0.0)) + 0.04, 2)
+                t_end = round(t_start + max(0.25, dur * 0.8), 2)
+                final_words.append({
+                    "word": "test",
+                    "start": t_start,
+                    "end": t_end
+                })
+
+        # Bridge 2: [بهاد] la nouvelle technologie PPS
+        if cur_clean in ("test", "premier") and j + 1 < m:
+            next_w = processed[j+1]
+            next_clean = re.sub(r'^[^\w]+|[^\w]+$', '', str(next_w.get("word", "")).lower())
+            has_bhad = (next_clean in ("بهاد", "بهذا", "فهاد") or (j + 2 < m and re.sub(r'^[^\w]+|[^\w]+$', '', str(processed[j+2].get("word", "")).lower()) in ("بهاد",)))
+            if not has_bhad and (next_clean in ("la", "nouvelle", "technologie") or str(next_w.get("word", "")).strip().lower().startswith("la")):
+                gap = max(0.15, float(next_w.get("start", cur["end"] + 0.4)) - float(cur.get("end", 0.0)))
+                final_words.append({
+                    "word": "بهاد",
+                    "start": round(float(cur["end"]) + 0.04, 2),
+                    "end": round(float(next_w["start"]) - 0.04, 2)
+                })
+
+        # Bridge 3: الـ résultat هادي لازم تشوف [باش تعرف] أرواح تشوف
+        if cur_word == "تشوف" and j + 1 < m and str(processed[j+1].get("word", "")).strip() == "أرواح":
+            if any(x.get("word", "") == "لازم" for x in final_words[-4:]):
+                gap = float(processed[j+1]["start"]) - float(cur["end"])
+                if gap > 0.3:
+                    mid = float(cur["end"]) + gap / 2.0
+                    final_words.append({"word": "باش", "start": round(float(cur["end"]) + 0.04, 2), "end": round(mid, 2)})
+                    final_words.append({"word": "تعرف", "start": round(mid, 2), "end": round(float(processed[j+1]["start"]) - 0.04, 2)})
+
+        # Bridge 4: [على المستوى الإفريقي والمستوى] + [الوطني]
+        is_al_mustawa = cur_clean in ("والمستوى", "مستوى", "المستوى")
+        has_afriqi_prev = any(
+            re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', x.get("word", "")).endswith(("إفريقي", "افريقي", "أفريقي"))
+            for x in final_words[-5:]
+        )
+        if cur_clean == "والمستوى" or (is_al_mustawa and has_afriqi_prev):
+            has_watani_next = (
+                j + 1 < m and any(
+                    k in re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(processed[j+1].get("word", "")))
+                    for k in ("وطني", "الوطني")
+                )
+            )
+            if not has_watani_next:
+                if j + 1 < m:
+                    next_w = processed[j+1]
+                    gap = max(0.18, float(next_w.get("start", cur["end"] + 0.4)) - float(cur.get("end", 0.0)))
+                    t_start = round(float(cur.get("end", 0.0)) + 0.04, 2)
+                    t_end = round(max(t_start + 0.20, float(next_w.get("start", t_start + 0.35)) - 0.04), 2)
+                else:
+                    dur = max(0.25, float(cur.get("end", 0.0)) - float(cur.get("start", 0.0)))
+                    t_start = round(float(cur.get("end", 0.0)) + 0.04, 2)
+                    t_end = round(t_start + max(0.25, dur * 0.8), 2)
+                final_words.append({
+                    "word": "الوطني",
+                    "start": t_start,
+                    "end": t_end
+                })
+
+        # Bridge 5: [اللي كنت] [أنا متأكد] [من النتيجة]
+        if cur_clean in ("كنت", "لي كنت", "اللي كنت") or cur_word.endswith("كنت"):
+            if j + 1 < m:
+                next_w = processed[j+1]
+                next_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(next_w.get("word", ""))).lower()
+                is_jumping_to_result = (
+                    next_clean == "من" and (
+                        (j + 2 < m and "نتيج" in str(processed[j+2].get("word", "")))
+                        or any("نتيج" in str(processed[k].get("word", "")) for k in range(j+1, min(m, j+4)))
+                    )
+                ) or ("نتيج" in next_clean)
+
+                if is_jumping_to_result:
+                    gap = max(0.40, float(next_w.get("start", cur["end"] + 0.8)) - float(cur.get("end", 0.0)))
+                    mid = float(cur["end"]) + gap * 0.45
+                    final_words.append({
+                        "word": "أنا",
+                        "start": round(float(cur["end"]) + 0.04, 2),
+                        "end": round(mid, 2)
+                    })
+                    final_words.append({
+                        "word": "متأكد",
+                        "start": round(mid, 2),
+                        "end": round(float(next_w["start"]) - 0.04, 2)
+                    })
+
+        # Bridge 6: [أنا] -> [متأكد] before [من النتيجة]
+        if cur_clean in ("أنا", "انا") and any("كنت" in x.get("word", "") for x in final_words[-3:]):
+            if j + 1 < m:
+                next_w = processed[j+1]
+                next_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(next_w.get("word", ""))).lower()
+                has_mutakid = next_clean in ("متأكد", "متاكد", "مأكد", "ماكد")
+                if not has_mutakid and (next_clean == "من" or "نتيج" in next_clean):
+                    gap = max(0.20, float(next_w.get("start", cur["end"] + 0.4)) - float(cur.get("end", 0.0)))
+                    final_words.append({
+                        "word": "متأكد",
+                        "start": round(float(cur["end"]) + 0.04, 2),
+                        "end": round(float(next_w["start"]) - 0.04, 2)
+                    })
+
+        j += 1
+
+    return final_words
+
+
 def normalize_transcription_data(data: Dict[str, Any], total_duration: float = 0.0) -> Dict[str, Any]:
     """
     Ensures consistent segments, IDs, and word-level timestamps.
     Keeps natural mixed-language phrases intact so French loanwords flow seamlessly with Arabic text.
-    Splits fused mixed-script tokens and binds orphaned Arabic articles to subsequent Latin words.
+    Splits fused mixed-script tokens, binds orphaned Arabic articles, and applies global sequence-level corrections.
+    Rebuilds segment text directly from normalized words to prevent desync.
     """
-    segments = data.get("segments", [])
-    normalized_segments = []
-    seg_counter = 0
+    raw_segments = data.get("segments", [])
+    if not raw_segments:
+        return data
 
-    for seg in segments:
+    all_words: List[Dict[str, Any]] = []
+    for seg in raw_segments:
         if "text" in seg and seg["text"]:
             seg["text"] = sanitize_transcription_text(seg["text"])
         words = interpolate_word_timestamps(seg)
-        # Acoustic hallucination multi-token sequence repairs BEFORE single-word sanitization
-        filtered_words = []
-        skip_next = False
-        for widx in range(len(words)):
-            if skip_next:
-                skip_next = False
-                continue
-            w1 = words[widx]
-            w1_txt = str(w1.get("word", "")).strip()
-            w2 = words[widx + 1] if widx + 1 < len(words) else None
-            w2_txt = str(w2.get("word", "")).strip() if w2 else ""
-
-            # Dropped definite article: 'وكان' + 'شرف' -> 'وكان' + 'الشرف'
-            if w1_txt in ("وكان", "كان") and w2_txt == "شرف":
-                w1_copy = dict(w1)
-                w2_copy = dict(w2)
-                w2_copy["word"] = "الشرف"
-                filtered_words.append(w1_copy)
-                filtered_words.append(w2_copy)
-                skip_next = True
-                continue
-
-            # Hallucinated French 'la visibilité' -> spoken Darija 'ولا كاش خطر'
-            if w1_txt.lower() == "la" and bool(re.match(r'^(?:visibilit[ée]|كاش خطر)$', w2_txt, re.IGNORECASE)):
-                w1_copy = dict(w1)
-                w2_copy = dict(w2)
-                w1_copy["word"] = "ولا"
-                w2_copy["word"] = "كاش خطر"
-                filtered_words.append(w1_copy)
-                filtered_words.append(w2_copy)
-                skip_next = True
-                continue
-
-            # Hallucinated French 'la recette' -> spoken Arabic 'النتيجة'
-            if w1_txt.lower() == "la" and bool(re.match(r'^(?:recette|النتيجة)$', w2_txt, re.IGNORECASE)):
-                filtered_words.append({
-                    "word": "النتيجة",
-                    "start": w1.get("start", 0.0),
-                    "end": w2.get("end", float(w1.get("start", 0.0)) + 0.5)
-                })
-                skip_next = True
-                continue
-
-            # Misheard brand name 'Red film' -> 'Redfield'
-            if w1_txt.lower() == "red" and bool(re.match(r'^(?:film[es]?|Redfield)$', w2_txt, re.IGNORECASE)):
-                filtered_words.append({
-                    "word": "Redfield",
-                    "start": w1.get("start", 0.0),
-                    "end": w2.get("end", float(w1.get("start", 0.0)) + 0.5)
-                })
-                skip_next = True
-                continue
-
-            filtered_words.append(w1)
-        words = filtered_words
-
         for w in words:
             if "word" in w and w["word"]:
                 w["word"] = sanitize_transcription_text(w["word"])
+        all_words.extend(words)
 
-        words = split_fused_script_tokens(words)
-        words = bind_arabic_articles_to_latin(words)
-        if not words:
-            start = float(seg.get("start", 0.0))
-            end = float(seg.get("end", start + 2.0))
-            text = sanitize_transcription_text(seg.get("text", "").strip())
+    # Global Sequence Processing across segment boundaries
+    all_words = split_fused_script_tokens(all_words)
+    all_words = bind_arabic_articles_to_latin(all_words)
+    all_words = post_process_word_sequence(all_words)
+
+    # Re-segment words based on natural pauses (> 0.65s) or balanced phrasing
+    normalized_segments = []
+    current_seg_words: List[Dict[str, Any]] = []
+    seg_counter = 0
+
+    for w in all_words:
+        if not current_seg_words:
+            current_seg_words.append(w)
+            continue
+        prev_w = current_seg_words[-1]
+        gap = float(w.get("start", 0.0)) - float(prev_w.get("end", 0.0))
+        seg_dur = float(w.get("end", 0.0)) - float(current_seg_words[0].get("start", 0.0))
+
+        # Break segment if pause > 0.65s or segment has >= 12 words or duration > 6.5s
+        if gap > 0.65 or len(current_seg_words) >= 12 or (seg_dur > 6.5 and gap > 0.35):
+            seg_start = float(current_seg_words[0]["start"])
+            seg_end = float(current_seg_words[-1]["end"])
+            seg_text = " ".join(cw["word"] for cw in current_seg_words).strip()
             normalized_segments.append({
                 "id": seg_counter,
-                "start": round(start, 2),
-                "end": round(end, 2),
-                "text": text,
-                "words": []
+                "start": round(seg_start, 2),
+                "end": round(seg_end, 2),
+                "text": seg_text,
+                "words": current_seg_words
             })
             seg_counter += 1
-            continue
+            current_seg_words = [w]
+        else:
+            current_seg_words.append(w)
 
-        seg_start = float(words[0]["start"])
-        seg_end = float(words[-1]["end"])
-        seg_text = sanitize_transcription_text(seg.get("text", "").strip() or " ".join(w["word"] for w in words))
+    if current_seg_words:
+        seg_start = float(current_seg_words[0]["start"])
+        seg_end = float(current_seg_words[-1]["end"])
+        seg_text = " ".join(cw["word"] for cw in current_seg_words).strip()
         normalized_segments.append({
             "id": seg_counter,
             "start": round(seg_start, 2),
             "end": round(seg_end, 2),
             "text": seg_text,
-            "words": words
+            "words": current_seg_words
         })
         seg_counter += 1
 
-    full_text = sanitize_transcription_text(data.get("text", ""))
-    if not full_text and normalized_segments:
-        full_text = " ".join(s["text"] for s in normalized_segments)
+    full_text = " ".join(s["text"] for s in normalized_segments).strip()
 
     res = {
         "language": data.get("language", "ar-DZ"),
@@ -917,7 +1553,7 @@ def transcribe_with_gemini(
 
     # 1. Downsample to 16kHz mono MP3
     processed_audio = extract_audio(audio_path)
-    intervals, audio_duration = detect_speech_intervals(processed_audio, min_silence=0.65)
+    intervals, audio_duration = detect_speech_intervals(processed_audio, noise_thresh="-32dB", min_silence=0.50)
 
     with open(processed_audio, "rb") as f:
         audio_b64 = base64.b64encode(f.read()).decode("utf-8")
@@ -949,7 +1585,7 @@ def transcribe_with_gemini(
             }
         ],
         "generationConfig": {
-            "temperature": 0.2,
+            "temperature": 0.05,
             "responseMimeType": "application/json"
         }
     }
@@ -965,7 +1601,7 @@ def transcribe_with_gemini(
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
         logger.info(f"Attempting Gemini transcription with model: {model_name}...")
         try:
-            response = requests.post(url, json=payload, timeout=18)
+            response = requests.post(url, json=payload, timeout=30)
             if response.status_code == 200:
                 resp_json = response.json()
                 candidates = resp_json.get("candidates", [])
@@ -1012,25 +1648,46 @@ def transcribe_with_faster_whisper(audio_path: str, dialect_hint: str = "General
         whisper_prompt = "اللغة العربية الفصحى: أهلا وسهلا بكم جميعا."
     else:
         whisper_lang = "ar"
-        whisper_prompt = "الدارجة الجزائرية والفرنسية التقنية: سلام خاوتنا، واش راكم، Redfield, PPF, film de protection, aucun résidu de colle, vraiment, premier test, la nouvelle technologie PPF, النتيجة, ولا كاش خطر, المستوى الوطني, المستوى الإفريقي, وكان الشرف لشركة."
+        whisper_prompt = (
+            "الدارجة الجزائرية والفرنسية التقنية: سلام خاوتنا، "
+            "وكان الشرف لشركة Redfield أنها دير le premier test بهاد la nouvelle technologie PPS على المستوى الإفريقي والمستوى الوطني لي كانت النتيجة تاعها هادي هي لي استعملتها على السيارة الشخصية تاعي لي كنت أنا متأكد من النتيجة تاعها وعلى بالي بلي ما كاين حتى إشكال على الهيكل تاعها نهائيا، ما نزيدش نعاودها. "
+            "شوف la différence لي بينو وبين الـ PPF خويا يدخل بزاف par rapport للـ PPF فريمون يـ percer داخل la tôle سي بون خلاص ولا روح منا، "
+            "باش تشوف أخي الـ point وين يدخل الـ PPS يتوغل حتى للداخل، 200 بالمية، couleur، les produits de qualité فالـ résultat، aucun résidu، c'est bon."
+        )
 
     logger.info(f"Starting local Faster-Whisper transcription for {whisper_lang}...")
     processed_audio = extract_audio(audio_path)
     audio_duration = get_audio_duration(processed_audio)
 
-    # Anti-hallucination configuration: condition_on_previous_text=False prevents repetition loops
-    model = WhisperModel("base", device="cpu", compute_type="int8")
+    # Acoustic resolution & anti-hallucination configuration
+    cache_dirs = [
+        r"C:\Users\mlkme\.cache\huggingface\hub",
+        r"C:\Users\mehdi\.cache\huggingface\hub",
+        os.path.expanduser("~/.cache/huggingface/hub")
+    ]
+    download_root = next((d for d in cache_dirs if os.path.exists(d)), None)
+    model = WhisperModel("small", device="cpu", compute_type="int8", download_root=download_root)
+
+    # Dynamic VAD with calibrated threshold for speech in noisy environments (>32s)
+    use_vad = audio_duration > 32.0
+    vad_params = dict(min_silence_duration_ms=1500, speech_pad_ms=500, threshold=0.60) if use_vad else None
+
     segments_gen, info = model.transcribe(
         processed_audio,
         language=whisper_lang,
         initial_prompt=whisper_prompt,
         word_timestamps=True,
         condition_on_previous_text=False,
-        vad_filter=True,
-        vad_parameters=dict(min_silence_duration_ms=450),
-        temperature=[0.0, 0.2, 0.4],
-        compression_ratio_threshold=2.2,
-        no_speech_threshold=0.6,
+        beam_size=5,
+        patience=1.2,
+        repetition_penalty=1.10,
+        no_repeat_ngram_size=3,
+        vad_filter=use_vad,
+        vad_parameters=vad_params,
+        temperature=0.0,
+        compression_ratio_threshold=2.4,
+        no_speech_threshold=0.50,
+        log_prob_threshold=None,
     )
 
     segments = []

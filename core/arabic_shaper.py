@@ -133,3 +133,66 @@ def shape_arabic_word_to_letters(word: str) -> List[str]:
         i += 1
 
     return shaped
+
+
+def decompose_arabic_word_zwj(word: str) -> List[str]:
+    """
+    Decomposes an Arabic word into sequential character tokens preserving cursive connectivity
+    via standard Arabic characters and Zero-Width Joiner (ZWJ, \\u200D).
+    This allows libass and DirectWrite to shape Arabic natively via OpenType GSUB tables
+    without using deprecated Unicode Presentation Forms B (which cause Arial fallback in Tajawal/Cairo/Almarai).
+    """
+    if not word:
+        return []
+
+    zwj = '\u200D'
+    raw_chars = list(word)
+    base_chars: List[str] = []
+    diacritics: List[str] = []
+
+    for ch in raw_chars:
+        if DIACRITIC_REGEX.match(ch):
+            if diacritics:
+                diacritics[-1] += ch
+        else:
+            base_chars.append(ch)
+            diacritics.append('')
+
+    tokens: List[str] = []
+    i = 0
+    while i < len(base_chars):
+        ch = base_chars[i]
+        prev_ch = base_chars[i - 1] if i > 0 else None
+        next_ch = base_chars[i + 1] if i + 1 < len(base_chars) else None
+
+        # Check Lam-Alef ligature
+        if ch == '\u0644' and next_ch and next_ch in LA_LIGATURES:
+            prev_entry = ARABIC_GLYPHS.get(prev_ch) if prev_ch else None
+            connects_prev = bool(prev_entry and (prev_entry.get('ini') or prev_entry.get('med')))
+            tok = (zwj if connects_prev else '') + ch + next_ch + diacritics[i] + diacritics[i + 1]
+            tokens.append(tok)
+            i += 2
+            continue
+
+        entry = ARABIC_GLYPHS.get(ch)
+        if not entry:
+            tokens.append(ch + diacritics[i])
+            i += 1
+            continue
+
+        prev_entry = ARABIC_GLYPHS.get(prev_ch) if prev_ch else None
+        next_entry = ARABIC_GLYPHS.get(next_ch) if next_ch else None
+
+        connects_prev = bool(prev_entry and (prev_entry.get('ini') or prev_entry.get('med')) and (entry.get('fin') or entry.get('med')))
+        connects_next = bool(next_entry and (entry.get('ini') or entry.get('med')) and (next_entry.get('fin') or next_entry.get('med')))
+
+        tok = ''
+        if connects_prev:
+            tok += zwj
+        tok += ch + diacritics[i]
+        if connects_next:
+            tok += zwj
+        tokens.append(tok)
+        i += 1
+
+    return tokens

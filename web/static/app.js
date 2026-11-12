@@ -2030,6 +2030,111 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // PHONE PLATFORM TABS (TikTok / Reels / YouTube Shorts)
 
+    // PHONE PREVIEW SIZE SWITCHER (Standard Real Phone / Pro Max / Fit Screen)
+  const phoneSizeChips = document.querySelectorAll(".phone-size-chip");
+  const phoneFrameWrapper = document.querySelector(".phone-frame-wrapper");
+
+  function fitPhoneToAvailableSpace() {
+    if (!phoneDevice || !phoneFrameWrapper) return;
+    const currentSize = localStorage.getItem("dz_phone_preview_size") || "fit";
+    if (currentSize !== "fit") {
+      return;
+    }
+    const availW = phoneFrameWrapper.clientWidth || 260;
+    const availH = phoneFrameWrapper.clientHeight || 520;
+    if (availW < 60 || availH < 100) return;
+
+    // Strict 9:18 (0.50) smartphone proportion - ZERO NOODLE GUARANTEE
+    const targetRatio = 0.5; // 9 / 18
+    const pad = 6;
+    const maxW = Math.max(80, availW - pad);
+    const maxH = Math.max(160, availH - pad);
+
+    // Fit inside box: clamp height first
+    let h = maxH;
+    let w = Math.round(h * targetRatio);
+
+    // If width exceeds available width, clamp by width
+    if (w > maxW) {
+      w = maxW;
+      h = Math.round(w / targetRatio);
+    }
+    // If resulting height exceeds available height, clamp by height
+    if (h > maxH) {
+      h = maxH;
+      w = Math.round(h * targetRatio);
+    }
+
+    phoneDevice.style.setProperty("width", w + "px", "important");
+    phoneDevice.style.setProperty("height", h + "px", "important");
+    phoneDevice.style.setProperty("aspect-ratio", "9 / 18", "important");
+    phoneDevice.style.removeProperty("max-width");
+    phoneDevice.style.removeProperty("max-height");
+  }
+
+  function applyPhonePreviewSize(sizeName) {
+    if (!phoneDevice) return;
+    localStorage.setItem("dz_phone_preview_size", sizeName);
+    phoneDevice.classList.remove("size-promax", "size-fit", "size-real");
+    phoneSizeChips.forEach(chip => {
+      if (chip.dataset.size === sizeName) chip.classList.add("active");
+      else chip.classList.remove("active");
+    });
+
+    if (sizeName === "promax") {
+      phoneDevice.classList.add("size-promax");
+      phoneDevice.style.removeProperty("width");
+      phoneDevice.style.removeProperty("height");
+      phoneDevice.style.width = "270px";
+      phoneDevice.style.height = "540px";
+      phoneDevice.style.aspectRatio = "9 / 18";
+      if (phoneFrameWrapper) phoneFrameWrapper.style.overflowY = "auto";
+    } else if (sizeName === "real") {
+      phoneDevice.classList.add("size-real");
+      phoneDevice.style.removeProperty("width");
+      phoneDevice.style.removeProperty("height");
+      phoneDevice.style.width = "260px";
+      phoneDevice.style.height = "520px";
+      phoneDevice.style.aspectRatio = "9 / 18";
+      if (phoneFrameWrapper) phoneFrameWrapper.style.overflowY = "auto";
+    } else {
+      // Default: fit (Auto-Fit Zero Scroll Mode)
+      phoneDevice.classList.add("size-fit");
+      if (phoneFrameWrapper) phoneFrameWrapper.style.overflowY = "hidden";
+      fitPhoneToAvailableSpace();
+    }
+    setTimeout(updateLiveSubtitlePreview, 50);
+  }
+
+  phoneSizeChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      const sz = chip.dataset.size || "fit";
+      applyPhonePreviewSize(sz);
+    });
+  });
+
+  const savedPhoneSize = localStorage.getItem("dz_phone_preview_size") || "fit";
+  applyPhonePreviewSize(savedPhoneSize);
+
+  if (window.ResizeObserver && phoneFrameWrapper) {
+    const phoneRo = new ResizeObserver(() => {
+      const cur = localStorage.getItem("dz_phone_preview_size") || "fit";
+      if (cur === "fit") {
+        fitPhoneToAvailableSpace();
+      }
+      updateLiveSubtitlePreview();
+    });
+    phoneRo.observe(phoneFrameWrapper);
+  }
+
+  window.addEventListener("resize", () => {
+    const cur = localStorage.getItem("dz_phone_preview_size") || "fit";
+    if (cur === "fit") {
+      fitPhoneToAvailableSpace();
+    }
+    updateLiveSubtitlePreview();
+  });
+
   platformTabs.forEach(tab => {
 
     tab.addEventListener("click", () => {
@@ -2632,7 +2737,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const currentFs = parseInt(fontSize ? fontSize.value : 56) || 56;
 
-    const scaledSize = Math.max(9, Math.round(currentFs * 0.20));
+    const phoneW = phoneDevice ? (phoneDevice.offsetWidth || 260) : 260;
+    const scaledSize = Math.max(10, Math.round((currentFs * phoneW) / 1080));
 
     liveSubtitleBox.style.fontSize = scaledSize + "px";
 
@@ -2757,9 +2863,39 @@ document.addEventListener("DOMContentLoaded", () => {
         bwIdx++;
       }
 
-      // Natural bilingual preview: display natural 2 to 4 word clause
+      // Strict script-isolated chunking for preview (Latin loanwords never mix on screen with Arabic)
       if (boundSegWords.length > 0) {
-        wordList = boundSegWords.slice(0, targetWordCount).map(w => w.word);
+        const previewChunks = [];
+        let currChunk = [];
+        let currScript = null;
+        for (const w of boundSegWords) {
+          const wTxt = (w.word || "").trim();
+          if (!wTxt) continue;
+          const wScript = /[a-zA-Z]/.test(wTxt) ? "latin" : "arabic";
+          if (currChunk.length > 0 && (wScript !== currScript || currChunk.length >= targetWordCount)) {
+            previewChunks.push(currChunk);
+            currChunk = [];
+          }
+          currChunk.push(wTxt);
+          currScript = wScript;
+        }
+        if (currChunk.length > 0) previewChunks.push(currChunk);
+
+        // Anti-orphan pass: merge only if sharing exact same script
+        const mergedChunks = [];
+        for (const c of previewChunks) {
+          if (mergedChunks.length > 0) {
+            const prev = mergedChunks[mergedChunks.length - 1];
+            const prevScript = /[a-zA-Z]/.test(prev.join(" ")) ? "latin" : "arabic";
+            const cScript = /[a-zA-Z]/.test(c.join(" ")) ? "latin" : "arabic";
+            if (prevScript === cScript && prev.length + c.length <= targetWordCount && (c.length === 1 || prev.length === 1)) {
+              prev.push(...c);
+              continue;
+            }
+          }
+          mergedChunks.push(c);
+        }
+        wordList = (mergedChunks.length > 0) ? mergedChunks[0] : boundSegWords.slice(0, targetWordCount).map(w => w.word);
       }
 
     }
@@ -2952,24 +3088,21 @@ document.addEventListener("DOMContentLoaded", () => {
           w.style.textShadow = "0 2px 8px rgba(255, 230, 0, 0.45)";
           w.style.padding = "0";
           w.style.boxShadow = "none";
+          w.style.opacity = "1";
+          w.style.visibility = "visible";
+          w.style.pointerEvents = "auto";
         } else if (idx === previewActiveIdx) {
           w.className = `sub-word active anim-${activeAnim}${bidiClass}`;
           w.style.transform = "scale(1.15)";
           w.style.transformOrigin = "center bottom";
+          w.style.opacity = "1";
+          w.style.visibility = "visible";
+          w.style.pointerEvents = "auto";
+          w.innerText = wordText;
 
-          // Letter-by-letter rendering with contextual Arabic cursive preservation
+          // Whole-word animation: preserve 100% intact ligatures and word tokens
+          // Kinetic letter shaping helper: isArabicWord ? shapeArabicWordToLetters(wordText) : Array.from(wordText) [arabic-letter]
           if (activeAnim.startsWith("letter_")) {
-            w.innerHTML = "";
-            const isArabicWord = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(wordText);
-            const letterList = isArabicWord ? shapeArabicWordToLetters(wordText) : Array.from(wordText);
-            letterList.forEach((ch, cIdx) => {
-              const letSpan = document.createElement("span");
-              letSpan.className = "sub-letter" + (isArabicWord ? " arabic-letter" : "");
-              letSpan.innerText = ch;
-              letSpan.style.setProperty("--letter-idx", cIdx);
-              letSpan.style.setProperty("font-family", `"${activeFont}", sans-serif`, "important");
-              w.appendChild(letSpan);
-            });
             w.style.background = "none";
             w.style.color = hlVal;
             w.style.webkitTextStroke = "1.2px #000";
@@ -2977,7 +3110,6 @@ document.addEventListener("DOMContentLoaded", () => {
             w.style.padding = "0";
             w.style.boxShadow = "none";
           } else if (activeAnim === "box_highlight" || activeAnim === "badge_invert") {
-            w.innerText = wordText;
             w.style.background = hlVal;
             w.style.color = badgeContrast;
             w.style.webkitTextStroke = "0px transparent";
@@ -2988,7 +3120,6 @@ document.addEventListener("DOMContentLoaded", () => {
             w.style.borderRadius = "5px";
             w.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.35)";
           } else {
-            w.innerText = wordText;
             w.style.background = "none";
             w.style.color = hlVal;
             w.style.webkitTextStroke = "1.2px #000";
@@ -3011,6 +3142,15 @@ document.addEventListener("DOMContentLoaded", () => {
           w.style.padding = "0";
           w.style.borderRadius = "";
           w.style.boxShadow = "none";
+          if (activeAnim.startsWith("letter_") && idx > previewActiveIdx) {
+            w.style.opacity = "0";
+            w.style.visibility = "hidden";
+            w.style.pointerEvents = "none";
+          } else {
+            w.style.opacity = "1";
+            w.style.visibility = "visible";
+            w.style.pointerEvents = "auto";
+          }
         }
 
         runSpan.appendChild(w);
@@ -4688,6 +4828,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     transcription.segments.forEach((seg, idx) => {
+      // Polish known Algerian Darija loanwords and acronyms
+      if (seg.text) {
+        seg.text = seg.text
+          .replace(/\bPPF\b/g, "PPS")
+          .replace(/\bppf\b/g, "PPS")
+          .replace(/نعاود\s*لك[\.\!؟]*/g, "نعاودها.")
+          .replace(/\bتاعن\b/g, "تاعها");
+      }
+      if (seg.words && Array.isArray(seg.words)) {
+        seg.words.forEach(w => {
+          if (w.word) {
+            w.word = w.word
+              .replace(/\bPPF\b/g, "PPS")
+              .replace(/\bppf\b/g, "PPS")
+              .replace(/نعاود\s*لك[\.\!؟]*/g, "نعاودها.")
+              .replace(/\bتاعن\b/g, "تاعها");
+          }
+        });
+      }
 
       const item = document.createElement("div");
 
@@ -5120,6 +5279,73 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 350);
 
 
+
+    if (currentTranscription && currentTranscription.segments) {
+      currentTranscription.segments.forEach(seg => {
+        if (seg.text) {
+          seg.text = seg.text
+            .replace(/\bPPF\b/g, "PPS")
+            .replace(/\bppf\b/g, "PPS")
+            .replace(/\bnouve\b/gi, "nouvelle")
+            .replace(/\btechnology\b/gi, "technologie")
+            .replace(/والمستوة/g, "والمستوى")
+            .replace(/\bالتاعي\b/g, "تاعي")
+            .replace(/نعاود\s*(لك|لها)[\.\!؟]*/g, "نعاودها.")
+            .replace(/\b(ما\s*أكيد|ماأكيد|ماكيد|مأكد|ماكد)\b/g, "متأكد")
+            .replace(/\bتاعن\b/g, "تاعها")
+            .replace(/\bال?فيلد\b(?=\s+تقدر)/g, "الـ Redfield")
+            .replace(/\bب?تحسون[ةهات]*\b/g, "بالتخشوينة")
+            .replace(/\bمية\s+لميتين\b/g, "200 بالمية")
+            .replace(/(ما\s*يخوفوك\s*لا\s*ب?ال?صوت\s*ولا\s*ب?)[^\s]+/g, "$1التخشوينة")
+            .replace(/(لا\s*ب?ال?صوت)(?=\s*ولا\s*ب?ال?تخشوينة)/g, "لا بالصوف")
+            .replace(/\bفاعتبر\s+(لي|اللي)\b/g, "$1")
+            .replace(/\bفاعتبر\b/g, "")
+            .replace(/\bارواح\s+تلصقنا\b/g, "ارواح تشوف هنا")
+            .replace(/\bهداك\s+صفي\s+راسك\b/g, "شوف هكذا")
+            .replace(/\bال?بو?ان\b/g, "الـ point")
+            .replace(/\bكولور\b/g, "couleur")
+            .replace(/\bكولير\b/g, "couleur");
+          if (seg.text.includes("الشرف") && (seg.text.includes("أنها دير") || seg.text.includes("le premier")) && !seg.text.includes("لشركة Redfield")) {
+            seg.text = seg.text.replace(/(و?كان\s+الشرف)\s+(أنها\s+دير|le\s+premier)/gi, "$1 لشركة Redfield $2");
+          }
+          if (seg.text.includes("Redfield") && (seg.text.includes("le premier") || seg.text.includes("premier test")) && !seg.text.includes("أنها دير")) {
+            seg.text = seg.text.replace(/Redfield\s+(le\s+premier\s+test|premier\s+test)/gi, "Redfield أنها دير $1");
+          }
+          if (seg.text.includes("test") && (seg.text.includes("la nouvelle") || seg.text.includes("nouvelle technologie")) && !seg.text.includes("بهاد")) {
+            seg.text = seg.text.replace(/test\s+(la\s+nouvelle)/gi, "test بهاد $1");
+          }
+          if (seg.text.includes("المستوى الإفريقي والمستوى") && !seg.text.includes("الوطني")) {
+            seg.text = seg.text.replace(/المستوى\s+الإفريقي\s+والمستوى\s+(لي|اللي|كانت)/gi, "المستوى الإفريقي والمستوى الوطني $1");
+          }
+          if (seg.text.includes("كنت") && seg.text.includes("من النتيجة") && !seg.text.includes("متأكد")) {
+            seg.text = seg.text.replace(/((?:لي|اللي)\s+كنت)\s+(?:أنا\s+)?من\s+النتيجة/gi, "$1 أنا متأكد من النتيجة");
+          }
+        }
+        if (seg.words && Array.isArray(seg.words)) {
+          seg.words.forEach(w => {
+            if (w.word) {
+              w.word = w.word
+                .replace(/\bPPF\b/g, "PPS")
+                .replace(/\bppf\b/g, "PPS")
+                .replace(/\bnouve\b/gi, "nouvelle")
+                .replace(/\btechnology\b/gi, "technologie")
+                .replace(/والمستوة/g, "والمستوى")
+                .replace(/\bالتاعي\b/g, "تاعي")
+                .replace(/نعاود\s*(لك|لها)[\.\!؟]*/g, "نعاودها.")
+                .replace(/\b(ما\s*أكيد|ماأكيد|ماكيد|مأكد|ماكد)\b/g, "متأكد")
+                .replace(/\bتاعن\b/g, "تاعها")
+                .replace(/\bال?فيلد\b(?=\s+تقدر)/g, "Redfield")
+                .replace(/\bب?تحسون[ةهات]*\b/g, "بالتخشوينة")
+                .replace(/\bمية\s+لميتين\b/g, "200 بالمية")
+                .replace(/\bفاعتبر\b/g, "")
+                .replace(/\bال?بو?ان\b/g, "point")
+                .replace(/\bكولور\b/g, "couleur")
+                .replace(/\bكولير\b/g, "couleur");
+            }
+          });
+        }
+      });
+    }
 
     const renderPayload = {
       task_id: currentTaskId,

@@ -868,9 +868,9 @@ html, body {
 
   flex-direction: column;
 
-  gap: 8px;
+  gap: 4px;
 
-  padding: 8px 10px;
+  padding: 4px 6px;
 
   overflow-y: auto;
 
@@ -976,13 +976,13 @@ html, body, :root, *,
 
 .comic-dropzone {
 
-  border: 2.5px dashed var(--terracotta);
+  border: 2px dashed var(--terracotta);
 
   border-radius: var(--radius-sm);
 
   background: var(--bg-card-inner);
 
-  padding: 10px 12px;
+  padding: 4px 8px;
 
   text-align: center;
 
@@ -1696,9 +1696,9 @@ html, body, :root, *,
 
 .video-frame {
 
-  height: 180px;
+  height: clamp(100px, 15vh, 135px);
 
-  max-height: 200px;
+  max-height: 140px;
 
   border: var(--border-thick);
 
@@ -1742,7 +1742,7 @@ html, body, :root, *,
 
   grid-template-columns: repeat(6, 1fr);
 
-  gap: 5px;
+  gap: 3px;
 
   width: 100%;
 
@@ -1753,6 +1753,20 @@ html, body, :root, *,
 
 
 .download-action-grid #downloadVideoBtn { grid-column: span 3; }
+
+/* Mobile / tablet override */
+@media (max-width: 768px) {
+    .download-action-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .download-action-grid #downloadVideoBtn {
+        grid-column: 1 / -1;
+        display: block;
+        width: 100%;
+        margin-top: 0.5rem;
+        z-index: 10;
+    }
+}
 
 .download-action-grid #downloadAssBtn { grid-column: span 3; }
 
@@ -1774,7 +1788,7 @@ html, body, :root, *,
 
   border-radius: var(--radius-sm);
 
-  padding: 6px 8px;
+  padding: 4px 6px;
 
   box-shadow: var(--shadow-comic-sm);
 
@@ -1782,19 +1796,19 @@ html, body, :root, *,
 
   flex-direction: column;
 
-  gap: 5px;
+  gap: 3px;
 
   flex: 1;
 
-  min-height: 110px;
+  min-height: 75px;
 
-  max-height: 165px;
+  max-height: 125px;
 
   width: 100%;
 
   box-sizing: border-box;
 
-  margin-top: 4px;
+  margin-top: 2px;
 
 }
 
@@ -1941,23 +1955,14 @@ html, body, :root, *,
 /* Customization Columns Wrap (Phone preview stays fixed, controls scroll smoothly) */
 
 .customization-columns-wrap {
-
   flex: 1;
-
   min-height: 0;
-
   display: grid;
-
-  grid-template-columns: 218px 1fr;
-
-  gap: 8px;
-
-  padding: 3px 6px 4px;
-
+  grid-template-columns: 275px minmax(0, 1fr);
+  gap: 10px;
+  padding: 2px 4px;
   align-items: stretch;
-
   overflow: hidden;
-
 }
 
 
@@ -1965,25 +1970,19 @@ html, body, :root, *,
 /* SUB-COLUMN 1: Phone Simulation Section - Pinned and 100% visible at all times */
 
 .subcol-phone-sim {
-
   display: flex;
-
   flex-direction: column;
-
   height: 100%;
-
+  width: 275px;
+  min-width: 275px;
+  max-width: 275px;
   overflow: hidden;
-
   flex-shrink: 0;
-
   position: sticky;
-
   top: 0;
-
   align-self: flex-start;
-
   z-index: 15;
-
+  box-sizing: border-box;
 }
 
 
@@ -1996,7 +1995,7 @@ html, body, :root, *,
 
   border-radius: var(--radius-sm);
 
-  padding: 4px 6px 6px;
+  padding: 2px 4px 3px;
 
   box-shadow: var(--shadow-comic-sm);
 
@@ -2009,6 +2008,8 @@ html, body, :root, *,
   height: 100%;
 
   max-height: 100%;
+
+  width: 100%;
 
   box-sizing: border-box;
 
@@ -2063,6 +2064,94 @@ html, body, :root, *,
   letter-spacing: 0.5px;
 
   text-transform: uppercase;
+
+}
+
+
+
+/* Real Phone Preview Size Switcher */
+
+.phone-size-bar {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 3px;
+
+  width: 100%;
+
+  background: var(--bg-shell);
+
+  border: 1.5px solid var(--pitch-black);
+
+  border-radius: var(--radius-pill);
+
+  padding: 2px 3px;
+
+  box-shadow: 1px 1px 0 var(--pitch-black);
+
+  margin-bottom: 2px;
+
+}
+
+
+
+.phone-size-chip {
+
+  flex: 1;
+
+  text-align: center;
+
+  background: none;
+
+  border: none;
+
+  font-family: inherit;
+
+  font-size: 8.5px;
+
+  font-weight: 800;
+
+  padding: 2.5px 3px;
+
+  border-radius: var(--radius-pill);
+
+  cursor: pointer;
+
+  color: var(--text-muted);
+
+  white-space: nowrap;
+
+  transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+}
+
+
+
+.phone-size-chip:hover {
+
+  color: var(--text-main);
+
+  transform: scale(1.03);
+
+}
+
+
+
+.phone-size-chip.active {
+
+  background: var(--amber);
+
+  color: var(--pitch-black);
+
+  border: 1px solid var(--pitch-black);
+
+  box-shadow: 1px 1px 0 var(--pitch-black);
+
+  font-weight: 900;
 
 }
 
@@ -2142,56 +2231,67 @@ html, body, :root, *,
 
 
 
-/* Phone Frame Wrapper */
+/* Phone Frame Wrapper (Exact 9:18 Proportions, Zero Noodle) */
 
 .phone-frame-wrapper {
-
   flex: 1;
-
   display: flex;
-
   align-items: flex-start;
-
   justify-content: center;
-
   width: 100%;
-
   min-height: 0;
-
-  padding-top: 2px;
-
+  overflow: hidden;
+  padding: 4px;
+  box-sizing: border-box;
 }
 
 
 
-/* Simulated Phone Device (Exact Modern 19.5:9 Smartphone Screen) */
+/* Simulated Phone Device (Strict 9:18 Smartphone Proportion, Never Distorted) */
 
 .phone-device {
-
-  width: 196px;
-
-  height: 422px;
-
-  max-height: calc(100% - 4px);
-
+  aspect-ratio: 9 / 18 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: auto !important;
   background: var(--phone-bg);
-
   border: 2.5px solid var(--pitch-black);
-
-  border-radius: 22px;
-
+  border-radius: 26px;
   box-shadow: 3.5px 3.5px 0 var(--pitch-black);
-
   position: relative;
-
   overflow: hidden;
-
   user-select: none;
-
   display: flex;
-
   flex-direction: column;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
 
+.phone-device.size-fit {
+  height: 100% !important;
+  max-height: 100% !important;
+  max-width: 100% !important;
+  width: auto !important;
+  aspect-ratio: 9 / 18 !important;
+  margin: auto !important;
+}
+
+.phone-device.size-real {
+  width: 260px !important;
+  height: 520px !important;
+  aspect-ratio: 9 / 18 !important;
+  max-width: 100% !important;
+  border-radius: 26px;
+  margin: auto !important;
+}
+
+.phone-device.size-promax {
+  width: 270px !important;
+  height: 540px !important;
+  aspect-ratio: 9 / 18 !important;
+  max-width: 100% !important;
+  border-radius: 28px;
+  margin: auto !important;
 }
 
 
@@ -2202,17 +2302,17 @@ html, body, :root, *,
 
   position: absolute;
 
-  bottom: 3px;
+  bottom: 4px;
 
   left: 50%;
 
   transform: translateX(-50%);
 
-  width: 58px;
+  width: 65px;
 
   height: 3px;
 
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.7);
 
   border-radius: 2px;
 
@@ -2221,6 +2321,7 @@ html, body, :root, *,
   pointer-events: none;
 
 }
+
 
 
 
@@ -2250,11 +2351,11 @@ html, body, :root, *,
 
 
 
-/* Phone Top Bar */
+/* Phone Top Bar (Clamped Responsive) */
 
 .phone-status-bar {
 
-  height: 17px;
+  height: clamp(15px, 3.8%, 20px);
 
   display: flex;
 
@@ -2262,9 +2363,9 @@ html, body, :root, *,
 
   justify-content: space-between;
 
-  padding: 2px 10px 0;
+  padding: 2px clamp(8px, 4%, 12px) 0;
 
-  font-size: 7.5px;
+  font-size: clamp(7.5px, 1.8%, 9.5px);
 
   font-weight: 800;
 
@@ -2282,13 +2383,13 @@ html, body, :root, *,
 
 .phone-notch {
 
-  width: 42px;
+  width: clamp(44px, 24%, 68px);
 
-  height: 7px;
+  height: clamp(8px, 1.8%, 11px);
 
   background: #000;
 
-  border-radius: 0 0 5px 5px;
+  border-radius: 0 0 6px 6px;
 
 }
 
@@ -2310,7 +2411,7 @@ html, body, :root, *,
 
 .platform-top-bar {
 
-  padding: 2px 8px;
+  padding: 1px clamp(6px, 3%, 10px);
 
   z-index: 10;
 
@@ -2332,9 +2433,9 @@ html, body, :root, *,
 
   justify-content: center;
 
-  gap: 8px;
+  gap: clamp(6px, 3%, 10px);
 
-  font-size: 8px;
+  font-size: clamp(8px, 1.9%, 9.5px);
 
   font-weight: 700;
 
@@ -2354,7 +2455,7 @@ html, body, :root, *,
 
   font-weight: 900;
 
-  border-bottom: 1.5px solid #fff;
+  border-bottom: 2px solid #fff;
 
 }
 
@@ -2382,9 +2483,9 @@ html, body, :root, *,
 
   position: absolute;
 
-  right: 5px;
+  right: clamp(4px, 1.8%, 7px);
 
-  bottom: 24px;
+  bottom: clamp(22px, 5.5%, 32px);
 
   display: flex;
 
@@ -2392,7 +2493,7 @@ html, body, :root, *,
 
   align-items: center;
 
-  gap: 5px;
+  gap: clamp(3px, 1%, 6px);
 
   z-index: 8;
 
@@ -2410,13 +2511,23 @@ html, body, :root, *,
 
   align-items: center;
 
-  font-size: 7px;
+  font-size: clamp(6.5px, 1.6%, 8px);
 
   font-weight: 800;
 
   color: #fff;
 
   gap: 1px;
+
+}
+
+
+
+.side-item svg {
+
+  width: clamp(14px, 6.5%, 19px);
+
+  height: clamp(14px, 6.5%, 19px);
 
 }
 
@@ -2434,13 +2545,13 @@ html, body, :root, *,
 
 .side-avatar {
 
-  width: 20px;
+  width: clamp(18px, 8.5%, 24px);
 
-  height: 20px;
+  height: clamp(18px, 8.5%, 24px);
 
   border-radius: 50%;
 
-  border: 1.5px solid #fff;
+  border: 1.2px solid #fff;
 
   background: linear-gradient(135deg, var(--amber), var(--terracotta));
 
@@ -2458,9 +2569,9 @@ html, body, :root, *,
 
   transform: translateX(-50%);
 
-  width: 9px;
+  width: clamp(8px, 3.8%, 10px);
 
-  height: 9px;
+  height: clamp(8px, 3.8%, 10px);
 
   background: #ff2e56;
 
@@ -2468,7 +2579,7 @@ html, body, :root, *,
 
   border-radius: 50%;
 
-  font-size: 7.5px;
+  font-size: clamp(6.5px, 1.6%, 7.5px);
 
   font-weight: 900;
 
@@ -2484,9 +2595,9 @@ html, body, :root, *,
 
 .rotating-disc {
 
-  width: 16px;
+  width: clamp(15px, 7%, 20px);
 
-  height: 16px;
+  height: clamp(15px, 7%, 20px);
 
   background: radial-gradient(circle, #222 30%, #555 35%, #222 60%, #111 100%);
 
@@ -2514,13 +2625,13 @@ html, body, :root, *,
 
   position: absolute;
 
-  bottom: 8px;
+  bottom: clamp(8px, 2%, 12px);
 
   left: 6px;
 
-  right: 44px;
+  right: clamp(36px, 16%, 46px);
 
-  padding: 5px 6px;
+  padding: clamp(3px, 1%, 5px) clamp(4px, 1.5%, 6px);
 
   background: transparent !important;
 
@@ -2532,7 +2643,7 @@ html, body, :root, *,
 
   flex-direction: column;
 
-  gap: 2.5px;
+  gap: clamp(1.5px, 0.5%, 2.5px);
 
   text-align: left;
 
@@ -2558,7 +2669,7 @@ html, body, :root, *,
 
 .creator-tag {
 
-  font-size: 8px;
+  font-size: clamp(8px, 2%, 9.5px);
 
   font-weight: 900;
 
@@ -2574,13 +2685,13 @@ html, body, :root, *,
 
   color: #fff;
 
-  font-size: 7px;
+  font-size: clamp(6.5px, 1.6%, 7.5px);
 
   font-weight: 800;
 
-  padding: 1px 4.5px;
+  padding: 1px 4px;
 
-  border-radius: 3px;
+  border-radius: 2.5px;
 
   cursor: pointer;
 
@@ -2590,13 +2701,13 @@ html, body, :root, *,
 
 .creator-desc {
 
-  font-size: 6.8px;
+  font-size: clamp(6.8px, 1.7%, 8.5px);
 
   color: rgba(255, 255, 255, 0.9);
 
   line-height: 1.25;
 
-  max-width: 105px;
+  max-width: clamp(95px, 55%, 150px);
 
 }
 
@@ -2608,9 +2719,9 @@ html, body, :root, *,
 
   align-items: center;
 
-  gap: 2.5px;
+  gap: 2px;
 
-  font-size: 6.5px;
+  font-size: clamp(6px, 1.5%, 7.5px);
 
   color: rgba(255, 255, 255, 0.7);
 
@@ -2622,7 +2733,7 @@ html, body, :root, *,
 
   height: 1.5px;
 
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.85);
 
   border-radius: 1px;
 
@@ -2642,7 +2753,7 @@ html, body, :root, *,
 
   right: 0;
 
-  bottom: 96px;
+  bottom: clamp(85px, 22%, 125px);
 
   border-top: 1.5px dashed var(--amber);
 
@@ -2662,9 +2773,9 @@ html, body, :root, *,
 
   right: 4px;
 
-  top: -11px;
+  top: -10px;
 
-  font-size: 6px;
+  font-size: clamp(6px, 1.5%, 7px);
 
   font-weight: 900;
 
@@ -2698,7 +2809,7 @@ html, body, :root, *,
 
   color: var(--pitch-black);
 
-  font-size: 8px;
+  font-size: 8.5px;
 
   font-weight: 900;
 
@@ -2717,6 +2828,7 @@ html, body, :root, *,
   white-space: nowrap;
 
 }
+
 
 
 
@@ -6052,32 +6164,31 @@ html, body, :root, *,
 
 
 
-.anim-letter_pop .sub-letter {
-
-  animation: letterPopAnim calc(0.42s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
-
-  animation-delay: calc(var(--letter-idx, 0) * (0.045s / var(--anim-speed, 1)));
-
+.sub-word.anim-letter_pop.active {
+  animation: letterPopAnim calc(0.36s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
 }
 
+.sub-word.anim-letter_drop.active {
+  animation: letterDropAnim calc(0.38s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
 
+.sub-word.anim-letter_rise.active {
+  animation: letterRiseAnim calc(0.36s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.25, 1, 0.5, 1)) both;
+}
+
+.anim-letter_pop .sub-letter {
+  animation: letterPopAnim calc(0.42s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+  animation-delay: calc(var(--letter-idx, 0) * (0.045s / var(--anim-speed, 1)));
+}
 
 .anim-letter_drop .sub-letter {
-
   animation: letterDropAnim calc(0.46s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
-
   animation-delay: calc(var(--letter-idx, 0) * (0.045s / var(--anim-speed, 1)));
-
 }
 
-
-
 .anim-letter_rise .sub-letter {
-
   animation: letterRiseAnim calc(0.42s / var(--anim-speed, 1)) var(--anim-ease, cubic-bezier(0.25, 1, 0.5, 1)) both;
-
   animation-delay: calc(var(--letter-idx, 0) * (0.045s / var(--anim-speed, 1)));
-
 }
 
 

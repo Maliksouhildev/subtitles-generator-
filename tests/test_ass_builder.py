@@ -266,10 +266,10 @@ def test_ass_builder_script_separated_chunking():
         {"word": "test", "start": 4.1, "end": 4.8}
     ]
     chunks = builder.chunk_words(words)
-    # Script separation: French words displayed by themselves
+    # Strict script separation: French words displayed by themselves, never mixed on screen with Arabic
     assert len(chunks) == 4
     assert [w["word"] for w in chunks[0]] == ["وكان", "الشرف", "للشركة"]
-    assert [w["word"] for w in chunks[1]] == ["Red", "Field"]
+    assert [w["word"] for w in chunks[1]] == ["Redfield"]
     assert [w["word"] for w in chunks[2]] == ["أنها", "تدير"]
     assert [w["word"] for w in chunks[3]] == ["test"]
 
@@ -287,7 +287,7 @@ def test_ass_builder_verb_prefix_binding_and_spelling():
     chunks = builder.chunk_words(words)
     # Verb prefix "يـ" binds with "percer" into "يـ percer", and "la" binds with "tôle" into "la tôle"
     assert chunks[0][0]["word"] == "يـ percer"
-    # Script separation: Arabic and French isolated into distinct screens
+    # Strict script separation: French/Latin and Arabic words isolated into distinct screens
     assert len(chunks) == 4
     assert [w["word"] for w in chunks[0]] == ["يـ percer"]
     assert [w["word"] for w in chunks[1]] == ["داخل"]
@@ -408,11 +408,11 @@ def test_noun_adjective_cohesion_and_letter_pop_visibility():
     )
     assert has_wal_mustawa_watani, "Noun-adjective pair 'والمستوى الوطني' was split!"
 
-    # Letter pop events must never use \\alpha&HFF& (100% invisible letters)
+    # Letter pop events hide upcoming unrevealed words as requested
     chunk_french = [
         {"word": "la nouvelle", "start": 3.91, "end": 4.43},
         {"word": "technologie", "start": 4.43, "end": 4.81},
         {"word": "PPF", "start": 4.81, "end": 4.96}
     ]
     events = builder.build_letter_pop_events([chunk_french], style_type="drop")
-    assert all("\\alpha&HFF&" not in e for e in events)
+    assert any("\\alpha&HFF&" in e for e in events)

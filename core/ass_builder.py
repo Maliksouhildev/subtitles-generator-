@@ -12,7 +12,7 @@ Features:
 import math
 import re
 from typing import List, Dict, Any, Optional
-from core.arabic_shaper import shape_arabic_word_to_letters
+from core.transcriber import post_process_word_sequence
 
 ARABIC_REGEX = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]')
 LATIN_REGEX = re.compile(r'[a-zA-Z]')
@@ -79,25 +79,25 @@ def calculate_word_end_time(
     w_start: float,
     natural_end: float,
     next_chunk_start: Optional[float],
-    min_hold_duration: float = 0.70,
-    silence_threshold: float = 0.50,
-    max_duration: float = 2.5
+    min_hold_duration: float = 0.65,
+    silence_threshold: float = 0.40,
+    max_duration: float = 2.0
 ) -> float:
     """
     Calculates display end time for the final word in a chunk.
-    - Strictly enforces max_duration rule: no subtitle stays on screen longer than 2.5s.
+    - Strictly enforces max_duration rule: no subtitle stays on screen longer than 2.0s.
     - If there is a silence gap (> silence_threshold) before the next chunk,
       dismisses the subtitle cleanly at natural_end + 0.35s (does not linger over silence).
-    - If speech continues promptly, bridges smoothly to next_chunk_start - 0.05s
+    - If speech continues promptly, bridges smoothly to next_chunk_start - 0.04s
       or maintains min_hold_duration.
     """
     if next_chunk_start is not None:
         gap = next_chunk_start - natural_end
         if gap > silence_threshold:
-            chosen_end = max(w_start + 0.30, natural_end + 0.35)
+            chosen_end = max(w_start + 0.25, natural_end + 0.35)
         else:
             min_hold = w_start + min_hold_duration
-            chosen_end = min(next_chunk_start - 0.05, max(natural_end, min_hold))
+            chosen_end = min(next_chunk_start - 0.04, max(natural_end, min_hold))
     else:
         min_hold = w_start + min_hold_duration
         chosen_end = max(natural_end, min_hold)
@@ -594,7 +594,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 skip_w = True
                 continue
 
-            if w1_txt.lower() == "red" and bool(re.match(r'^film[es]?$', w2_txt, re.IGNORECASE)):
+            if w1_txt.lower() == "red" and bool(re.match(r'^(?:field|film[es]?)$', w2_txt, re.IGNORECASE)):
                 repaired_w.append({
                     "word": "Redfield",
                     "start": w1.get("start", 0.0),
@@ -621,6 +621,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         # 2. Bind internal French articles ('le premier', 'la nouvelle', 'par rapport')
         words = bind_arabic_articles_to_latin(words)
+        words = post_process_word_sequence(words)
         if not words:
             return []
 
@@ -672,8 +673,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             chunk_words_text = [str(cw.get("word", "")).strip() for cw in current_chunk]
             # Coordinated parallel clause protection (e.g. 'على المستوى الأفريقي والمستوى الوطني')
             is_parallel_coordination = (
-                any(n in cw for n in ("المستوى", "مستوى", "القطاع", "المجال") for cw in chunk_words_text)
-                and (w_text.startswith("والمستوى") or w_text.startswith("ومستوى") or w_text.startswith("والوطني") or w_text.startswith("والإفريقي") or w_text.startswith("والأفريقي"))
+                (any(n in cw for n in ("المستوى", "مستوى", "القطاع", "المجال") for cw in chunk_words_text)
+                 and (w_text.startswith("والمستوى") or w_text.startswith("ومستوى") or w_text.startswith("والوطني") or w_text.startswith("والإفريقي") or w_text.startswith("والأفريقي")))
+                or (any(cw.startswith(("والمستوى", "ومستوى")) for cw in chunk_words_text) and (w_text.startswith("ال") or w_text.startswith("الإ") or w_text.startswith("الأ")))
+            )
+
+            is_parallel_clause_start = (
+                (w_text.startswith("والمستوى") or w_text.startswith("ومستوى"))
+                and len(current_chunk) >= target_size
             )
 
             # Coordinating conjunction boundary (only when not inside parallel coordinated phrase)
@@ -691,22 +698,35 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 and (w_text.startswith("اللي") or w_text.startswith("الي"))
             )
 
+            is_preposition_boundary = (
+                len(current_chunk) >= 2
+                and w_text in ("على", "في", "من", "إلى", "مع")
+                and not is_noun_adjective
+            )
+
             effective_limit = target_size + 1 if is_parallel_coordination else target_size
 
             should_break = False
             if current_chunk:
-                # Forced break before and after Latin loan strings so French words are displayed by themselves
+                # Forced break before and after Latin strings so French/Latin loanwords are strictly isolated on screen
                 if w_script != current_script:
                     should_break = True
-                # Hard silence boundary: never cross pause > 0.50s
-                elif pause_gap > 0.50:
+                # Hard silence boundary: never cross pause > 0.45s
+                elif pause_gap > 0.45:
+                    should_break = True
+                elif is_parallel_clause_start:
+                    should_break = True
+                elif is_preposition_boundary:
                     should_break = True
                 elif is_conjunction_boundary:
                     should_break = True
                 elif is_relative_clause_boundary:
                     should_break = True
                 elif is_inseparable or is_parallel_coordination:
-                    should_break = False
+                    if len(current_chunk) >= effective_limit + 1:
+                        should_break = True
+                    else:
+                        should_break = False
                 # Strict 3-4 words max per chunk (up to 5 for parallel coordination)
                 elif len(current_chunk) >= effective_limit:
                     should_break = True
@@ -727,15 +747,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if current_chunk:
             raw_chunks.append(current_chunk)
 
-        # 4. Anti-orphan pass: only merge tiny 1-word fragments if SAME script, gap <= 0.40s, and combined <= 4 words
+        # 4. Anti-orphan pass: merge tiny 1-word fragments ONLY IF they share the exact same script
         merged_chunks: List[List[Dict[str, Any]]] = []
         for c in raw_chunks:
             if not c:
                 continue
             if merged_chunks:
                 prev_c = merged_chunks[-1]
-                prev_script = "latin" if bool(LATIN_REGEX.search(str(prev_c[-1].get("word", "")))) else "arabic"
-                curr_script = "latin" if bool(LATIN_REGEX.search(str(c[0].get("word", "")))) else "arabic"
+                prev_script = "latin" if bool(LATIN_REGEX.search(" ".join(str(x.get("word", "")) for x in prev_c))) else "arabic"
+                curr_script = "latin" if bool(LATIN_REGEX.search(" ".join(str(x.get("word", "")) for x in c))) else "arabic"
                 prev_end = float(prev_c[-1].get("end", float(prev_c[-1].get("start", 0.0)) + 0.3))
                 gap = float(c[0].get("start", 0.0)) - prev_end
 
@@ -880,10 +900,34 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         return events
 
-    def build_classic_line_events(self, segments: List[Dict[str, Any]]) -> List[str]:
-        """Builds classic subtitle lines with smooth dynamic fade in/out transitions."""
+    def build_classic_line_events(self, segments: List[Dict[str, Any]], chunks: Optional[List[List[Dict[str, Any]]]] = None) -> List[str]:
+        """Builds classic subtitle lines with smooth dynamic fade in/out transitions, enforcing script isolation when chunks are available."""
         events = []
         spd = self.animation_speed
+        if chunks:
+            for chunk_idx, chunk in enumerate(chunks):
+                if not chunk:
+                    continue
+                start = chunk[0].get("start", 0.0)
+                end = chunk[-1].get("end", start + 1.5)
+                next_chunk_start = chunks[chunk_idx + 1][0]["start"] if chunk_idx + 1 < len(chunks) else None
+                end = calculate_word_end_time(start, end, next_chunk_start, min_hold_duration=0.70, silence_threshold=0.50)
+                dur_ms = max(50, int((end - start) * 1000))
+                fade_ms = max(20, min(160, int((dur_ms * 0.15) / spd)))
+                fade_tag = f"{{\\fad({fade_ms},{fade_ms})\\blur1.8}}"
+                start_str = format_ass_time(start)
+                end_str = format_ass_time(end)
+                chunk_is_rtl = self.is_chunk_rtl(chunk)
+                visual_indices = resolve_visual_word_order(chunk, in_rtl_context=chunk_is_rtl)
+                formatted_tokens = [format_bidi_word(chunk[idx].get("word", ""), in_rtl_context=chunk_is_rtl) for idx in visual_indices]
+                line_text = " ".join(formatted_tokens)
+                if chunk_is_rtl:
+                    line_text = f"\u200F{line_text}"
+                else:
+                    line_text = f"\u200E{line_text}"
+                events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{fade_tag}{line_text}")
+            return events
+
         for seg in segments:
             start = seg.get("start", 0.0)
             end = seg.get("end", start + 2.0)
@@ -1201,43 +1245,29 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     w = chunk[j]
                     raw_word = str(w.get("word", "")).strip()
                     word_is_ar = is_arabic_text(raw_word)
+                    word_text = format_bidi_word(raw_word, in_rtl_context=chunk_is_rtl)
 
                     if j == i:
-                        letters = shape_arabic_word_to_letters(raw_word) if word_is_ar else list(raw_word)
-                        N = max(1, len(letters))
-                        max_stagger_span = min(int(dur_ms * 0.35), 100)
-                        stagger_step = (max(4, int(max_stagger_span / max(1, N - 1))) if N > 1 else 0) / spd
-                        t_rise = max(15, min(int(dur_ms * 0.18 / spd), 75))
-                        t_fall = max(15, min(int(dur_ms * 0.20 / spd), 85))
+                        # WHOLE-WORD KINETIC SPRING ANIMATION:
+                        # Strictly animates whole words without character slicing.
+                        # Preserves complete Arabic ligatures and DirectWrite OpenType shaping.
+                        t1 = max(40, min(140, int(110 / spd)))
+                        t2 = max(t1 + 40, min(260, int(220 / spd)))
+                        if style_type == "drop":
+                            anim = f"\\fscx122\\fscy122\\t(0,{t1},0.45,\\fscx112\\fscy112)\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
+                        elif style_type == "rise":
+                            anim = f"\\fscx118\\fscy118\\t(0,{t1},0.5,\\fscx108\\fscy108)\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
+                        else:  # pop
+                            anim = f"\\fscx128\\fscy128\\t(0,{t1},0.35,\\fscx114\\fscy114)\\t({t1},{t2},1.5,\\fscx100\\fscy100)"
 
-                        letter_tags = []
-                        for k, ch in enumerate(letters):
-                            if ch == " ":
-                                letter_tags.append(" ")
-                                continue
-                            t0 = int(k * stagger_step)
-                            t1 = t0 + t_rise
-                            t2 = t1 + t_fall
-                            # Keep letters visible at full opacity (\alpha&H00&) so long words like 'technologie'
-                            # and 'premier' are never chopped mid-word or invisible during active speech
-                            if style_type == "drop":
-                                anim = f"\\fscx0\\fscy0\\t({t0},{t1},0.45,\\fscx125\\fscy125)\\t({t1},{t2},1.4,\\fscx100\\fscy100)"
-                            elif style_type == "rise":
-                                anim = f"\\fscx0\\fscy0\\t({t0},{t1},0.5,\\fscx120\\fscy120)\\t({t1},{t2},1.3,\\fscx100\\fscy100)"
-                            else:
-                                anim = f"\\fscx0\\fscy0\\t({t0},{t1},0.35,\\fscx135\\fscy135)\\t({t1},{t2},1.5,\\fscx100\\fscy100)"
-                            letter_tags.append(f"{{{anim}}}{ch}")
-
-                        word_str = "{" + hl_tag + "\\blur0.8}" + "".join(letter_tags) + "{" + pri_tag + "\\alpha&H00&" + reset_tag + "}"
+                        word_str = f"{{{hl_tag}\\blur0.8{anim}}}{word_text}{{{pri_tag}\\alpha&H00&{reset_tag}}}"
                         if not word_is_ar and chunk_is_rtl:
                             word_str = f"\u200E{word_str}\u200E"
                         formatted_words.append(word_str)
                     elif j < i:
-                        word_text = format_bidi_word(raw_word, in_rtl_context=chunk_is_rtl)
                         formatted_words.append(f"{{{pri_tag}\\blur0.8{reset_tag}}}{word_text}")
                     else:
-                        word_text = format_bidi_word(raw_word, in_rtl_context=chunk_is_rtl)
-                        formatted_words.append(f"{{{pri_tag}\\alpha&H88&\\blur0.8{reset_tag}}}{word_text}")
+                        formatted_words.append(f"{{{pri_tag}\\alpha&HFF&\\blur0.8{reset_tag}}}{word_text}")
 
                 line_text = " ".join(formatted_words)
                 if chunk_is_rtl:
@@ -1338,8 +1368,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         lang = str(transcription_data.get("language", "")).lower()
         self.is_arabic_mode = has_arabic or lang.startswith("ar") or "algerian" in lang
 
-        # Extract words per segment to respect pauses between sentences
-        chunks = []
+        # Extract all words across segments to allow cross-segment bridging and global code-switching alignment
+        all_words = []
         for seg in segments:
             seg_words = seg.get("words", [])
             if not seg_words and seg.get("text"):
@@ -1347,8 +1377,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 dur = (seg.get("end", 0.0) - seg.get("start", 0.0)) / max(1, len(ws))
                 cur = seg.get("start", 0.0)
                 seg_words = [{"word": w, "start": cur + idx * dur, "end": cur + (idx + 1) * dur} for idx, w in enumerate(ws)]
-            if seg_words:
-                chunks.extend(self.chunk_words(seg_words))
+            all_words.extend(seg_words)
+
+        chunks = []
+        if all_words:
+            all_words.sort(key=lambda x: float(x.get("start", 0.0)))
+            chunks = self.chunk_words(all_words)
 
         header = self.generate_header()
         events = []
@@ -1384,13 +1418,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         elif anim == "word_reveal":
             events = self.build_word_reveal_events(chunks)
         elif anim in ("classic_line", "classic_fade", "fade_editorial", "fade_highlight"):
-            events = self.build_classic_line_events(segments)
+            events = self.build_classic_line_events(segments, chunks=chunks)
         else:
             events = self.build_karaoke_pop_events(chunks)
 
         # Fallback if no words were generated
         if not events and segments:
-            events = self.build_classic_line_events(segments)
+            events = self.build_classic_line_events(segments, chunks=chunks)
 
         return header + "\n".join(events) + "\n"
 

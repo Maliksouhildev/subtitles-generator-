@@ -41,6 +41,8 @@ htmlcov/
 # Outputs and user uploads
 output/
 temp/
+scratch/
+scratch_crop.png
 sample_data/
 *.mp4
 *.webm

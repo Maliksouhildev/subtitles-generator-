@@ -377,7 +377,7 @@ def test_msa_bleed_and_parallel_clause_chunking():
     assert len(chunks[0]) == 5
     assert [w["word"] for w in chunks[0]] == ["على", "المستوى", "الأفريقي", "والمستوى", "الوطني"]
 
-    # 3. Verify French words displayed on their own screens (script isolation)
+    # 3. Script isolation: Latin loanwords (Redfield) are isolated from Arabic phrases
     bilingual_words = [
         {"word": "وكان", "start": 0.0, "end": 0.3},
         {"word": "الشرف", "start": 0.3, "end": 0.7},
@@ -385,7 +385,6 @@ def test_msa_bleed_and_parallel_clause_chunking():
         {"word": "Redfield", "start": 1.1, "end": 1.6},
     ]
     bi_chunks = builder.chunk_words(bilingual_words)
-    # Arabic phrase and French brand are cleanly isolated onto their own screens
     assert len(bi_chunks) == 2, f"Expected 2 chunks for script isolation, got {len(bi_chunks)}: {bi_chunks}"
     assert [w["word"] for w in bi_chunks[0]] == ["وكان", "الشرف", "لشركة"]
     assert [w["word"] for w in bi_chunks[1]] == ["Redfield"]

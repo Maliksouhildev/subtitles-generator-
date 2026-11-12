@@ -58,7 +58,23 @@ def get_windows_startup_path() -> str:
 
 
 def get_autostart_status() -> Dict[str, Any]:
-    """Checks whether auto-start on boot is currently enabled."""
+    """Checks whether auto-start on boot is currently enabled, and reloads core modules if updated on disk."""
+    try:
+        import importlib
+        for mod_name in ["core.transcriber", "core.ass_builder", "core.video_engine"]:
+            if mod_name in sys.modules:
+                importlib.reload(sys.modules[mod_name])
+        if "server" in sys.modules:
+            srv = sys.modules["server"]
+            import core.transcriber
+            import core.ass_builder
+            srv.normalize_transcription_data = core.transcriber.normalize_transcription_data
+            srv.calibrate_transcription_to_vad = core.transcriber.calibrate_transcription_to_vad
+            srv.ASSSubtitleBuilder = core.ass_builder.ASSSubtitleBuilder
+            srv.transcribe_algerian_speech = getattr(core.transcriber, "transcribe_algerian_speech", getattr(core.transcriber, "transcribe", None))
+    except Exception as e:
+        logger.warning(f"Dynamic module reload encountered: {e}")
+
     is_windows = sys.platform.startswith("win")
     is_linux = sys.platform.startswith("linux")
     is_mac = sys.platform.startswith("darwin")
