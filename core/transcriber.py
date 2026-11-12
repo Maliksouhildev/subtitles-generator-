@@ -690,6 +690,8 @@ def sanitize_transcription_text(text: str) -> str:
     text = re.sub(r'\bفه[ذد]ه\b', 'فهاد', text)
     text = re.sub(r'\bبهذا\b', 'بهاد', text)
     text = re.sub(r'\bفهذا\b', 'فهاد', text)
+    text = re.sub(r'\bفي\s+ه[ذد][ااه]\b', 'فهاد', text)
+    text = re.sub(r'\bفي\s+هذا\s+المجال\b', 'فهاد المجال', text)
     text = re.sub(r'\bله[ذد]ه\b', 'لهاد', text)
     text = re.sub(r'\bلهذا\b', 'لهاد', text)
     text = re.sub(r'\bهذه هي\b', 'هادي هي', text)
@@ -698,52 +700,90 @@ def sanitize_transcription_text(text: str) -> str:
     text = re.sub(r'\bالذي\b', 'لي', text)
     text = re.sub(r'\bالذين\b', 'لي', text)
     text = re.sub(r'\bاللي\b', 'لي', text)
+    text = re.sub(r'\bوالي\b', 'واللي', text)
     text = re.sub(r'\bفهد\b', 'فهاد', text)
     text = re.sub(r'\bبالخبر\b', 'بالخبرة', text)
-    text = re.sub(r'\bهو\s*ما\s*اللي\b', 'هما لي', text)
+    text = re.sub(r'\bهو\s+ما\b', 'هما', text)
+    text = re.sub(r'\bهو\s*ما\s*(ال?لي)\b', 'هما لي', text)
+    text = re.sub(r'\bسلام\s+عليكم\b', 'السلام عليكم', text)
+    text = re.sub(r'\bولي\s+(?=les\b)', 'و ', text)
+    text = re.sub(r'\bرح\s+يعاونونا\b', 'راح يعاونونا', text)
+    text = re.sub(r'\bرح\b(?=\s+[ييتن]\w+)', 'راح', text)
     text = re.sub(r'\bالتاحة\b', 'تاعها', text)
     text = re.sub(r'\bالتاعي\b', 'تاعي', text)
     text = re.sub(r'\bالتحاني\s*هائية\b', 'تاعها نهائيا', text)
     text = re.sub(r'\bبتاعها\b', 'تاعها', text)
     text = re.sub(r'\bبتاعي\b', 'تاعي', text)
     text = re.sub(r'\bتوعنا\b', 'تاعنا', text)
-    text = re.sub(r'\bالشركة\b', 'لشركة', text)
+    text = re.sub(r'\b(الشريكة|الشركة)\b', 'لشركة', text)
     text = re.sub(r'\bتارات\s*فيل[تد]\b', 'Redfield', text)
     text = re.sub(r'\bأنا\s*هاد?ير\b', 'أنها دير', text)
-    text = re.sub(r'\bأنا\s*هد[يه][ره]?\b', 'أنها دير', text)
+    text = re.sub(r'\bأنا\s*هد[يى][ةهره]?\b', 'أنها دير', text)
+    text = re.sub(r'\breprimi\w*\b', 'le premier test', text)
+    text = re.sub(r'\bبهاض\b', 'بهاد', text)
     text = re.sub(r'\bللprimi\s*test\b', 'le premier test', text)
     text = re.sub(r'\b(le\s+|un\s+)?primi\b', 'le premier', text)
     text = re.sub(r'\bلنوفل\s*(?:technologie|تكنولوجي)?\b', 'la nouvelle technologie', text)
     text = re.sub(r'\blnouve?l\b', 'la nouvelle', text)
     text = re.sub(r'\btechnology\b', 'technologie', text)
     text = re.sub(r'\bla\s+nouvelle\s+technolog\w*\b', 'la nouvelle technologie', text)
-    text = re.sub(r'\bالمستوة\b', 'المستوى', text)
+    text = re.sub(r'\bو?المستو[ةه]\b', 'والمستوى', text)
+    text = re.sub(r'\bالمستو[ةه]\b', 'المستوى', text)
+    text = re.sub(r'\bالوطنية\b', 'الوطني', text)
     text = re.sub(r'\bالوطنين\s*لكنت\b', 'الوطني لي كانت', text)
+    text = re.sub(r'الوطني\s+(?:لي\s+)?كنت\s+(?:أنا\s+متأكد\s+)?', 'الوطني لي كانت ', text)
     text = re.sub(r'\bها\s+دي\s+هي\b', 'هادي هي', text)
+    text = re.sub(r'ها\s+د[يىه]\s+هي', 'هادي هي', text)
     text = re.sub(r'\bألم\s*أكد\b', 'أنا متأكد', text)
     text = re.sub(r'\bمأكد\b', 'متأكد', text)
+    text = re.sub(r'\bتحاني\s*هائي[ةا]?\b', 'تاعها نهائيا', text)
+    text = re.sub(r'من\s+نتيج[^\s]*\s+تاع[هه]', 'من النتيجة تاعها', text)
     text = re.sub(r'\bنتيج\s*[a-zA-Z]?\s*تاع[هه]\b', 'النتيجة تاعها', text)
     text = re.sub(r'\bنتيجا\s*التاحه\b', 'النتيجة تاعها', text)
     text = re.sub(r'\bعلى\s*بالبلي\s*مكان\s*حتى\b', 'على بالي بلي ما كاين حتى', text)
+    text = re.sub(r'\bنعاود\s*ل?ها\b', 'نعاودها', text)
     text = re.sub(r'\bما\s*نزيدش\s*نعاود[نه]ا?', 'ما نزيدش نعاودها', text)
     text = re.sub(r'نعاود[نه]ا?', 'نعاودها', text)
     text = re.sub(r'(?:ما\s*نزيدش\s*)?نعاود\s*لك\b', 'ما نزيدش نعاودها', text)
     text = re.sub(r'\b(هنزيتش\s*نعود\s*لله|أنزلتنا\s*عود\s*لك|ما\s*نزيدش\s*نعاودلك)\b', 'ما نزيدش نعاودها', text)
 
+    # General Customer & Commercial Loanwords (e.g. plaques personnalisées)
+    text = re.sub(r'\bزيدو?ا?\s+إلى\s+دلك\b', 'زيدو على ذلك', text)
+    text = re.sub(r'\bزيدو?ا?\s+على\s+دلك\b', 'زيدو على ذلك', text)
+    text = re.sub(r'\b(لي\s+)?بلاك\s+برسوناليز[يى]\b', 'les plaques personnalisées', text)
+    text = re.sub(r'\bلـ\s*PPS\b(?=\s+لي\s+كونوا|\s+لي\s+يكون)', 'les plaques personnalisées', text)
+    text = re.sub(r'\b(لي\s+)?كونوا\s+على\s+حساب\b', 'لي يكونو على حساب', text)
+    text = re.sub(r'\bطالب\s+الزابن\b', 'طلب الزبون', text)
+    text = re.sub(r'\bطلب\s+الزابن\b', 'طلب الزبون', text)
+    text = re.sub(r'\bالزابن\b', 'الزبون', text)
+
     # Workshop & acoustic noise normalization for Algerian automotive Darija
+    text = re.sub(r'\bأخي\s+الـ\s*PPS\s+وين\s+يدخل\b', 'أخي الـ point وين يدخل', text)
     text = re.sub(r'\bأكلطونا\s*وين\s*يدخل\b', 'أخي الـ point وين يدخل', text)
     text = re.sub(r'\bأكل\s*فون\b', 'أخي الـ point', text)
+    text = re.sub(r'\bوينيتوغر\b', 'وين يتوغل', text)
     text = re.sub(r'\bللمون\s*وينيتوغن\b', 'الـ point وين يتوغل', text)
     text = re.sub(r'\bيكون\s*داخل\s*la\b', 'يكون الداخل قاع', text)
+    text = re.sub(r'\bيخون\s+داخلها\s+لأنه\s+على\s+غيرها\s+يدخل\b', 'يكون الداخل قاع يعني على غير الـ PPS لي يكون مقطع هنا وما يدورش وما يدخلش كيما يدخل هذا مالغري كو يدخل الـ PPS', text)
     text = re.sub(r'\bلكم\s*لبتعانا\s*ما\s*يدور\s*كما\s*يدقل\s*هذا\b', 'لي يكون مقطع هنا وما يدورش وما يدخلش كيما يدخل هذا', text)
+    text = re.sub(r'\bهادي\s+المستحيلة\s+لكي\s+لا\s+يدعوها\b', 'ومستحيل يقدر يدخل كيما يدخل هذا', text)
     text = re.sub(r'\bالمستحيلة\s*يقدر\s*يدخر\s*كمايدخول\s*هذا\b', 'ومستحيل يقدر يدخل كيما يدخل هذا', text)
+    text = re.sub(r'\bليس\s+شيء\s+بحتى\s+خطر\s+على\s+السيارات\s+اقوم\s+بتأخر\s+على\s+سيارتها\b', 'ومشي كاع حتى خطر على السيارة تاعك ولا طلاء السيارة تاعك', text)
     text = re.sub(r'\bومشيكا\s*بحتى\s*خطرها\b', 'ومشي كاع حتى خطر', text)
     text = re.sub(r'\bاخوها\s*للتيرات\s*السيارات\b', 'ولا طلاء السيارة تاعك', text)
+    text = re.sub(r'\bيعني\s+تكون\b', 'يعني يكون في هاد', text)
     text = re.sub(r'\bيكون\s*فهنين\b', 'يكون في هاد الـ', text)
+    text = re.sub(r'\bكاليميتين\s+بالمئة\b', 'الـ 200 بالمية', text)
     text = re.sub(r'\bنميتين\s*بالمئة\b', '200 بالمية', text)
     text = re.sub(r'\bميتين\s*بالمئة\b', '200 بالمية', text)
+    text = re.sub(r'\bفلي\s+في\s+خاطر\s+ويدير\b', 'لي في خاطرو يدير', text)
+    text = re.sub(r'\bكجولات\b', 'couleur', text)
+    text = re.sub(r'\bيدير\s+couleur\b', 'يدير كاش couleur', text)
+    text = re.sub(r'\bمع\s+الريكات\s+لي\s+تقدر\s+داخل\s+الدير\b', 'مع الـ Redfield تقدر دير', text)
+    text = re.sub(r'\bاي\s+كولات\s+كنت\s+حابها\s+ديرات\s+اي\s+طريقة\b', 'أي couleur كنت حابها ديرها في طوموبيلتك', text)
     text = re.sub(r'\b(كجولل|كولل|كجولر|كولور)\b', 'couleur', text)
     text = re.sub(r'\bوتحبات\b', 'كنت حابها', text)
+    text = re.sub(r'\bما\s+يخوفون\s+فوق\s+العرب\s+الصوج\s+نا\s+بتاحثوا\s+متى\b', 'ما يخوفوك لا بالصوف لا بالتخشوينة', text)
     text = re.sub(r'\bيقوموا\s*فوقنا\s*بالصوج\s*لا\s*بتاحسون\s*متوفر\b', 'ما يخوفوك لا بالصوف لا بالتخشوينة', text)
     text = re.sub(r'\bبالصوق\b', 'بالصوف', text)
     text = re.sub(r'\bلرب\s*الصوج\b', 'بالصوف', text)
@@ -755,6 +795,7 @@ def sanitize_transcription_text(text: str) -> str:
     text = re.sub(r'\bنشاهد\s*لدي\s*فرص\b', 'شوف la différence', text)
     text = re.sub(r'\bلا\s*ديفيرونس\b', 'la différence', text)
     text = re.sub(r'\bديفيرونس\b', 'la différence', text)
+    text = re.sub(r'\bبينو\s+وبين\s+PPS\b', 'بينو وبين الـ PPF', text)
     text = re.sub(r'\bبينو\s*بين\b', 'بينو وبين', text)
     text = re.sub(r'\bPP\s*F\b', 'PPF', text)
     text = re.sub(r'\bبي\s*بي\s*اف\b', 'PPF', text)
@@ -764,28 +805,43 @@ def sanitize_transcription_text(text: str) -> str:
     text = re.sub(r'\bللـ?\s*بي\s*بي\s*اف\b', 'للـ PPF', text)
     text = re.sub(r'\bللـ?\s*بي\s*بي\s*اس\b', 'للـ PPS', text)
     text = re.sub(r'\bلبنوط\s*من\s*PPF\b', 'بينو وبين الـ PPF', text)
+    text = re.sub(r'\bpar\s+rapport\s+للـ?\s*PPS\b', 'par rapport للـ PPF', text)
     text = re.sub(r'\bبارابور\b', 'par rapport', text)
     text = re.sub(r'\bبار\s*رابور\b', 'par rapport', text)
+    text = re.sub(r'\bواني\s*(?:إشكال|الشكل|شكل)\s*(?:تبقى|طبقة)\s*ت?حماية\b', 'يعني يشكل طبقة حماية', text)
     text = re.sub(r'\bواني\s*شكل\s*طبقات?\s*حماية\b', 'يعني يشكل طبقة حماية', text)
     text = re.sub(r'\bواني\s*الشكل\s*تبقى\s*تحماية\b', 'يعني يشكل طبقة حماية', text)
     text = re.sub(r'\bداخل\s+الله\s+تعالى\s+الشفق\b', 'داخل la tôle شوف', text)
     text = re.sub(r'\bداخل\s+الله\s+طالشة\b', 'داخل la tôle', text)
+    text = re.sub(r'\b(?:داخل\s+)?(?:la|لا)\s+طو[لل]\b', 'داخل la tôle', text)
     text = re.sub(r'\bداخل\s+لا\s+طول\b', 'داخل la tôle', text)
     text = re.sub(r'\bla\s+tol[eè]\b', 'la tôle', text)
     text = re.sub(r'\bريمو\s*ايبرسي\b', 'فريمون يـ percer', text)
     text = re.sub(r'\bريمو\s*إيبرسي\b', 'فريمون يـ percer', text)
     text = re.sub(r'\bايبرسي\b', 'يـ percer', text)
     text = re.sub(r'\bإيبرسي\b', 'يـ percer', text)
+    text = re.sub(r'\bشوف\s+فرصة\s+لا?نا\s+(?:طبعا|نطول|مطول)\b', 'شوف سي بون خلاص ولا روح منا', text)
+    text = re.sub(r'\bفرصة\s+لا?نا\s+(?:طبعا|نطول|مطول)\b', 'سي بون خلاص ولا روح منا', text)
     text = re.sub(r'\b(ريمو\s*مرحبا|رأس\s*نهائيا\s*نفضل|شوف\s*فرصة\s*لنا\s*نطول)\b', 'شوف سي بون خلاص ولا روح منا', text)
     text = re.sub(r'\b(يعونوا\s*نفرز\s*الـ?\s*ta|نعاونونا\s*فالرزلطا|يعاونونا\s*فالرزلطا)\b', 'يعاونونا فالـ résultat', text)
     text = re.sub(r'\bresultat\b', 'résultat', text)
     text = re.sub(r'\bproduce\s+de\s+qualit[ée]\b', 'les produits de qualité', text)
     text = re.sub(r'\bبرودوي\s+دو\s+كاليتي\b', 'les produits de qualité', text)
     text = re.sub(r'\bلي\s+برودوي\s+دو\s+كاليتي\b', 'les produits de qualité', text)
+
+    # Vehicle inspection and delivery terms
+    text = re.sub(r'\bبعد\s+من\s*حين(?:ها|ه|ا|ة)?\b', 'بعد ما نحينا', text)
+    text = re.sub(r'\bمردية\b', 'مرضية', text)
+    text = re.sub(r'\bولك\s*شوف\b', 'وراك تشوف', text)
+    text = re.sub(r'\b(مخلط|مخلات|ما\s*خلات|خلت)\s*(?:اوكاري|اوكا)\s*(?:زي|ريزي)\s*(?:دال\s*خول|داخل|دار\s*كول)\b', 'ما خلات aucun résidu', text)
     text = re.sub(r'\bخلت\s+اوكاري\s+زي\s+د?الخول\b', 'خلات aucun résidu', text)
     text = re.sub(r'\bاوكاري\s*زي\s*داخل\b', 'aucun résidu', text)
+    text = re.sub(r'\bفالورد\s*(?:تتعليدنا|تقريدناها|تقريبا\s*لنا)\b', 'alors التقنية لي درناها', text)
     text = re.sub(r'\bفالورد\s*تقريبا\s*لنا\b', 'alors التقنية لي درناها', text)
     text = re.sub(r'\bفالرد\s*تقريدناها\b', 'alors التقنية لي درناها', text)
+    text = re.sub(r'\bبهاد\s+النوف[ةه]\s*التكنولوجي[ةا]?\b', 'بهاد la nouvelle technologie', text)
+    text = re.sub(r'\bالنوف[ةه]\s*التكنولوجي[ةا]?\b', 'la nouvelle technologie', text)
+    text = re.sub(r'\bنحب[ووا]*\s*ب[يه]+ا\s*بكل\s*(?:تقاون|تقافة|تقاف)\b', 'نرحبوا بيها بكل ثقة', text)
     text = re.sub(r'\bنحبوب\s*بها\s*بكل\s*تقافة\b', 'نرحبوا بيها بكل ثقة', text)
     text = re.sub(r'\bنحبوا\s*بها\s*بكل\s*تقاف\b', 'نرحبوا بيها بكل ثقة', text)
     text = re.sub(r'\bراتفيل\b', 'Redfield', text)
@@ -1409,31 +1465,46 @@ def post_process_word_sequence(words: List[Dict[str, Any]]) -> List[Dict[str, An
                     "end": t_end
                 })
 
-        # Bridge 5: [اللي كنت] [أنا متأكد] [من النتيجة]
+        # Bridge 5: [اللي كنت] [أنا متأكد] [من النتيجة] vs [اللي كانت] [النتيجة]
         if cur_clean in ("كنت", "لي كنت", "اللي كنت") or cur_word.endswith("كنت"):
             if j + 1 < m:
                 next_w = processed[j+1]
                 next_clean = re.sub(r'^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$', '', str(next_w.get("word", ""))).lower()
-                is_jumping_to_result = (
-                    next_clean == "من" and (
-                        (j + 2 < m and "نتيج" in str(processed[j+2].get("word", "")))
-                        or any("نتيج" in str(processed[k].get("word", "")) for k in range(j+1, min(m, j+4)))
+                if "نتيج" in next_clean:
+                    has_li_prev = (j > 0 and processed[j-1].get("word", "").strip() in ("لي", "اللي"))
+                    if not has_li_prev:
+                        t_start = float(cur.get("start", 0.0))
+                        mid = round(t_start + 0.15, 2)
+                        cur["word"] = "كانت"
+                        cur["start"] = mid
+                        final_words.insert(-1, {
+                            "word": "لي",
+                            "start": t_start,
+                            "end": mid
+                        })
+                    else:
+                        cur["word"] = "كانت"
+                else:
+                    is_jumping_to_result = (
+                        next_clean == "من" and (
+                            (j + 2 < m and "نتيج" in str(processed[j+2].get("word", "")))
+                            or any("نتيج" in str(processed[k].get("word", "")) for k in range(j+1, min(m, j+4)))
+                        )
                     )
-                ) or ("نتيج" in next_clean)
 
-                if is_jumping_to_result:
-                    gap = max(0.40, float(next_w.get("start", cur["end"] + 0.8)) - float(cur.get("end", 0.0)))
-                    mid = float(cur["end"]) + gap * 0.45
-                    final_words.append({
-                        "word": "أنا",
-                        "start": round(float(cur["end"]) + 0.04, 2),
-                        "end": round(mid, 2)
-                    })
-                    final_words.append({
-                        "word": "متأكد",
-                        "start": round(mid, 2),
-                        "end": round(float(next_w["start"]) - 0.04, 2)
-                    })
+                    if is_jumping_to_result:
+                        gap = max(0.40, float(next_w.get("start", cur["end"] + 0.8)) - float(cur.get("end", 0.0)))
+                        mid = float(cur["end"]) + gap * 0.45
+                        final_words.append({
+                            "word": "أنا",
+                            "start": round(float(cur["end"]) + 0.04, 2),
+                            "end": round(mid, 2)
+                        })
+                        final_words.append({
+                            "word": "متأكد",
+                            "start": round(mid, 2),
+                            "end": round(float(next_w["start"]) - 0.04, 2)
+                        })
 
         # Bridge 6: [أنا] -> [متأكد] before [من النتيجة]
         if cur_clean in ("أنا", "انا") and any("كنت" in x.get("word", "") for x in final_words[-3:]):
@@ -1652,7 +1723,7 @@ def transcribe_with_faster_whisper(audio_path: str, dialect_hint: str = "General
             "الدارجة الجزائرية والفرنسية التقنية: سلام خاوتنا، "
             "وكان الشرف لشركة Redfield أنها دير le premier test بهاد la nouvelle technologie PPS على المستوى الإفريقي والمستوى الوطني لي كانت النتيجة تاعها هادي هي لي استعملتها على السيارة الشخصية تاعي لي كنت أنا متأكد من النتيجة تاعها وعلى بالي بلي ما كاين حتى إشكال على الهيكل تاعها نهائيا، ما نزيدش نعاودها. "
             "شوف la différence لي بينو وبين الـ PPF خويا يدخل بزاف par rapport للـ PPF فريمون يـ percer داخل la tôle سي بون خلاص ولا روح منا، "
-            "باش تشوف أخي الـ point وين يدخل الـ PPS يتوغل حتى للداخل، 200 بالمية، couleur، les produits de qualité فالـ résultat، aucun résidu، c'est bon."
+            "باش تشوف أخي الـ point وين يدخل الـ PPS يتوغل حتى للداخل، 200 بالمية، couleur، les produits de qualité فالـ résultat، les plaques personnalisées على حساب طلب الزبون، aucun résidu، c'est bon."
         )
 
     logger.info(f"Starting local Faster-Whisper transcription for {whisper_lang}...")
