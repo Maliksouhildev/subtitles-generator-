@@ -19,10 +19,10 @@ logging.basicConfig(level=logging.INFO)
 
 # Gemini models with free-tier access ordered by speed, transcription accuracy & JSON mode support
 GEMINI_MODELS = [
-    "gemini-3.1-flash-lite",
     "gemini-3.6-flash",
-    "gemini-flash-lite-latest",
+    "gemini-3.1-flash-lite",
     "gemini-flash-latest",
+    "gemini-flash-lite-latest",
     "gemini-3.7-flash",
     "gemini-3.8-flash",
 ]
@@ -47,7 +47,19 @@ STRICT VERBATIM TRANSLATION & SPELLING RULES:
      * "nouvelle": ALWAYS write "nouvelle" (NEVER "نوفيل").
      * "technologie": ALWAYS write "technologie" (NEVER "تكنولوجي").
      * "Redfield": ALWAYS write "Redfield" in Latin.
-     * "PPS": ALWAYS write "PPS" in Latin.
+     * "PPS": ALWAYS write "PPS" in Latin (NEVER "PPF" when speaker discusses PPS paint protection spray).
+     * "Que ce soit": ALWAYS write "Que ce soit" in Latin script (NEVER transcribe as "Couscous", "كوسكوس", or "قصاص"!).
+     * "Tout ce": ALWAYS write "Tout ce" (NEVER "Tous ce" or "توس").
+     * "l'intérieur" / "l'extérieur": ALWAYS write "l'intérieur" and "l'extérieur" in Latin script (NEVER "الأنترير" or "لانتيريور" or "لاكستيريور"!).
+     * "l'aspect d'origine": ALWAYS write "l'aspect d'origine" (NEVER transliterate into Arabic).
+     * "l'état": ALWAYS write "l'état" (NEVER "لي طال" or "ليتطا"!).
+     * "la tôle": ALWAYS write "la tôle" (NEVER "لاطول" or "لاتول"!).
+     * "la colle": ALWAYS write "la colle" (NEVER "الكولا" or "الكولة"!).
+     * "le véhicule": ALWAYS write "le véhicule" (NEVER "الـ véhicule" or "الفييكيل"!).
+     * "au contraire": ALWAYS write "au contraire" (NEVER "الكونتريير" or "كونتريير"!).
+     * "la preuve": ALWAYS write "la preuve" (NEVER "لا بروف" or "لابروف"!).
+     * "des vidéos": ALWAYS write "des vidéos" (NEVER "لي فيديو" or "لي فيديوهات"!).
+     * "aucun résidu de colle": ALWAYS write "aucun résidu de colle" (NEVER "résidu d'alcool" or "d'adhesif"!).
    - NO STANDARD ARABIC (MSA) BLEED OR PHONETIC INVENTIONS:
      * When the speaker speaks in casual Algerian Darija, NEVER invent high-register Modern Standard Arabic words that the speaker did not say!
      * NEVER transcribe "فاعتبر" (consider) — the speaker says "اللي كنت" or "السيارة الشخصية تاعي لي كنت أنا متأكد"!
@@ -1068,6 +1080,79 @@ def post_process_word_sequence(words: List[Dict[str, Any]]) -> List[Dict[str, An
         clean_ar = re.sub(r'^[،,.\!\?؟؛:\s]+', '', clean_ar)
 
         # 0. Loanword and technical spellings
+        # Discovered Iteration Refinements (Auto-body & Franco-Algerian Code Switching):
+        if clean_lower in ("couscous", "كوسكوس") or clean_ar in ("كوسا سوا", "كوسا سوى", "كوساسوا"):
+            w["word"] = "Que ce soit"
+            raw = "Que ce soit"
+            clean_lower = "que ce soit"
+
+        if clean_lower in ("tous ce", "tous-ce"):
+            w["word"] = "Tout ce"
+            raw = "Tout ce"
+            clean_lower = "tout ce"
+
+        if clean_lower in ("الكونتريير", "كونتريير", "الكونترير", "كونترير"):
+            w["word"] = "au contraire"
+            raw = "au contraire"
+            clean_lower = "au contraire"
+
+        if clean_lower in ("لا بروف", "لابروف", "لا-بروف"):
+            w["word"] = "la preuve"
+            raw = "la preuve"
+            clean_lower = "la preuve"
+
+        if clean_lower in ("الكولا", "الكولة", "كولا", "كولة"):
+            w["word"] = "la colle"
+            raw = "la colle"
+            clean_lower = "la colle"
+
+        if clean_lower in ("الـ véhicule", "الـ-véhicule", "الـvehicule"):
+            w["word"] = "le véhicule"
+            raw = "le véhicule"
+            clean_lower = "le véhicule"
+
+        if clean_lower in ("لي فيديو", "لي فيديوهات", "لي-فيديو"):
+            w["word"] = "des vidéos"
+            raw = "des vidéos"
+            clean_lower = "des vidéos"
+        elif clean_lower == "لي vidéo":
+            w["word"] = "les vidéos"
+            raw = "les vidéos"
+            clean_lower = "les vidéos"
+
+        if clean_lower in ("لي طال", "ليتطا", "لي تال"):
+            w["word"] = "l'état"
+            raw = "l'état"
+            clean_lower = "l'état"
+
+        if clean_lower in ("لاطول", "لاتول", "لا طول"):
+            w["word"] = "la tôle"
+            raw = "la tôle"
+            clean_lower = "la tôle"
+
+        if clean_lower in ("لي طاش", "ليطاش"):
+            w["word"] = "les taches"
+            raw = "les taches"
+            clean_lower = "les taches"
+
+        if clean_ar in ("في هاد", "في هذا", "فهذا"):
+            w["word"] = "فَهاد"
+            raw = "فَهاد"
+            clean_ar = "فَهاد"
+
+        if re.search(r"(\b|و)صراحت[اًً]+\b", raw):
+            w["word"] = re.sub(r"(\b|و)صراحت[اًً]+\b", r"\g<1>صراحة", raw)
+            raw = w["word"]
+            clean_ar = re.sub(r"^[^\w\u0600-\u06FF]+|[^\w\u0600-\u06FF]+$", "", raw)
+
+        if re.search(r"\baucun résidu d['\u2019]?(?:adhesif|adhésif|alcool|lacol)\b", raw, re.IGNORECASE):
+            w["word"] = re.sub(r"\baucun résidu d['\u2019]?(?:adhesif|adhésif|alcool|lacol)\b", "aucun résidu de colle", raw, flags=re.IGNORECASE)
+            raw = w["word"]
+            clean_lower = raw.lower()
+
+        if re.search(r"\bles résultats راح يكون واحد\b", raw, re.IGNORECASE):
+            w["word"] = re.sub(r"\bles résultats راح يكون واحد\b", "le résultat راح يكون واحد", raw, flags=re.IGNORECASE)
+            raw = w["word"]
         # Merge "ولا كاش" + "خطر" -> "ولا كاش خطر"
         if clean_ar == "ولا كاش" and i + 1 < n and str(words[i+1].get("word", "")).strip() in ("خطر", "خطار"):
             w["word"] = "ولا كاش خطر"

@@ -225,8 +225,8 @@ def test_bind_darija_prefixes_multitoken():
 def test_split_fused_script_tokens():
     from core.transcriber import split_fused_script_tokens, GEMINI_MODELS
     # Prioritizes active transcribe models
-    assert GEMINI_MODELS[0] in ("gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.1-flash-lite")
-    assert "gemini-3.1-flash-lite" in GEMINI_MODELS
+    assert GEMINI_MODELS[0] in ("gemini-3.6-flash", "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.1-flash-lite")
+    assert "gemini-3.6-flash" in GEMINI_MODELS
 
     words = [
         {"word": "komunه", "start": 6.42, "end": 6.84},
