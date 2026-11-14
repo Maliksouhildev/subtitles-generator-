@@ -1120,6 +1120,26 @@ def post_process_word_sequence(words: List[Dict[str, Any]]) -> List[Dict[str, An
             raw = "les vidéos"
             clean_lower = "les vidéos"
 
+        if clean_lower in ("ريتا", "الريتا") and i > 0:
+            w["word"] = "طبقة"
+            raw = "طبقة"
+            clean_ar = "طبقة"
+
+        if clean_lower in ("pasque", "باسك", "باسكو"):
+            w["word"] = "parce que"
+            raw = "parce que"
+            clean_lower = "parce que"
+
+        if clean_lower == "سيرتو":
+            w["word"] = "surtout"
+            raw = "surtout"
+            clean_lower = "surtout"
+
+        if clean_lower == "بيان سير":
+            w["word"] = "bien sûr"
+            raw = "bien sûr"
+            clean_lower = "bien sûr"
+
         if clean_lower in ("لي طال", "ليتطا", "لي تال"):
             w["word"] = "l'état"
             raw = "l'état"
